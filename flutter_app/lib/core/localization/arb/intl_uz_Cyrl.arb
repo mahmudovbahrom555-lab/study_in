@@ -1,0 +1,9 @@
+{
+  "@@locale": "uz_Cyrl",
+  "appName": "RepetApp",
+  "welcome": "Хуш келибсиз",
+  "loading": "Юкланмоқда...",
+  "retry": "Қайта уриниш",
+  "error": "Хатолик",
+  "noConnection": "Интернет билан алоқа йўқ"
+}

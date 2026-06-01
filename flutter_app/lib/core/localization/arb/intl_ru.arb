@@ -1,0 +1,9 @@
+{
+  "@@locale": "ru",
+  "appName": "RepetApp",
+  "welcome": "Добро пожаловать",
+  "loading": "Загрузка...",
+  "retry": "Повторить",
+  "error": "Ошибка",
+  "noConnection": "Нет соединения с интернетом"
+}

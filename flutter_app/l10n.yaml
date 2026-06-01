@@ -1,0 +1,7 @@
+arb-dir: lib/core/localization/arb
+template-arb-file: intl_uz.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+output-dir: lib/generated/l10n
+synthetic-package: false
+nullable-getter: false

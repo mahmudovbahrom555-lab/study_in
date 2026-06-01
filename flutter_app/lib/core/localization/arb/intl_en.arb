@@ -1,0 +1,9 @@
+{
+  "@@locale": "en",
+  "appName": "RepetApp",
+  "welcome": "Welcome",
+  "loading": "Loading...",
+  "retry": "Retry",
+  "error": "Error",
+  "noConnection": "No internet connection"
+}

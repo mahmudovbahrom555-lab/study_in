@@ -1,0 +1,15 @@
+{
+  "@@locale": "uz",
+  "appName": "RepetApp",
+  "@appName": {
+    "description": "Название приложения"
+  },
+  "welcome": "Xush kelibsiz",
+  "@welcome": {
+    "description": "Приветствие"
+  },
+  "loading": "Yuklanmoqda...",
+  "retry": "Qayta urinish",
+  "error": "Xatolik",
+  "noConnection": "Internet bilan aloqa yo'q"
+}
