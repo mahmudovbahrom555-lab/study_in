@@ -1,0 +1,72 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../features/auth/presentation/pages/splash_page.dart';
+import '../../features/auth/presentation/pages/phone_page.dart';
+import '../../features/auth/presentation/pages/verify_page.dart';
+import '../../features/auth/presentation/pages/role_select_page.dart';
+import '../../features/auth/presentation/pages/profile_setup_page.dart';
+import '../../features/auth/presentation/providers/auth_provider.dart';
+import 'routes.dart';
+
+final routerProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authProvider);
+
+  return GoRouter(
+    initialLocation: Routes.splash,
+    redirect: (context, state) {
+      final isAuth = authState.isAuthenticated;
+      final isLoading = authState.isLoading;
+      final loc = state.matchedLocation;
+
+      if (isLoading) return null;
+
+      final publicRoutes = {Routes.splash, Routes.phone, Routes.verify};
+      if (!isAuth && !publicRoutes.contains(loc)) return Routes.phone;
+
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: Routes.splash,
+        builder: (_, __) => const SplashPage(),
+      ),
+      GoRoute(
+        path: Routes.phone,
+        builder: (_, __) => const PhonePage(),
+      ),
+      GoRoute(
+        path: Routes.verify,
+        builder: (_, state) {
+          final phone = state.extra as String? ?? '';
+          return VerifyPage(phone: phone);
+        },
+      ),
+      GoRoute(
+        path: Routes.roleSelect,
+        builder: (_, __) => const RoleSelectPage(),
+      ),
+      GoRoute(
+        path: Routes.profileSetup,
+        builder: (_, __) => const ProfileSetupPage(),
+      ),
+      GoRoute(
+        path: Routes.home,
+        builder: (_, __) => const _PlaceholderHome(),
+      ),
+    ],
+  );
+});
+
+class _PlaceholderHome extends StatelessWidget {
+  const _PlaceholderHome();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('RepetApp')),
+      body: const Center(child: Text('Главный экран — Этап 2+')),
+    );
+  }
+}

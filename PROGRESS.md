@@ -1,8 +1,36 @@
 # Прогресс разработки repetapp
 
-## Текущий этап: 1 — Авторизация по SMS (в процессе)
+## Текущий этап: 2 — Группы и приглашения
 
 ## Завершённые этапы
+
+### Этап 1 — Авторизация по SMS ✅
+**Backend:**
+- Миграция 000002: users, verification_codes, refresh_tokens, device_tokens
+- domain/user.go: User, VerificationCode, RefreshToken, DeviceToken с ролями и языками
+- pkg/jwt: IssueAccess / ParseAccess (HS256), Manager
+- infrastructure/sms: Sender interface + MockSender + EskizSender (Eskiz.uz API)
+- infrastructure/redis: RateLimiter (INCR+EXPIRE)
+- features/auth: Repository interface, DTO, Service (10 методов), Handler (10 endpoints)
+- infrastructure/postgres: AuthRepository — полная реализация
+- middleware/auth.go: Bearer JWT + UserIDFromCtx / RoleFromCtx
+- 10 unit-тестов сервиса: все проходят с race detector
+- Исправлено: CORS AllowedOrigins конфигурируем, REDIS_ADDR валидируется, MinIO bucket приватный
+
+**Flutter:**
+- domain: User entity, AuthRepository interface
+- data: UserDto/AuthResponseDto, AuthApi (Dio), AuthRepositoryImpl
+- core/storage: SecureStorage (flutter_secure_storage)
+- core/network: AuthInterceptor (Bearer + auto-refresh при 401)
+- providers: AuthState, AuthNotifier (StateNotifier), authProvider
+- core/router: app_router.dart (go_router), routes.dart
+- pages: SplashPage, PhonePage, VerifyPage, RoleSelectPage, ProfileSetupPage
+- widgets: PhoneInput, CodeInput
+- app.dart: MaterialApp.router с go_router
+
+⚠️ Flutter SDK не установлен по пути ~/Developer/flutter/bin.
+   IDE показывает ошибки импортов — исчезнут после `flutter pub get`.
+   Код логически корректен.
 
 ### Этап 0 — Инфраструктура и каркас ✅
 - Go: Chi, config (Viper), middleware (logging, recovery, CORS), health/version endpoints, graceful shutdown

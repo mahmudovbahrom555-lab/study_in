@@ -1,13 +1,10 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../../core/network/api_client.dart';
+import '../../../../core/router/routes.dart';
+import '../providers/auth_provider.dart';
 
-/// Стартовый экран. На Этапе 0 проверяет соединение с бэкендом
-/// и показывает результат — чтобы убедиться что вся инфраструктура работает.
-///
-/// На Этапе 1 заменится логикой проверки JWT и переходом на нужный экран.
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
@@ -16,90 +13,35 @@ class SplashPage extends ConsumerStatefulWidget {
 }
 
 class _SplashPageState extends ConsumerState<SplashPage> {
-  String _status = 'Подключение...';
-  bool _isError = false;
-  bool _isLoading = true;
-  late final Dio _dio;
-
   @override
   void initState() {
     super.initState();
-    _dio = createDio();
-    _checkBackend();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
-  @override
-  void dispose() {
-    _dio.close();
-    super.dispose();
-  }
+  Future<void> _init() async {
+    await ref.read(authProvider.notifier).checkAuth();
+    if (!mounted) return;
 
-  Future<void> _checkBackend() async {
-    setState(() => _isLoading = true);
-    try {
-      final response = await _dio.get<Map<String, dynamic>>('/health');
-
-      if (!mounted) return;
-
-      setState(() {
-        _status = '✓ Backend работает\nстатус: ${response.data?['data']?['status']}';
-        _isError = false;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _status = 'Не удалось подключиться:\n$e';
-        _isError = true;
-        _isLoading = false;
-      });
+    final state = ref.read(authProvider);
+    if (state.isAuthenticated) {
+      final user = state.user;
+      if (user != null && !user.hasRole) {
+        context.go(Routes.roleSelect);
+      } else if (user != null && user.name.isEmpty) {
+        context.go(Routes.profileSetup);
+      } else {
+        context.go(Routes.home);
+      }
+    } else {
+      context.go(Routes.phone);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const FlutterLogo(size: 80),
-              const SizedBox(height: 32),
-              const Text(
-                'RepetApp',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Этап 0: проверка инфраструктуры',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 48),
-              if (_isLoading) const CircularProgressIndicator(),
-              const SizedBox(height: 24),
-              Text(
-                _status,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _isError ? Colors.red : Colors.green,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 24),
-              if (_isError)
-                ElevatedButton(
-                  onPressed: _checkBackend,
-                  child: const Text('Повторить'),
-                ),
-            ],
-          ),
-        ),
-      ),
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }

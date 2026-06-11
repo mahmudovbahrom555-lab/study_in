@@ -1,11 +1,14 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/app_config.dart';
+import '../storage/secure_storage.dart';
+import 'interceptors/auth_interceptor.dart';
 import 'interceptors/logging_interceptor.dart';
 
-/// Создаёт настроенный экземпляр Dio.
-/// Будет использоваться через Riverpod провайдер.
-Dio createDio() {
+final dioProvider = Provider<Dio>((ref) => createDio(ref));
+
+Dio createDio([Ref? ref]) {
   final dio = Dio(
     BaseOptions(
       baseUrl: AppConfig.apiUrl,
@@ -24,8 +27,10 @@ Dio createDio() {
     dio.interceptors.add(LoggingInterceptor());
   }
 
-  // На Этапе 1 здесь будет добавлен AuthInterceptor.
-  // dio.interceptors.add(AuthInterceptor());
+  if (ref != null) {
+    final storage = ref.read(secureStorageProvider);
+    dio.interceptors.add(AuthInterceptor(storage, dio));
+  }
 
   return dio;
 }

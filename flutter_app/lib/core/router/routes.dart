@@ -1,0 +1,8 @@
+abstract class Routes {
+  static const splash = '/';
+  static const phone = '/phone';
+  static const verify = '/verify';
+  static const roleSelect = '/role-select';
+  static const profileSetup = '/profile-setup';
+  static const home = '/home';
+}
