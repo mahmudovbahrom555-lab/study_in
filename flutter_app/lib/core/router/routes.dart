@@ -16,4 +16,8 @@ abstract class Routes {
   static String groupGrades(String groupId) => '/groups/$groupId/grades';
   static String studentGrades(String groupId, String studentId) =>
       '/groups/$groupId/students/$studentId/grades';
+  static String groupAttendance(String groupId) =>
+      '/groups/$groupId/attendance';
+  static String studentAttendance(String groupId, String studentId) =>
+      '/groups/$groupId/students/$studentId/attendance';
 }

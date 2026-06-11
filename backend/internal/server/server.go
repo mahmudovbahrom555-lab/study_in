@@ -17,6 +17,7 @@ import (
 
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/config"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/assignments"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/attendance"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/auth"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/feed"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/grades"
@@ -131,6 +132,10 @@ func (s *Server) setupRouter() {
 	gradeService := grades.NewService(gradeRepo, groupRepo)
 	gradeHandler := grades.NewHandler(gradeService)
 
+	attendanceRepo := postgres.NewAttendanceRepository(s.db)
+	attendanceService := attendance.NewService(attendanceRepo, groupRepo)
+	attendanceHandler := attendance.NewHandler(attendanceService)
+
 	// --- Маршруты ---
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", s.handleHealth)
@@ -145,6 +150,7 @@ func (s *Server) setupRouter() {
 			assignHandler.RegisterRoutes(r)
 			quizHandler.RegisterRoutes(r)
 			gradeHandler.RegisterRoutes(r)
+			attendanceHandler.RegisterRoutes(r)
 		})
 	})
 
