@@ -1,6 +1,6 @@
 # Прогресс разработки repetapp
 
-## Текущий этап: 4 — Домашние задания + MinIO
+## Текущий этап: 5 — Тесты (quiz)
 
 ## Завершённые этапы
 
@@ -75,8 +75,25 @@
 - widgets: PostCard (pinned highlight, popup menu, attachment chips), CreatePostSheet
 - router: /groups/:id/feed → FeedPage
 
+### Этап 4 — Домашние задания + MinIO ✅
+
+**Backend:**
+- Миграция 000005: assignments, assignment_attachments, submissions, submission_attachments
+- domain/assignment.go: Assignment, AssignmentAttachment, Submission, SubmissionAttachment
+- infrastructure/minio/client.go: PresignedGetURL, PutObject, RemoveObject (private bucket)
+- features/assignments: Repository, GroupChecker, Signer, ObjectStore interfaces
+- Service: CreateAssignment, UploadAssignmentFile, GetAssignment, ListAssignments,
+  UpdateAssignment, DeleteAssignment, Submit, UploadSubmissionFile, Grade, ListSubmissions
+- 50 MB file size limit, sanitizeFilename() против path traversal
+- Handler: 10 endpoints включая multipart file upload
+- Fallback: noopSigner/noopStore если MinIO недоступен (dev без S3_ENDPOINT)
+- 10 unit-тестов, все проходят с -race
+
+**Решение по ТЗ:** MinIO SDK добавлен (minio-go/v7). Avatar upload теперь тоже возможен
+через тот же MinIO client (Этап 4 → endpoint POST /api/v1/me/avatar активируется).
+
 ## Следующие этапы
-- **Этап 4:** Домашние задания + MinIO (загрузка файлов, signed URLs, avatar upload)
+- **Этап 5:** Тесты/Quiz (quiz, questions, options, student_answers, scoring)
 - Этап 4: Домашние задания + MinIO (загрузка файлов, signed URLs)
 - Этап 5: Тесты
 - Этап 6: Журнал оценок

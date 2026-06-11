@@ -4,6 +4,7 @@ package server
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"time"
@@ -15,9 +16,11 @@ import (
 	redisclient "github.com/redis/go-redis/v9"
 
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/config"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/assignments"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/auth"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/feed"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/groups"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/minio"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/postgres"
 	redisinfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/redis"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/sms"
@@ -101,6 +104,23 @@ func (s *Server) setupRouter() {
 	feedService := feed.NewService(feedRepo, groupRepo)
 	feedHandler := feed.NewHandler(feedService)
 
+	minioClient, err := minio.New(s.cfg.S3)
+	if err != nil {
+		s.log.Warn("MinIO unavailable, file uploads disabled", slog.String("err", err.Error()))
+	}
+	var minioSigner assignments.Signer
+	var minioStore assignments.ObjectStore
+	if minioClient != nil {
+		minioSigner = minioClient
+		minioStore = minioClient
+	} else {
+		minioSigner = noopSigner{}
+		minioStore = noopStore{}
+	}
+	assignRepo := postgres.NewAssignmentRepository(s.db)
+	assignService := assignments.NewService(assignRepo, groupRepo, minioSigner, minioStore)
+	assignHandler := assignments.NewHandler(assignService)
+
 	// --- Маршруты ---
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", s.handleHealth)
@@ -112,10 +132,22 @@ func (s *Server) setupRouter() {
 			r.Use(middleware.Auth(jwtManager))
 			groupHandler.RegisterRoutes(r)
 			feedHandler.RegisterRoutes(r)
+			assignHandler.RegisterRoutes(r)
 		})
 	})
 
 	s.router = r
+}
+
+// noopSigner and noopStore are used when MinIO is unavailable (e.g., local dev without S3_ENDPOINT).
+type noopSigner struct{}
+
+func (noopSigner) PresignedGetURL(_ context.Context, key string) (string, error) { return key, nil }
+
+type noopStore struct{}
+
+func (noopStore) PutObject(_ context.Context, _ string, _ io.Reader, _ int64, _ string) error {
+	return nil
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
