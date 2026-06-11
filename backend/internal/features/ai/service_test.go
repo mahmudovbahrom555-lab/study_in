@@ -237,7 +237,70 @@ func (m *mockObjectStore) GetObject(_ context.Context, key string) ([]byte, erro
 	return m.data[key], nil
 }
 
+type mockInsightsRepo struct {
+	insights *domain.ClassInsights
+	progress *domain.StudentProgress
+}
+
+func (m *mockInsightsRepo) ClassInsights(_ context.Context, groupID uuid.UUID) (*domain.ClassInsights, error) {
+	if m.insights != nil {
+		return m.insights, nil
+	}
+	return &domain.ClassInsights{GroupID: groupID, Period: "last_30_days"}, nil
+}
+func (m *mockInsightsRepo) StudentProgress(_ context.Context, _, studentID uuid.UUID) (*domain.StudentProgress, error) {
+	if m.progress != nil {
+		return m.progress, nil
+	}
+	return &domain.StudentProgress{StudentID: studentID, Name: "Test Student"}, nil
+}
+
+type mockFeedbackRepo struct {
+	feedback map[uuid.UUID]*domain.QuizQuestionFeedback
+}
+
+func newMockFeedbackRepo() *mockFeedbackRepo {
+	return &mockFeedbackRepo{feedback: map[uuid.UUID]*domain.QuizQuestionFeedback{}}
+}
+func (m *mockFeedbackRepo) UpsertFeedback(_ context.Context, fb *domain.QuizQuestionFeedback) error {
+	m.feedback[fb.QuestionID] = fb
+	return nil
+}
+func (m *mockFeedbackRepo) AcceptanceRate(_ context.Context, teacherID uuid.UUID) (float64, int, error) {
+	total, accepted := 0, 0
+	for _, fb := range m.feedback {
+		if fb.TeacherID == teacherID {
+			total++
+			if fb.Accepted {
+				accepted++
+			}
+		}
+	}
+	if total == 0 {
+		return 0, 0, nil
+	}
+	return float64(accepted) / float64(total), total, nil
+}
+
 // ─── Service builder ──────────────────────────────────────────────────────────
+
+func buildServiceWithFeedback() (*ai.Service, *mockFeedbackRepo) {
+	docs := newMockDocRepo()
+	jobs := newMockJobRepo()
+	sessions := newMockSessionRepo()
+	tokens := &mockTokenRepo{}
+	mastery := newMockMasteryRepo()
+	gamif := newMockGamifRepo()
+	topics := &mockTopicRepo{}
+	quiz := &mockQuizCreator{}
+	store := &mockObjectStore{data: map[string][]byte{}}
+	insights := &mockInsightsRepo{}
+	feedback := newMockFeedbackRepo()
+
+	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, insights, feedback, nil,
+		ai.ServiceConfig{Model: "gpt-4o-mini", MonthlyTokensMax: 500000, ChunkSize: 400, ChunkOverlap: 50})
+	return svc, feedback
+}
 
 func buildService() (*ai.Service, *mockDocRepo, *mockJobRepo, *mockGamifRepo) {
 	docs := newMockDocRepo()
@@ -250,7 +313,7 @@ func buildService() (*ai.Service, *mockDocRepo, *mockJobRepo, *mockGamifRepo) {
 	quiz := &mockQuizCreator{}
 	store := &mockObjectStore{data: map[string][]byte{}}
 
-	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, nil,
+	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, nil, nil, nil,
 		ai.ServiceConfig{Model: "gpt-4o-mini", MonthlyTokensMax: 500000, ChunkSize: 400, ChunkOverlap: 50})
 	return svc, docs, jobs, gamif
 }
@@ -368,5 +431,75 @@ func TestGetGamification_ReturnsDefaultOnFirstCall(t *testing.T) {
 	}
 	if g.DailyGoalXP != 50 {
 		t.Fatalf("expected daily_goal_xp 50, got %d", g.DailyGoalXP)
+	}
+}
+
+func TestSubmitQuestionFeedback_Accepted(t *testing.T) {
+	svc, fb := buildServiceWithFeedback()
+
+	teacherID := uuid.New()
+	questionID := uuid.New()
+
+	if err := svc.SubmitQuestionFeedback(context.Background(), questionID, teacherID, true); err != nil {
+		t.Fatalf("SubmitQuestionFeedback: %v", err)
+	}
+
+	stored, ok := fb.feedback[questionID]
+	if !ok {
+		t.Fatal("expected feedback to be stored")
+	}
+	if !stored.Accepted {
+		t.Fatal("expected accepted=true")
+	}
+	if stored.TeacherID != teacherID {
+		t.Fatalf("expected teacher_id %s, got %s", teacherID, stored.TeacherID)
+	}
+}
+
+func TestGetMyAcceptanceRate_MixedFeedback(t *testing.T) {
+	svc, _ := buildServiceWithFeedback()
+
+	teacherID := uuid.New()
+	_ = svc.SubmitQuestionFeedback(context.Background(), uuid.New(), teacherID, true)
+	_ = svc.SubmitQuestionFeedback(context.Background(), uuid.New(), teacherID, true)
+	_ = svc.SubmitQuestionFeedback(context.Background(), uuid.New(), teacherID, false)
+
+	rate, total, err := svc.GetMyAcceptanceRate(context.Background(), teacherID)
+	if err != nil {
+		t.Fatalf("GetMyAcceptanceRate: %v", err)
+	}
+	if total != 3 {
+		t.Fatalf("expected total=3, got %d", total)
+	}
+	const want = 2.0 / 3.0
+	if rate < want-0.001 || rate > want+0.001 {
+		t.Fatalf("expected rate %.4f, got %.4f", want, rate)
+	}
+}
+
+func TestGetClassInsights_ReturnsGroupID(t *testing.T) {
+	svc, _ := buildServiceWithFeedback()
+
+	groupID := uuid.New()
+	insights, err := svc.GetClassInsights(context.Background(), groupID)
+	if err != nil {
+		t.Fatalf("GetClassInsights: %v", err)
+	}
+	if insights.GroupID != groupID {
+		t.Fatalf("expected group_id %s, got %s", groupID, insights.GroupID)
+	}
+}
+
+func TestGetStudentProgress_ReturnsStudentID(t *testing.T) {
+	svc, _ := buildServiceWithFeedback()
+
+	groupID := uuid.New()
+	studentID := uuid.New()
+	progress, err := svc.GetStudentProgress(context.Background(), groupID, studentID)
+	if err != nil {
+		t.Fatalf("GetStudentProgress: %v", err)
+	}
+	if progress.StudentID != studentID {
+		t.Fatalf("expected student_id %s, got %s", studentID, progress.StudentID)
 	}
 }

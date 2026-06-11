@@ -98,3 +98,17 @@ type GeneratedOption struct {
 type ObjectStore interface {
 	GetObject(ctx context.Context, key string) ([]byte, error)
 }
+
+// InsightsRepository provides analytics queries for the Teacher Dashboard.
+type InsightsRepository interface {
+	// ClassInsights aggregates topic weaknesses, student summaries, and quiz stats for a group.
+	ClassInsights(ctx context.Context, groupID uuid.UUID) (*domain.ClassInsights, error)
+	// StudentProgress returns detailed per-student analytics (mastery, quiz history, skills).
+	StudentProgress(ctx context.Context, groupID, studentID uuid.UUID) (*domain.StudentProgress, error)
+}
+
+// QuizFeedbackRepository stores Teacher Acceptance Rate data.
+type QuizFeedbackRepository interface {
+	UpsertFeedback(ctx context.Context, fb *domain.QuizQuestionFeedback) error
+	AcceptanceRate(ctx context.Context, teacherID uuid.UUID) (float64, int, error) // rate, total
+}

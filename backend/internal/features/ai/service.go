@@ -18,17 +18,19 @@ import (
 
 // Service is the AI feature orchestrator.
 type Service struct {
-	docs    DocumentRepository
-	jobs    JobRepository
+	docs     DocumentRepository
+	jobs     JobRepository
 	sessions SessionRepository
-	tokens  TokenRepository
-	mastery MasteryRepository
-	gamif   GamificationRepository
-	topics  TopicRepository
-	quiz    QuizCreator
-	store   ObjectStore
-	ai      *oai.Client
-	cfg     ServiceConfig
+	tokens   TokenRepository
+	mastery  MasteryRepository
+	gamif    GamificationRepository
+	topics   TopicRepository
+	quiz     QuizCreator
+	store    ObjectStore
+	insights InsightsRepository
+	feedback QuizFeedbackRepository
+	ai       *oai.Client
+	cfg      ServiceConfig
 }
 
 type ServiceConfig struct {
@@ -48,6 +50,8 @@ func NewService(
 	topics TopicRepository,
 	quiz QuizCreator,
 	store ObjectStore,
+	insights InsightsRepository,
+	feedback QuizFeedbackRepository,
 	ai *oai.Client,
 	cfg ServiceConfig,
 ) *Service {
@@ -55,6 +59,7 @@ func NewService(
 		docs: docs, jobs: jobs, sessions: sessions,
 		tokens: tokens, mastery: mastery, gamif: gamif,
 		topics: topics, quiz: quiz, store: store,
+		insights: insights, feedback: feedback,
 		ai: ai, cfg: cfg,
 	}
 }
@@ -604,6 +609,43 @@ func (s *Service) failJob(ctx context.Context, jobID uuid.UUID, err error) error
 	msg := err.Error()
 	_ = s.jobs.UpdateJob(ctx, jobID, domain.AIJobFailed, nil, &msg)
 	return err
+}
+
+// ─── Teacher Dashboard ────────────────────────────────────────────────────────
+
+func (s *Service) GetClassInsights(ctx context.Context, groupID uuid.UUID) (*domain.ClassInsights, error) {
+	if s.insights == nil {
+		return nil, fmt.Errorf("insights not configured")
+	}
+	return s.insights.ClassInsights(ctx, groupID)
+}
+
+func (s *Service) GetStudentProgress(ctx context.Context, groupID, studentID uuid.UUID) (*domain.StudentProgress, error) {
+	if s.insights == nil {
+		return nil, fmt.Errorf("insights not configured")
+	}
+	return s.insights.StudentProgress(ctx, groupID, studentID)
+}
+
+func (s *Service) SubmitQuestionFeedback(ctx context.Context, questionID, teacherID uuid.UUID, accepted bool) error {
+	if s.feedback == nil {
+		return nil
+	}
+	fb := &domain.QuizQuestionFeedback{
+		ID:         uuid.New(),
+		QuestionID: questionID,
+		TeacherID:  teacherID,
+		Accepted:   accepted,
+		CreatedAt:  time.Now(),
+	}
+	return s.feedback.UpsertFeedback(ctx, fb)
+}
+
+func (s *Service) GetMyAcceptanceRate(ctx context.Context, teacherID uuid.UUID) (float64, int, error) {
+	if s.feedback == nil {
+		return 0, 0, nil
+	}
+	return s.feedback.AcceptanceRate(ctx, teacherID)
 }
 
 // GenerateQuizFromPayload is the entry point for the Asynq worker.

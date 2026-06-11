@@ -145,6 +145,83 @@ type AITokenUsage struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
+// QuizQuestionFeedback tracks teacher acceptance/rejection of AI-generated questions.
+// Used to compute Teacher Acceptance Rate (TAR) — the primary quality metric.
+type QuizQuestionFeedback struct {
+	ID         uuid.UUID `db:"id"`
+	QuestionID uuid.UUID `db:"question_id"`
+	TeacherID  uuid.UUID `db:"teacher_id"`
+	Accepted   bool      `db:"accepted"`
+	CreatedAt  time.Time `db:"created_at"`
+}
+
+// ─── Analytics DTOs (read-only, not persisted directly) ──────────────────────
+
+type ClassInsights struct {
+	GroupID      uuid.UUID         `json:"group_id"`
+	Period       string            `json:"period"`
+	StudentCount int               `json:"student_count"`
+	ClassWeakness []TopicWeakness  `json:"class_weakness"`
+	Students     []StudentSummary  `json:"students"`
+	QuizStats    QuizStats         `json:"quiz_stats"`
+}
+
+type TopicWeakness struct {
+	Topic              string  `json:"topic"`
+	AvgAccuracy        float64 `json:"avg_accuracy"`
+	StudentsStruggling int     `json:"students_struggling"`
+	TotalStudents      int     `json:"total_students"`
+}
+
+type StudentSummary struct {
+	StudentID    uuid.UUID `json:"student_id"`
+	Name         string    `json:"name"`
+	XPTotal      int       `json:"xp"`
+	StreakDays   int       `json:"streak"`
+	TopWeakness  string    `json:"top_weakness"`
+	LastActive   *string   `json:"last_active"`
+	IsAtRisk     bool      `json:"is_at_risk"` // no activity for 3+ days
+}
+
+type QuizStats struct {
+	Generated      int     `json:"generated"`
+	AcceptanceRate float64 `json:"acceptance_rate"`
+	TotalAttempts  int     `json:"total_attempts"`
+	AvgScore       float64 `json:"avg_score"`
+}
+
+type StudentProgress struct {
+	StudentID    uuid.UUID             `json:"student_id"`
+	Name         string                `json:"name"`
+	Gamification *StudentGamification  `json:"gamification"`
+	WeakTopics   []StudentTopicDetail  `json:"weak_topics"`
+	QuizHistory  []QuizAttemptSummary  `json:"quiz_history"`
+	SkillLevels  map[string]SkillLevel `json:"skill_levels"`
+}
+
+type StudentTopicDetail struct {
+	TopicID      uuid.UUID `json:"topic_id"`
+	TopicName    string    `json:"topic_name"`
+	Accuracy     float64   `json:"accuracy"`
+	TotalAnswers int       `json:"total_answers"`
+	NextReview   time.Time `json:"next_review"`
+	IntervalDays int       `json:"interval_days"`
+}
+
+type QuizAttemptSummary struct {
+	QuizTitle  string    `json:"quiz_title"`
+	Score      int16     `json:"score"`
+	MaxScore   int16     `json:"max_score"`
+	Percentage float64   `json:"percentage"`
+	FinishedAt time.Time `json:"finished_at"`
+}
+
+type SkillLevel struct {
+	CEFR         string    `json:"cefr"`
+	Score        float64   `json:"score"`
+	LastAssessed time.Time `json:"last_assessed"`
+}
+
 // XP award constants (Duolingo-style).
 const (
 	XPQuizCorrect       = 10
