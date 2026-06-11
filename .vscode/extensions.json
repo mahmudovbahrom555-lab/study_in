@@ -1,0 +1,20 @@
+{
+  "recommendations": [
+    // Go
+    "golang.go",
+    // Flutter & Dart
+    "dart-code.flutter",
+    "dart-code.dart-code",
+    // Docker & docker-compose
+    "ms-azuretools.vscode-docker",
+    // PostgreSQL клиент
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-pg",
+    // .env файлы
+    "mikestead.dotenv",
+    // YAML (docker-compose, GitHub Actions)
+    "redhat.vscode-yaml",
+    // GitHub Actions
+    "github.vscode-github-actions"
+  ]
+}
