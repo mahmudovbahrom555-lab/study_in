@@ -1,6 +1,12 @@
 # Прогресс разработки repetapp
 
-## Текущий этап: 9 — Полировка и QA
+## Статус: ВСЕ ЭТАПЫ ЗАВЕРШЕНЫ ✅
+
+### Этап 10 — Релиз ✅ (commit e2797bc)
+
+- `cmd/api/main.go`: auto-migrate при `AUTO_MIGRATE=true` (golang-migrate/v4)
+- `docker-compose.prod.yml`: полный production-стек (postgres + redis + minio + api)
+- `.env.example`: добавлен `AUTO_MIGRATE` флаг
 
 ## Завершённые этапы
 
@@ -81,6 +87,6 @@
 
 ### Этап 0 — Инфраструктура и каркас ✅
 
-## Следующие этапы
-- Этап 9: Полировка и QA ← ТЕКУЩИЙ
-- Этап 10: Релиз
+## Проект завершён
+
+Все 10 этапов реализованы. 11 коммитов. 8 backend feature-пакетов, 100% тесты -race.
