@@ -23,8 +23,12 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/config"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/fcm"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/monitoring"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/postgres"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/queue"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/redis"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/sms"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/pkg/logger"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/server"
 )
@@ -50,6 +54,12 @@ func run() error {
 		slog.String("version", cfg.Server.Version),
 		slog.String("env", cfg.Server.Env),
 	)
+
+	// Sentry — no-op when DSN is empty
+	if err := monitoring.InitSentry(cfg.Sentry.DSN, cfg.Server.Env, cfg.Server.Version); err != nil {
+		return err
+	}
+	defer monitoring.FlushSentry()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -85,6 +95,32 @@ func run() error {
 		}
 	}()
 	log.Info("redis connected")
+
+	// SMS sender (used by Asynq worker)
+	var smsSender sms.Sender
+	if cfg.SMS.Provider == "eskiz" {
+		smsSender = sms.NewEskizSender(cfg.SMS.EskizEmail, cfg.SMS.EskizPassword, cfg.SMS.EskizFrom)
+	} else {
+		smsSender = sms.NewMockSender()
+	}
+
+	// FCM pusher (optional)
+	var pusher queue.Pusher
+	fcmPusher, err := fcm.New(cfg.FCM.CredentialsPath, cfg.FCM.ProjectID, log)
+	if err != nil {
+		log.Warn("FCM not configured, push notifications disabled")
+	} else {
+		pusher = fcmPusher
+	}
+
+	// Asynq worker — runs in background goroutine
+	worker := queue.NewWorker(cfg.Redis.Addr, cfg.Redis.Password, 10, log, smsSender, pusher)
+	go func() {
+		if err := worker.Start(); err != nil {
+			log.Error("asynq worker error", slog.String("error", err.Error()))
+		}
+	}()
+	defer worker.Stop()
 
 	// HTTP server
 	srv := server.New(cfg, log, db, redisClient)

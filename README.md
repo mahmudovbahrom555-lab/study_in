@@ -1,87 +1,132 @@
-# Study In
+# RepetApp — учебная платформа для репетиторов
 
-Учебная платформа для репетиторов: домашние задания, тесты, оценки, посещаемость, родительский модуль.
+Go backend + Flutter мобильное приложение: домашние задания, тесты, оценки, посещаемость, родительский модуль.
 
 ## Стек
 
-- **Backend:** Go 1.22+ (Chi, sqlx, PostgreSQL 16, Redis 7, MinIO, Asynq)
-- **Frontend:** Flutter 3.24+ (Riverpod, go_router, dio, Hive)
-- **Инфраструктура:** Docker + Caddy, Hetzner Cloud, GitHub Actions
+| Слой | Технологии |
+|------|-----------|
+| Backend | Go 1.22, Chi v5, sqlx + pgx/v5, golang-migrate |
+| Хранилища | PostgreSQL 16, Redis 7, MinIO (private bucket, signed URLs) |
+| Async | **Asynq** (SMS + push через очередь, retry ×3) |
+| Push | Firebase Cloud Messaging (FCM) |
+| Мониторинг | Prometheus `/metrics`, Grafana, Loki, Sentry |
+| Mobile | Flutter 3.24+, Riverpod (StateNotifier), go_router, Dio |
+| Инфраструктура | Docker Compose, GitHub Actions CI |
 
-## Клонирование
+## Быстрый старт (dev)
 
 ```bash
 git clone https://github.com/mahmudovbahrom555-lab/study_in.git
 cd study_in
-```
 
-## Структура репозитория
+# Поднять зависимости
+docker compose up -d
 
-```
-study_in/
-├── backend/          # Go API
-├── flutter_app/      # Flutter мобильное приложение
-├── docs/             # Документация проекта
-├── .github/          # GitHub Actions CI/CD
-└── docker-compose.yml
-```
+# Применить миграции
+cd backend && make migrate-up
 
-## Быстрый старт
-
-### Требования
-
-- Docker и Docker Compose
-- Go 1.22+ (для разработки бэкенда)
-- Flutter 3.24+ (для разработки мобилки)
-- Make
-
-### Запуск инфраструктуры
-
-```bash
-# Поднять PostgreSQL + Redis + MinIO
-docker-compose up -d
-
-# Дождаться запуска и применить миграции
-cd backend
-cp .env.example .env
-make deps
-make migrate-up
-
-# Запустить бэкенд
+# Запустить сервер
 make dev
 ```
 
-### Запуск Flutter
+## Переменные окружения
 
+Скопируй и заполни:
 ```bash
-cd flutter_app
-flutter pub get
-flutter run --dart-define=API_URL=http://localhost:8080/api/v1
+cp backend/.env.example backend/.env
 ```
 
-### Проверка работы
+Обязательные:
+- `DATABASE_URL` — postgres connection string
+- `REDIS_ADDR` — e.g. `localhost:6379`
+- `JWT_ACCESS_SECRET` — минимум 32 символа
+- `JWT_REFRESH_SECRET` — минимум 32 символа
+
+## Production deploy
 
 ```bash
-curl http://localhost:8080/api/v1/health
+# Полный стек (API + Postgres + Redis + MinIO)
+docker compose -f docker-compose.prod.yml up -d
+
+# + Мониторинг (Prometheus + Grafana + Loki)
+docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
 ```
 
-## Документация
+Grafana доступна на `:3000`, Prometheus на `:9090`.
 
-- [Архитектура](docs/architecture.md)
-- [Соглашения по коду](docs/conventions.md)
-- [Backend](backend/README.md)
-- [Frontend](flutter_app/README.md)
+## API — эндпоинты (62 шт.)
 
-## Этапы разработки
+| Группа | Эндпоинты |
+|--------|-----------|
+| Auth | `/auth/send-code`, `/auth/verify`, `/auth/refresh`, `/auth/logout`, `/auth/me`, `/auth/profile` + device |
+| Groups | CRUD + archive + join + members |
+| Feed | CRUD posts + attachments |
+| Assignments | CRUD + file upload + submit + grade submissions |
+| Quizzes | CRUD quiz/questions/options + attempt + submit (авто-оценка) |
+| Grades | CRUD + list by student |
+| Attendance | Upsert + list by group/student |
+| Parents | link/unlink children + read child grades/attendance/groups |
+| Notifications | list + mark read + device registration |
+| System | `/health`, `/version`, `/metrics` |
 
-- [x] **Этап 0:** Инфраструктура и каркас
-- [ ] Этап 1: Авторизация по SMS
-- [ ] Этап 2: Группы
-- [ ] Этап 3: Лента и объявления
-- [ ] Этап 4: Домашние задания
-- [ ] Этап 5: Тесты
-- [ ] Этап 6: Журнал оценок
-- [ ] Этап 7: Посещаемость
-- [ ] Этап 8: Родительский модуль
-- [ ] Этап 9: Полировка и QA
-- [ ] Этап 10: Релиз
+## Архитектура backend
+
+```
+cmd/api/main.go          ← точка входа, Sentry, Asynq worker, HTTP server
+internal/
+  config/                ← Viper, валидация при старте
+  domain/                ← чистые сущности (User, Group, Grade, …)
+  features/
+    auth/                ← SMS OTP, JWT access+refresh
+    groups/              ← invite code (crypto/rand), payment_status
+    feed/                ← посты с вложениями
+    assignments/         ← ДЗ + сабмиты + оценка
+    quizzes/             ← тесты, авто-оценка, MaxAttempts
+    grades/              ← журнал оценок
+    attendance/          ← upsert, ENUM статусы
+    parents/             ← parent_links, drill-in к данным ребёнка
+    notifications/       ← in-app + FCM push через Asynq
+  infrastructure/
+    postgres/            ← sqlx репозитории
+    redis/               ← rate limiter
+    minio/               ← S3-совместимое хранилище
+    queue/               ← Asynq client + worker (SMS, push)
+    fcm/                 ← Firebase Cloud Messaging pusher
+    monitoring/          ← Sentry init + SentryRecovery middleware
+    sms/                 ← Eskiz.uz + MockSender
+  middleware/            ← Auth (JWT), Recovery, Logging, Metrics (Prometheus)
+  server/                ← Chi router, wiring всех зависимостей
+  pkg/
+    jwt/                 ← access + refresh токены
+    response/            ← стандартные JSON-ответы
+    logger/              ← slog JSON/text
+migrations/              ← 000001…000010, up + down
+```
+
+## Тесты
+
+```bash
+cd backend && go test -race ./...
+# 9 пакетов: auth, groups, feed, assignments, quizzes, grades, attendance, parents, notifications
+```
+
+## Структура Flutter
+
+```
+flutter_app/lib/
+  core/
+    network/    ← Dio + AuthInterceptor (auto-refresh JWT)
+    router/     ← go_router, role-aware redirect
+    theme/      ← Material 3
+  features/
+    auth/       ← SMS OTP flow
+    groups/     ← список + detail + QuickAction chips
+    feed/
+    assignments/ ← список ДЗ, сдача, оценка
+    quizzes/    ← прохождение теста, результат
+    grades/     ← журнал, SummaryBar
+    attendance/ ← teacher + student view, DatePicker
+    parents/    ← список детей, drill-in к данным
+    home/       ← HomeShell с role-aware NavigationBar
+```

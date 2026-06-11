@@ -16,6 +16,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	redisclient "github.com/redis/go-redis/v9"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/config"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/domain"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/assignments"
@@ -24,10 +26,12 @@ import (
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/feed"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/grades"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/groups"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/notifications"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/parents"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/quizzes"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/minio"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/postgres"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/queue"
 	redisinfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/redis"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/sms"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/middleware"
@@ -90,12 +94,18 @@ func (s *Server) setupRouter() {
 		s.cfg.JWT.RefreshTTL,
 	)
 
-	var smsSender sms.Sender
+	// Async task queue — SMS and push go through Asynq (backed by Redis).
+	queueClient := queue.NewClient(s.cfg.Redis.Addr, s.cfg.Redis.Password)
+
+	var directSMS sms.Sender
 	if s.cfg.SMS.Provider == "eskiz" {
-		smsSender = sms.NewEskizSender(s.cfg.SMS.EskizEmail, s.cfg.SMS.EskizPassword, s.cfg.SMS.EskizFrom)
+		directSMS = sms.NewEskizSender(s.cfg.SMS.EskizEmail, s.cfg.SMS.EskizPassword, s.cfg.SMS.EskizFrom)
 	} else {
-		smsSender = sms.NewMockSender()
+		directSMS = sms.NewMockSender()
 	}
+	// Worker picks up SMS tasks from the queue and calls directSMS.Send.
+	// In server we only enqueue — actual delivery is async.
+	smsSender := &asyncSMSSender{q: queueClient, fallback: directSMS}
 
 	rateLimiter := redisinfra.NewRateLimiter(s.redis)
 	authRepo := postgres.NewAuthRepository(s.db)
@@ -143,7 +153,13 @@ func (s *Server) setupRouter() {
 	parentService := parents.NewService(parentRepo, gradeRepo, attendanceRepo, groupMemberAdapter{groupRepo})
 	parentHandler := parents.NewHandler(parentService)
 
+	notifRepo := postgres.NewNotificationRepository(s.db)
+	notifService := notifications.NewService(notifRepo, &pushEnqueuer{q: queueClient})
+	notifHandler := notifications.NewHandler(notifService)
+
 	// --- Маршруты ---
+	r.Handle("/metrics", promhttp.Handler())
+
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", s.handleHealth)
 		r.Get("/version", s.handleVersion)
@@ -152,6 +168,7 @@ func (s *Server) setupRouter() {
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtManager))
+			r.Use(middleware.Metrics)
 			groupHandler.RegisterRoutes(r)
 			feedHandler.RegisterRoutes(r)
 			assignHandler.RegisterRoutes(r)
@@ -159,6 +176,7 @@ func (s *Server) setupRouter() {
 			gradeHandler.RegisterRoutes(r)
 			attendanceHandler.RegisterRoutes(r)
 			parentHandler.RegisterRoutes(r)
+			notifHandler.RegisterRoutes(r)
 		})
 	})
 
@@ -181,6 +199,30 @@ type noopStore struct{}
 
 func (noopStore) PutObject(_ context.Context, _ string, _ io.Reader, _ int64, _ string) error {
 	return nil
+}
+
+// asyncSMSSender satisfies sms.Sender by enqueuing tasks via Asynq.
+// Falls back to directSMS when the queue is unavailable (dev/test).
+type asyncSMSSender struct {
+	q        interface {
+		EnqueueSMS(ctx context.Context, phone, message string) error
+	}
+	fallback sms.Sender
+}
+
+func (a *asyncSMSSender) Send(ctx context.Context, phone, message string) error {
+	if err := a.q.EnqueueSMS(ctx, phone, message); err != nil {
+		// Queue unavailable — fall back to synchronous send.
+		return a.fallback.Send(ctx, phone, message)
+	}
+	return nil
+}
+
+// pushEnqueuer satisfies notifications.TaskEnqueuer via queue.Client.
+type pushEnqueuer struct{ q *queue.Client }
+
+func (p *pushEnqueuer) EnqueuePush(ctx context.Context, token, title, body string, data any) error {
+	return p.q.EnqueuePush(ctx, queue.PushPayload{Token: token, Title: title, Body: body, Data: data})
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
