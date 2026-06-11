@@ -20,4 +20,5 @@ abstract class Routes {
       '/groups/$groupId/attendance';
   static String studentAttendance(String groupId, String studentId) =>
       '/groups/$groupId/students/$studentId/attendance';
+  static const parentChildren = '/parent/children';
 }

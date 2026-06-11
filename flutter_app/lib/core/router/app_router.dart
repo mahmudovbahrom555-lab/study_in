@@ -16,6 +16,7 @@ import '../../features/quizzes/presentation/pages/quiz_detail_page.dart';
 import '../../features/quizzes/presentation/pages/quiz_attempt_page.dart';
 import '../../features/grades/presentation/pages/grades_page.dart';
 import '../../features/attendance/presentation/pages/attendance_page.dart';
+import '../../features/parents/presentation/pages/parents_page.dart';
 import 'routes.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -123,6 +124,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           groupId: state.pathParameters['groupId']!,
           studentId: state.pathParameters['studentId'],
         ),
+      ),
+      GoRoute(
+        path: Routes.parentChildren,
+        builder: (_, __) => const ParentsPage(),
       ),
     ],
   );
