@@ -67,6 +67,20 @@ func (c *Client) PutObject(ctx context.Context, objectKey string, reader io.Read
 	return nil
 }
 
+// GetObject downloads an object and returns its bytes.
+func (c *Client) GetObject(ctx context.Context, objectKey string) ([]byte, error) {
+	obj, err := c.mc.GetObject(ctx, c.bucket, objectKey, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("minio GetObject: %w", err)
+	}
+	defer obj.Close()
+	data, err := io.ReadAll(obj)
+	if err != nil {
+		return nil, fmt.Errorf("minio ReadAll: %w", err)
+	}
+	return data, nil
+}
+
 // RemoveObject deletes an object.
 func (c *Client) RemoveObject(ctx context.Context, objectKey string) error {
 	err := c.mc.RemoveObject(ctx, c.bucket, objectKey, minio.RemoveObjectOptions{})

@@ -13,6 +13,8 @@ import (
 const (
 	TypeSMSSend          = "sms:send"
 	TypePushNotification = "push:send"
+	TypeAIProcessDoc     = "ai:process_document"
+	TypeAIGenerateQuiz   = "ai:generate_quiz"
 )
 
 // Client enqueues tasks into Redis-backed Asynq queues.
@@ -67,6 +69,34 @@ func (c *Client) EnqueuePush(ctx context.Context, p PushPayload) error {
 	return nil
 }
 
+// EnqueueAIProcessDocument schedules PDF chunking and embedding for a document.
+func (c *Client) EnqueueAIProcessDocument(docID, jobID string) error {
+	payload, err := json.Marshal(AIProcessDocPayload{DocumentID: docID, JobID: jobID})
+	if err != nil {
+		return fmt.Errorf("queue EnqueueAIProcessDocument marshal: %w", err)
+	}
+	_, err = c.c.Enqueue(
+		asynq.NewTask(TypeAIProcessDoc, payload),
+		asynq.MaxRetry(2),
+		asynq.Queue("low"),
+	)
+	return err
+}
+
+// EnqueueAIGenerateQuiz schedules a GPT quiz generation job.
+func (c *Client) EnqueueAIGenerateQuiz(p AIGenerateQuizPayload) error {
+	payload, err := json.Marshal(p)
+	if err != nil {
+		return fmt.Errorf("queue EnqueueAIGenerateQuiz marshal: %w", err)
+	}
+	_, err = c.c.Enqueue(
+		asynq.NewTask(TypeAIGenerateQuiz, payload),
+		asynq.MaxRetry(2),
+		asynq.Queue("low"),
+	)
+	return err
+}
+
 // SMSPayload is the task payload for TypeSMSSend.
 type SMSPayload struct {
 	Phone   string `json:"phone"`
@@ -79,4 +109,22 @@ type PushPayload struct {
 	Title string `json:"title"`
 	Body  string `json:"body"`
 	Data  any    `json:"data,omitempty"`
+}
+
+// AIProcessDocPayload carries data for TypeAIProcessDoc tasks.
+type AIProcessDocPayload struct {
+	DocumentID string `json:"document_id"`
+	JobID      string `json:"job_id"`
+}
+
+// AIGenerateQuizPayload carries data for TypeAIGenerateQuiz tasks.
+type AIGenerateQuizPayload struct {
+	DocumentID   string `json:"document_id"`
+	GroupID      string `json:"group_id"`
+	TeacherID    string `json:"teacher_id"`
+	JobID        string `json:"job_id"`
+	Title        string `json:"title"`
+	NumQuestions int    `json:"num_questions"`
+	CEFRLevel    string `json:"cefr_level"`
+	Subject      string `json:"subject"`
 }

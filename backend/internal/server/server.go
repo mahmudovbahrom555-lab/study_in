@@ -20,6 +20,7 @@ import (
 
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/config"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/domain"
+	aifeature "github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/ai"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/assignments"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/attendance"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/auth"
@@ -29,6 +30,7 @@ import (
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/notifications"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/parents"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/quizzes"
+	openaiinfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/openai"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/minio"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/postgres"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/queue"
@@ -47,6 +49,7 @@ type Server struct {
 	redis  *redisclient.Client
 	router *chi.Mux
 	server *http.Server
+	aiSvc  *aifeature.Service
 }
 
 // New создаёт сервер с подключёнными middleware и роутами.
@@ -157,6 +160,46 @@ func (s *Server) setupRouter() {
 	notifService := notifications.NewService(notifRepo, &pushEnqueuer{q: queueClient})
 	notifHandler := notifications.NewHandler(notifService)
 
+	// ── AI layer ────────────────────────────────────────────────────────────────
+	openaiClient := openaiinfra.NewClient(
+		s.cfg.AI.OpenAI.APIKey,
+		s.cfg.AI.OpenAI.Model,
+		s.cfg.AI.OpenAI.EmbeddingModel,
+	)
+	aiDocRepo := postgres.NewAIDocumentRepository(s.db)
+	aiJobRepo := postgres.NewAIJobRepository(s.db)
+	aiSessRepo := postgres.NewAISessionRepository(s.db)
+	aiTokenRepo := postgres.NewAITokenRepository(s.db)
+	aiMasteryRepo := postgres.NewAIMasteryRepository(s.db)
+	aiGamifRepo := postgres.NewAIGamificationRepository(s.db)
+	aiTopicRepo := postgres.NewAITopicRepository(s.db)
+	aiQuizCreator := &aiQuizCreatorAdapter{quizRepo: quizRepo, topicRepo: aiTopicRepo}
+
+	var aiObjectStore aifeature.ObjectStore
+	if minioClient != nil {
+		aiObjectStore = minioClient
+	} else {
+		aiObjectStore = noopAIStore{}
+	}
+
+	s.aiSvc = aifeature.NewService(
+		aiDocRepo, aiJobRepo, aiSessRepo, aiTokenRepo,
+		aiMasteryRepo, aiGamifRepo, aiTopicRepo, aiQuizCreator, aiObjectStore,
+		openaiClient,
+		aifeature.ServiceConfig{
+			Model:            s.cfg.AI.OpenAI.Model,
+			MonthlyTokensMax: s.cfg.AI.OpenAI.MonthlyTokensMax,
+			ChunkSize:        s.cfg.AI.ChunkSize,
+			ChunkOverlap:     s.cfg.AI.ChunkOverlap,
+		},
+	)
+
+	var aiUploader aifeature.DocumentUploader
+	if minioClient != nil {
+		aiUploader = minioClient
+	}
+	aiHandler := aifeature.NewHandler(s.aiSvc, aiUploader, &aiQueueEnqueuerAdapter{q: queueClient}, s.cfg.AI.MaxDocSizeBytes)
+
 	// --- Маршруты ---
 	r.Handle("/metrics", promhttp.Handler())
 
@@ -177,6 +220,7 @@ func (s *Server) setupRouter() {
 			attendanceHandler.RegisterRoutes(r)
 			parentHandler.RegisterRoutes(r)
 			notifHandler.RegisterRoutes(r)
+			aiHandler.RegisterRoutes(r)
 		})
 	})
 
@@ -253,6 +297,114 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, map[string]any{"version": s.cfg.Server.Version, "env": s.cfg.Server.Env})
 }
+
+// AIProcessor returns a queue.AIProcessor adapter backed by the AI service.
+// Returns nil when the AI service was not initialised (no DB / no setup).
+func (s *Server) AIProcessor() queue.AIProcessor {
+	if s.aiSvc == nil {
+		return nil
+	}
+	return &aiProcessorAdapter{svc: s.aiSvc}
+}
+
+// ─── AI adapters ──────────────────────────────────────────────────────────────
+
+// aiProcessorAdapter satisfies queue.AIProcessor using the AI service.
+type aiProcessorAdapter struct{ svc *aifeature.Service }
+
+func (a *aiProcessorAdapter) ProcessDocument(ctx context.Context, docID uuid.UUID) error {
+	return a.svc.ProcessDocument(ctx, docID)
+}
+
+func (a *aiProcessorAdapter) GenerateQuizByPayload(ctx context.Context, p queue.AIGenerateQuizPayload) error {
+	return a.svc.GenerateQuizFromPayload(ctx,
+		p.DocumentID, p.GroupID, p.TeacherID, p.JobID,
+		p.Title, p.NumQuestions, p.CEFRLevel, p.Subject,
+	)
+}
+
+// aiQueueEnqueuerAdapter satisfies aifeature.QueueEnqueuer using queue.Client.
+type aiQueueEnqueuerAdapter struct{ q *queue.Client }
+
+func (e *aiQueueEnqueuerAdapter) EnqueueAIProcessDocument(docID, jobID string) error {
+	return e.q.EnqueueAIProcessDocument(docID, jobID)
+}
+
+func (e *aiQueueEnqueuerAdapter) EnqueueAIGenerateQuiz(p aifeature.GenerateQuizJobPayload) error {
+	return e.q.EnqueueAIGenerateQuiz(queue.AIGenerateQuizPayload{
+		DocumentID:   p.DocumentID,
+		GroupID:      p.GroupID,
+		TeacherID:    p.TeacherID,
+		JobID:        p.JobID,
+		Title:        p.Title,
+		NumQuestions: p.NumQuestions,
+		CEFRLevel:    p.CEFRLevel,
+		Subject:      p.Subject,
+	})
+}
+
+// aiQuizCreatorAdapter satisfies aifeature.QuizCreator using quizzes.Repository.
+type aiQuizCreatorAdapter struct {
+	quizRepo  quizzes.Repository
+	topicRepo *postgres.AITopicRepository
+}
+
+func (c *aiQuizCreatorAdapter) CreateQuizWithQuestions(ctx context.Context, req aifeature.QuizCreateRequest) (uuid.UUID, error) {
+	quizID := uuid.New()
+	now := time.Now()
+	q := &domain.Quiz{
+		ID:          quizID,
+		GroupID:     req.GroupID,
+		TeacherID:   req.TeacherID,
+		Title:       req.Title,
+		MaxAttempts: 1,
+		IsPublished: false,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+	if err := c.quizRepo.CreateQuiz(ctx, q); err != nil {
+		return uuid.Nil, err
+	}
+	for i, gq := range req.Questions {
+		qID := uuid.New()
+		exp := gq.Explanation
+		question := &domain.Question{
+			ID:          qID,
+			QuizID:      quizID,
+			Body:        gq.Text,
+			Explanation: &exp,
+			Position:    int16(i + 1),
+			Points:      1,
+		}
+		if err := c.quizRepo.CreateQuestion(ctx, question); err != nil {
+			return uuid.Nil, err
+		}
+		for j, opt := range gq.Options {
+			o := &domain.Option{
+				ID:         uuid.New(),
+				QuestionID: qID,
+				Body:       opt.Text,
+				IsCorrect:  opt.IsCorrect,
+				Position:   int16(j + 1),
+			}
+			if err := c.quizRepo.CreateOption(ctx, o); err != nil {
+				return uuid.Nil, err
+			}
+		}
+		for _, tagName := range gq.TopicTags {
+			tag, err := c.topicRepo.UpsertTopic(ctx, tagName, nil)
+			if err == nil && tag != nil {
+				_ = c.topicRepo.LinkQuestionTopics(ctx, qID, []uuid.UUID{tag.ID})
+			}
+		}
+	}
+	return quizID, nil
+}
+
+// noopAIStore satisfies aifeature.ObjectStore when MinIO is unavailable.
+type noopAIStore struct{}
+
+func (noopAIStore) GetObject(_ context.Context, _ string) ([]byte, error) { return nil, nil }
 
 // Start запускает HTTP сервер. Блокирующий вызов.
 func (s *Server) Start() error {

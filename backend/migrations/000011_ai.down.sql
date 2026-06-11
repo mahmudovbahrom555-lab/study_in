@@ -1,0 +1,12 @@
+DROP TABLE IF EXISTS ai_token_usage;
+DROP TABLE IF EXISTS skill_assessments;
+DROP TABLE IF EXISTS xp_events;
+DROP TABLE IF EXISTS student_gamification;
+DROP TABLE IF EXISTS topic_mastery;
+DROP TABLE IF EXISTS question_topics;
+DROP TABLE IF EXISTS topic_tags;
+DROP TABLE IF EXISTS ai_messages;
+DROP TABLE IF EXISTS ai_sessions;
+DROP TABLE IF EXISTS ai_jobs;
+DROP TABLE IF EXISTS ai_document_chunks;
+DROP TABLE IF EXISTS ai_documents;

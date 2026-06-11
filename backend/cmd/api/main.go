@@ -113,17 +113,17 @@ func run() error {
 		pusher = fcmPusher
 	}
 
+	// HTTP server (must be created before worker so AIProcessor is available)
+	srv := server.New(cfg, log, db, redisClient)
+
 	// Asynq worker — runs in background goroutine
-	worker := queue.NewWorker(cfg.Redis.Addr, cfg.Redis.Password, 10, log, smsSender, pusher)
+	worker := queue.NewWorker(cfg.Redis.Addr, cfg.Redis.Password, 10, log, smsSender, pusher, srv.AIProcessor())
 	go func() {
 		if err := worker.Start(); err != nil {
 			log.Error("asynq worker error", slog.String("error", err.Error()))
 		}
 	}()
 	defer worker.Stop()
-
-	// HTTP server
-	srv := server.New(cfg, log, db, redisClient)
 
 	// Запускаем сервер в горутине, чтобы main мог ждать сигнал остановки.
 	errCh := make(chan error, 1)

@@ -23,6 +23,7 @@ type Config struct {
 	FCM      FCMConfig
 	Sentry   SentryConfig
 	Log      LogConfig
+	AI       AIConfig
 }
 
 type ServerConfig struct {
@@ -88,6 +89,20 @@ type LogConfig struct {
 	Format string // text, json
 }
 
+type OpenAIConfig struct {
+	APIKey           string
+	Model            string
+	EmbeddingModel   string
+	MonthlyTokensMax int // per user, 0 = unlimited
+}
+
+type AIConfig struct {
+	OpenAI          OpenAIConfig
+	MaxDocSizeBytes int64 // max PDF size
+	ChunkSize       int   // words per chunk
+	ChunkOverlap    int   // words overlapping between chunks
+}
+
 // Load читает .env (если есть) и переменные окружения, возвращает Config.
 func Load() (*Config, error) {
 	v := viper.New()
@@ -115,6 +130,12 @@ func Load() (*Config, error) {
 	v.SetDefault("SMS_PROVIDER", "mock")
 	v.SetDefault("LOG_LEVEL", "info")
 	v.SetDefault("LOG_FORMAT", "text")
+	v.SetDefault("OPENAI_MODEL", "gpt-4o-mini")
+	v.SetDefault("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+	v.SetDefault("AI_MONTHLY_TOKENS_MAX", 500000)
+	v.SetDefault("AI_MAX_DOC_SIZE_BYTES", 10485760) // 10 MB
+	v.SetDefault("AI_CHUNK_SIZE", 400)              // words
+	v.SetDefault("AI_CHUNK_OVERLAP", 50)            // words
 
 	// .env не обязателен — переменные окружения тоже работают
 	if err := v.ReadInConfig(); err != nil {
@@ -169,6 +190,17 @@ func Load() (*Config, error) {
 		Log: LogConfig{
 			Level:  v.GetString("LOG_LEVEL"),
 			Format: v.GetString("LOG_FORMAT"),
+		},
+		AI: AIConfig{
+			OpenAI: OpenAIConfig{
+				APIKey:           v.GetString("OPENAI_API_KEY"),
+				Model:            v.GetString("OPENAI_MODEL"),
+				EmbeddingModel:   v.GetString("OPENAI_EMBEDDING_MODEL"),
+				MonthlyTokensMax: v.GetInt("AI_MONTHLY_TOKENS_MAX"),
+			},
+			MaxDocSizeBytes: v.GetInt64("AI_MAX_DOC_SIZE_BYTES"),
+			ChunkSize:       v.GetInt("AI_CHUNK_SIZE"),
+			ChunkOverlap:    v.GetInt("AI_CHUNK_OVERLAP"),
 		},
 	}
 

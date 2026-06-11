@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/sms"
@@ -18,6 +19,7 @@ type Worker struct {
 	log    *slog.Logger
 	sender sms.Sender
 	pusher Pusher
+	ai     AIProcessor
 }
 
 // Pusher sends a push notification to a device token.
@@ -25,8 +27,16 @@ type Pusher interface {
 	Send(ctx context.Context, token, title, body string, data any) error
 }
 
+// AIProcessor handles heavy AI tasks (PDF processing, quiz generation).
+// Implemented by features/ai.Service; nil disables AI workers.
+type AIProcessor interface {
+	ProcessDocument(ctx context.Context, docID uuid.UUID) error
+	GenerateQuizByPayload(ctx context.Context, p AIGenerateQuizPayload) error
+}
+
 // NewWorker creates a worker connected to Redis with the given concurrency.
-func NewWorker(redisAddr, redisPassword string, concurrency int, log *slog.Logger, sender sms.Sender, pusher Pusher) *Worker {
+// ai may be nil — AI task handlers register only when it is non-nil.
+func NewWorker(redisAddr, redisPassword string, concurrency int, log *slog.Logger, sender sms.Sender, pusher Pusher, ai AIProcessor) *Worker {
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{Addr: redisAddr, Password: redisPassword},
 		asynq.Config{
@@ -44,9 +54,13 @@ func NewWorker(redisAddr, redisPassword string, concurrency int, log *slog.Logge
 			}),
 		},
 	)
-	w := &Worker{srv: srv, mux: asynq.NewServeMux(), log: log, sender: sender, pusher: pusher}
+	w := &Worker{srv: srv, mux: asynq.NewServeMux(), log: log, sender: sender, pusher: pusher, ai: ai}
 	w.mux.HandleFunc(TypeSMSSend, w.handleSMS)
 	w.mux.HandleFunc(TypePushNotification, w.handlePush)
+	if ai != nil {
+		w.mux.HandleFunc(TypeAIProcessDoc, w.handleAIProcessDoc)
+		w.mux.HandleFunc(TypeAIGenerateQuiz, w.handleAIGenerateQuiz)
+	}
 	return w
 }
 
@@ -97,4 +111,32 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func (w *Worker) handleAIProcessDoc(ctx context.Context, task *asynq.Task) error {
+	var p AIProcessDocPayload
+	if err := json.Unmarshal(task.Payload(), &p); err != nil {
+		return fmt.Errorf("handleAIProcessDoc unmarshal: %w", err)
+	}
+	docID, err := uuid.Parse(p.DocumentID)
+	if err != nil {
+		return fmt.Errorf("handleAIProcessDoc parse docID: %w", err)
+	}
+	if err = w.ai.ProcessDocument(ctx, docID); err != nil {
+		return fmt.Errorf("handleAIProcessDoc process: %w", err)
+	}
+	w.log.Info("ai document processed", slog.String("doc_id", p.DocumentID))
+	return nil
+}
+
+func (w *Worker) handleAIGenerateQuiz(ctx context.Context, task *asynq.Task) error {
+	var p AIGenerateQuizPayload
+	if err := json.Unmarshal(task.Payload(), &p); err != nil {
+		return fmt.Errorf("handleAIGenerateQuiz unmarshal: %w", err)
+	}
+	if err := w.ai.GenerateQuizByPayload(ctx, p); err != nil {
+		return fmt.Errorf("handleAIGenerateQuiz generate: %w", err)
+	}
+	w.log.Info("ai quiz generated", slog.String("doc_id", p.DocumentID), slog.String("job_id", p.JobID))
+	return nil
 }
