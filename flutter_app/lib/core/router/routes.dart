@@ -5,4 +5,6 @@ abstract class Routes {
   static const roleSelect = '/role-select';
   static const profileSetup = '/profile-setup';
   static const home = '/home';
+  static const groups = '/groups';
+  static String group(String id) => '/groups/$id';
 }

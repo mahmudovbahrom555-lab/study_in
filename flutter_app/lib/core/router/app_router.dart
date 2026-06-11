@@ -8,6 +8,8 @@ import '../../features/auth/presentation/pages/verify_page.dart';
 import '../../features/auth/presentation/pages/role_select_page.dart';
 import '../../features/auth/presentation/pages/profile_setup_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/groups/presentation/pages/groups_page.dart';
+import '../../features/groups/presentation/pages/group_detail_page.dart';
 import 'routes.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -53,20 +55,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.home,
-        builder: (_, __) => const _PlaceholderHome(),
+        builder: (_, __) => const GroupsPage(),
+      ),
+      GoRoute(
+        path: Routes.groups,
+        builder: (_, __) => const GroupsPage(),
+      ),
+      GoRoute(
+        path: '/groups/:id',
+        builder: (_, state) =>
+            GroupDetailPage(groupId: state.pathParameters['id']!),
       ),
     ],
   );
 });
-
-class _PlaceholderHome extends StatelessWidget {
-  const _PlaceholderHome();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('RepetApp')),
-      body: const Center(child: Text('Главный экран — Этап 2+')),
-    );
-  }
-}

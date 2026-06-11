@@ -27,6 +27,15 @@ var (
 
 	// ErrInternal — внутренняя ошибка сервера.
 	ErrInternal = errors.New("internal server error")
+
+	// ErrAlreadyMember — пользователь уже состоит в группе.
+	ErrAlreadyMember = errors.New("already a member")
+
+	// ErrNotMember — пользователь не состоит в группе.
+	ErrNotMember = errors.New("not a member")
+
+	// ErrRoleAlreadySet — роль пользователя уже установлена.
+	ErrRoleAlreadySet = errors.New("role already set")
 )
 
 // Error — типизированная доменная ошибка с дополнительными деталями.

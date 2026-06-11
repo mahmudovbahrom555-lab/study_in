@@ -16,6 +16,7 @@ import (
 
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/config"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/auth"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/groups"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/postgres"
 	redisinfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/redis"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/sms"
@@ -91,12 +92,21 @@ func (s *Server) setupRouter() {
 	authService := auth.NewService(authRepo, smsSender, jwtManager, rateLimiter)
 	authHandler := auth.NewHandler(authService, jwtManager)
 
+	groupRepo := postgres.NewGroupRepository(s.db)
+	groupService := groups.NewService(groupRepo)
+	groupHandler := groups.NewHandler(groupService)
+
 	// --- Маршруты ---
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", s.handleHealth)
 		r.Get("/version", s.handleVersion)
 
 		authHandler.RegisterRoutes(r)
+
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(jwtManager))
+			groupHandler.RegisterRoutes(r)
+		})
 	})
 
 	s.router = r
