@@ -26,9 +26,10 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port    string
-	Env     string // development, staging, production
-	Version string
+	Port           string
+	Env            string // development, staging, production
+	Version        string
+	AllowedOrigins []string
 }
 
 func (s ServerConfig) IsDevelopment() bool {
@@ -104,6 +105,7 @@ func Load() (*Config, error) {
 	v.SetDefault("SERVER_PORT", "8080")
 	v.SetDefault("SERVER_ENV", "development")
 	v.SetDefault("SERVER_VERSION", "0.1.0")
+	v.SetDefault("SERVER_ALLOWED_ORIGINS", "*")
 	v.SetDefault("DATABASE_MAX_CONNS", 25)
 	v.SetDefault("REDIS_DB", 0)
 	v.SetDefault("JWT_ACCESS_TTL_MINUTES", 15)
@@ -123,9 +125,10 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		Server: ServerConfig{
-			Port:    v.GetString("SERVER_PORT"),
-			Env:     v.GetString("SERVER_ENV"),
-			Version: v.GetString("SERVER_VERSION"),
+			Port:           v.GetString("SERVER_PORT"),
+			Env:            v.GetString("SERVER_ENV"),
+			Version:        v.GetString("SERVER_VERSION"),
+			AllowedOrigins: v.GetStringSlice("SERVER_ALLOWED_ORIGINS"),
 		},
 		Database: DatabaseConfig{
 			URL:      v.GetString("DATABASE_URL"),
@@ -179,6 +182,9 @@ func Load() (*Config, error) {
 func (c *Config) validate() error {
 	if c.Database.URL == "" {
 		return fmt.Errorf("DATABASE_URL is required")
+	}
+	if c.Redis.Addr == "" {
+		return fmt.Errorf("REDIS_ADDR is required")
 	}
 	if c.JWT.AccessSecret == "" || len(c.JWT.AccessSecret) < 32 {
 		return fmt.Errorf("JWT_ACCESS_SECRET must be at least 32 chars")
