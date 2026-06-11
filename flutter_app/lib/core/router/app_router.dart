@@ -8,6 +8,7 @@ import '../../features/auth/presentation/pages/verify_page.dart';
 import '../../features/auth/presentation/pages/role_select_page.dart';
 import '../../features/auth/presentation/pages/profile_setup_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/feed/presentation/pages/feed_page.dart';
 import '../../features/groups/presentation/pages/groups_page.dart';
 import '../../features/groups/presentation/pages/group_detail_page.dart';
 import 'routes.dart';
@@ -65,6 +66,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/groups/:id',
         builder: (_, state) =>
             GroupDetailPage(groupId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/groups/:id/feed',
+        builder: (_, state) =>
+            FeedPage(groupId: state.pathParameters['id']!),
       ),
     ],
   );

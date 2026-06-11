@@ -16,6 +16,7 @@ import (
 
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/config"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/auth"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/feed"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/groups"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/postgres"
 	redisinfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/redis"
@@ -96,6 +97,10 @@ func (s *Server) setupRouter() {
 	groupService := groups.NewService(groupRepo)
 	groupHandler := groups.NewHandler(groupService)
 
+	feedRepo := postgres.NewFeedRepository(s.db)
+	feedService := feed.NewService(feedRepo, groupRepo)
+	feedHandler := feed.NewHandler(feedService)
+
 	// --- Маршруты ---
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", s.handleHealth)
@@ -106,6 +111,7 @@ func (s *Server) setupRouter() {
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtManager))
 			groupHandler.RegisterRoutes(r)
+			feedHandler.RegisterRoutes(r)
 		})
 	})
 

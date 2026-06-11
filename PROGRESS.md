@@ -1,6 +1,6 @@
 # Прогресс разработки repetapp
 
-## Текущий этап: 3 — Лента и объявления
+## Текущий этап: 4 — Домашние задания + MinIO
 
 ## Завершённые этапы
 
@@ -56,8 +56,27 @@
 - Docker Compose: PostgreSQL 16 + Redis 7 + MinIO
 - GitHub Actions CI: lint → test → build для Go и Flutter
 
+### Этап 3 — Лента и объявления ✅
+
+**Backend:**
+- Миграция 000004: posts (body, pinned, soft delete), post_attachments (object_key, MinIO)
+- domain/post.go: Post, PostAttachment, PostWithMeta
+- features/feed: Repository interface + GroupChecker interface, DTO, Service (8 методов), Handler (7 endpoints)
+- Endpoints: GET/POST /groups/{id}/feed, GET/PATCH/DELETE /feed/{postID}, POST pin/unpin
+- URLSigner interface: noopSigner (placeholder до Этапа 4 когда подключим MinIO)
+- infrastructure/postgres/feed_repository.go: полная реализация
+- 11 unit-тестов: все проходят с -race
+
+**Flutter:**
+- domain: Post, PostAttachment entities, FeedRepository interface
+- data: PostDto/PostAttachmentDto, FeedApi, FeedRepositoryImpl
+- providers: FeedState/FeedNotifier (family per groupId, infinite scroll)
+- pages: FeedPage (infinite scroll, pull-to-refresh, FAB для учителя)
+- widgets: PostCard (pinned highlight, popup menu, attachment chips), CreatePostSheet
+- router: /groups/:id/feed → FeedPage
+
 ## Следующие этапы
-- **Этап 3:** Лента и объявления (посты учителя, push-уведомления через device_tokens)
+- **Этап 4:** Домашние задания + MinIO (загрузка файлов, signed URLs, avatar upload)
 - Этап 4: Домашние задания + MinIO (загрузка файлов, signed URLs)
 - Этап 5: Тесты
 - Этап 6: Журнал оценок
