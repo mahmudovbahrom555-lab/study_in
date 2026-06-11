@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/routes.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/group.dart';
 import '../providers/groups_provider.dart';
@@ -68,6 +70,8 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _GroupInfoCard(group: group, isOwner: isOwner),
+          const Divider(height: 1),
+          _QuickActions(groupId: widget.groupId, isTeacher: isTeacher),
           const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -184,6 +188,80 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
     }
   }
 }
+
+// ─── Quick action buttons ─────────────────────────────────────────────────────
+
+class _QuickActions extends StatelessWidget {
+  const _QuickActions({required this.groupId, required this.isTeacher});
+
+  final String groupId;
+  final bool isTeacher;
+
+  @override
+  Widget build(BuildContext context) {
+    final role = isTeacher ? 'teacher' : 'student';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: Wrap(
+        spacing: 8,
+        children: [
+          _ActionChip(
+            icon: Icons.dynamic_feed,
+            label: 'Лента',
+            onTap: () => context.push(Routes.groupFeed(groupId)),
+          ),
+          _ActionChip(
+            icon: Icons.assignment_outlined,
+            label: 'Задания',
+            onTap: () => context.push(Routes.groupAssignments(groupId)),
+          ),
+          _ActionChip(
+            icon: Icons.quiz,
+            label: 'Тесты',
+            onTap: () => context.push(Routes.groupQuizzes(groupId)),
+          ),
+          _ActionChip(
+            icon: Icons.grade,
+            label: 'Оценки',
+            onTap: () => context.push(
+              '${Routes.groupGrades(groupId)}?role=$role',
+            ),
+          ),
+          _ActionChip(
+            icon: Icons.calendar_month,
+            label: 'Посещ.',
+            onTap: () => context.push(
+              '${Routes.groupAttendance(groupId)}?role=$role',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionChip extends StatelessWidget {
+  const _ActionChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionChip(
+      avatar: Icon(icon, size: 18),
+      label: Text(label),
+      onPressed: onTap,
+    );
+  }
+}
+
+// ─── Group info card ──────────────────────────────────────────────────────────
 
 class _GroupInfoCard extends StatelessWidget {
   const _GroupInfoCard({required this.group, required this.isOwner});
