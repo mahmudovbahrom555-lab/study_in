@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
+
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/domain"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/pkg/response"
 )
 
 // Logging middleware пишет в лог каждый HTTP запрос со статусом и длительностью.
@@ -41,9 +44,7 @@ func Recovery(log *slog.Logger) func(http.Handler) http.Handler {
 						slog.Any("error", rec),
 						slog.String("path", r.URL.Path),
 					)
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusInternalServerError)
-					_, _ = w.Write([]byte(`{"error":{"code":"INTERNAL_ERROR","message":"Internal server error"}}`))
+					response.Error(w, domain.ErrInternal)
 				}
 			}()
 			next.ServeHTTP(w, r)

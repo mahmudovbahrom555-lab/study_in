@@ -180,13 +180,11 @@ func (c *Config) validate() error {
 	if c.Database.URL == "" {
 		return fmt.Errorf("DATABASE_URL is required")
 	}
-	if c.Server.IsProduction() {
-		if c.JWT.AccessSecret == "" || len(c.JWT.AccessSecret) < 32 {
-			return fmt.Errorf("JWT_ACCESS_SECRET must be at least 32 chars in production")
-		}
-		if c.JWT.RefreshSecret == "" || len(c.JWT.RefreshSecret) < 32 {
-			return fmt.Errorf("JWT_REFRESH_SECRET must be at least 32 chars in production")
-		}
+	if c.JWT.AccessSecret == "" || len(c.JWT.AccessSecret) < 32 {
+		return fmt.Errorf("JWT_ACCESS_SECRET must be at least 32 chars")
+	}
+	if c.JWT.RefreshSecret == "" || len(c.JWT.RefreshSecret) < 32 {
+		return fmt.Errorf("JWT_REFRESH_SECRET must be at least 32 chars")
 	}
 	return nil
 }

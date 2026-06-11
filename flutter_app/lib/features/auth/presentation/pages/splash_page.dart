@@ -18,36 +18,40 @@ class SplashPage extends ConsumerStatefulWidget {
 class _SplashPageState extends ConsumerState<SplashPage> {
   String _status = 'Подключение...';
   bool _isError = false;
+  bool _isLoading = true;
+  late final Dio _dio;
 
   @override
   void initState() {
     super.initState();
+    _dio = createDio();
     _checkBackend();
   }
 
+  @override
+  void dispose() {
+    _dio.close();
+    super.dispose();
+  }
+
   Future<void> _checkBackend() async {
+    setState(() => _isLoading = true);
     try {
-      final dio = createDio();
-      final response = await dio.get<Map<String, dynamic>>('/health');
+      final response = await _dio.get<Map<String, dynamic>>('/health');
 
       if (!mounted) return;
 
-      if (response.statusCode == 200) {
-        setState(() {
-          _status = '✓ Backend работает\nверсия: ${response.data?['data']?['checks']}';
-          _isError = false;
-        });
-      } else {
-        setState(() {
-          _status = 'Backend вернул ${response.statusCode}';
-          _isError = true;
-        });
-      }
+      setState(() {
+        _status = '✓ Backend работает\nстатус: ${response.data?['data']?['status']}';
+        _isError = false;
+        _isLoading = false;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _status = 'Не удалось подключиться:\n$e';
         _isError = true;
+        _isLoading = false;
       });
     }
   }
@@ -76,7 +80,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 48),
-              const CircularProgressIndicator(),
+              if (_isLoading) const CircularProgressIndicator(),
               const SizedBox(height: 24),
               Text(
                 _status,

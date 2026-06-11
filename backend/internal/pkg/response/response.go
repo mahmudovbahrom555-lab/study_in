@@ -44,6 +44,11 @@ func Created(w http.ResponseWriter, data any) {
 	writeJSON(w, http.StatusCreated, SuccessResponse{Data: data})
 }
 
+// Status отправляет ответ с произвольным HTTP статусом, обёрнутый в SuccessResponse.
+func Status(w http.ResponseWriter, statusCode int, data any) {
+	writeJSON(w, statusCode, SuccessResponse{Data: data})
+}
+
 // NoContent отправляет пустой ответ со статусом 204.
 func NoContent(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)

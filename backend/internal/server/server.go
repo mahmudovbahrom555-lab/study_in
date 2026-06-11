@@ -88,18 +88,32 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"database": "ok",
 		"redis":    "ok",
 	}
+	healthy := true
 
 	if err := s.db.PingContext(r.Context()); err != nil {
 		checks["database"] = "fail"
+		healthy = false
 	}
 	if err := s.redis.Ping(r.Context()).Err(); err != nil {
 		checks["redis"] = "fail"
+		healthy = false
 	}
 
-	response.OK(w, map[string]any{
-		"status": "ok",
+	status := "ok"
+	if !healthy {
+		status = "degraded"
+	}
+
+	body := map[string]any{
+		"status": status,
 		"checks": checks,
-	})
+	}
+
+	if !healthy {
+		response.Status(w, http.StatusServiceUnavailable, body)
+		return
+	}
+	response.OK(w, body)
 }
 
 func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
