@@ -12,12 +12,16 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/config"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/postgres"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/redis"
@@ -49,6 +53,14 @@ func run() error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// Auto-migrate when AUTO_MIGRATE=true (default in production Docker image)
+	if os.Getenv("AUTO_MIGRATE") == "true" {
+		if err := autoMigrate(cfg.Database.URL, "file://migrations"); err != nil {
+			return err
+		}
+		log.Info("migrations applied")
+	}
 
 	// PostgreSQL
 	db, err := postgres.Connect(ctx, cfg.Database.URL, cfg.Database.MaxConns)
@@ -106,5 +118,17 @@ func run() error {
 	}
 
 	log.Info("shutdown complete")
+	return nil
+}
+
+func autoMigrate(dbURL, migrationsPath string) error {
+	m, err := migrate.New(migrationsPath, dbURL)
+	if err != nil {
+		return err
+	}
+	defer m.Close()
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return err
+	}
 	return nil
 }
