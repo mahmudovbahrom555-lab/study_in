@@ -11,6 +11,9 @@ import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/feed/presentation/pages/feed_page.dart';
 import '../../features/groups/presentation/pages/groups_page.dart';
 import '../../features/groups/presentation/pages/group_detail_page.dart';
+import '../../features/quizzes/presentation/pages/quizzes_page.dart';
+import '../../features/quizzes/presentation/pages/quiz_detail_page.dart';
+import '../../features/quizzes/presentation/pages/quiz_attempt_page.dart';
 import 'routes.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -71,6 +74,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/groups/:id/feed',
         builder: (_, state) =>
             FeedPage(groupId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/groups/:id/quizzes',
+        builder: (_, state) =>
+            QuizzesPage(groupId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/groups/:groupId/quizzes/:quizId',
+        builder: (_, state) => QuizDetailPage(
+          groupId: state.pathParameters['groupId']!,
+          quizId: state.pathParameters['quizId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/groups/:groupId/quizzes/:quizId/attempt',
+        builder: (_, state) => QuizAttemptPage(
+          groupId: state.pathParameters['groupId']!,
+          quizId: state.pathParameters['quizId']!,
+        ),
       ),
     ],
   );
