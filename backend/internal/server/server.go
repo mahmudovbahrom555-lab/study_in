@@ -19,6 +19,7 @@ import (
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/assignments"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/auth"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/feed"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/grades"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/groups"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/quizzes"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/minio"
@@ -126,6 +127,10 @@ func (s *Server) setupRouter() {
 	quizService := quizzes.NewService(quizRepo, groupRepo)
 	quizHandler := quizzes.NewHandler(quizService)
 
+	gradeRepo := postgres.NewGradeRepository(s.db)
+	gradeService := grades.NewService(gradeRepo, groupRepo)
+	gradeHandler := grades.NewHandler(gradeService)
+
 	// --- Маршруты ---
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", s.handleHealth)
@@ -139,6 +144,7 @@ func (s *Server) setupRouter() {
 			feedHandler.RegisterRoutes(r)
 			assignHandler.RegisterRoutes(r)
 			quizHandler.RegisterRoutes(r)
+			gradeHandler.RegisterRoutes(r)
 		})
 	})
 
