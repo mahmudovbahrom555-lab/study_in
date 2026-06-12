@@ -127,18 +127,31 @@
 - StudentTopicDetailDto: парсит confidence_score, consistency_score из JSON
 - StudentProgressPage: `_TopicRow` → Card + `_ScoreBar` (mini progress bars для Уверенности и Стабильности)
 
+---
+
+## AI Phase 3 — Rule Engine + Recommendation Engine ✅ (commits 9fea19c, e5a5b62)
+
+### Backend:
+- Migration 000015: ai_recommendations + recommendation_outcomes
+- Rule Engine (pure Go, 0 GPT calls): 7 rules — mastery_critical, mastery_low,
+  consistency_critical, review_needed, at_risk, tar_low, celebrate
+- rule_data (JSONB) snapshot of metrics at trigger time — feeds outcome measurement
+- GetClassInsights() runs Rule Engine → ReplaceForGroup → lazy outcome measurement (background goroutine, 7-day window)
+- POST /ai/recommendations/{id}/action — accept | dismiss | snooze
+- GET  /ai/recommendations/{id}/explain — GPT prose (lazy; falls back to rule reason)
+- TopicWeakness extended: avg_confidence + avg_consistency
+- 9 Rule Engine tests + 11 feature tests, all passing
+
+### Flutter:
+- TeacherRecommendation entity: id field added
+- TopicWeakness entity: avgConfidence, avgConsistency
+- _RecommendationCard → ConsumerStatefulWidget with Accept / Dismiss / Почему? actions
+- GPT explanation shown in bottom sheet on tap
+
 ## Следующие фазы AI
 
-### AI Phase 3 — AI Recommendation Engine (следующее)
-- GPT-based рекомендации на базе накопленных TAR + confidence/consistency данных
+### AI Phase 4 — AI Coach для студентов (следующее)
+- Student-facing confidence/consistency dashboard
 - Speaking Assessment (Whisper API)
-- DELETE /ai/sessions/{id}
-
-### AI Phase 3 (не начата)
-- AI Recommendation Engine v2: GPT-based рекомендации на базе накопленных данных
-- POST /me/daily-goal
 - skill_assessments CEFR оценки
-
-### AI Phase 4 (не начата)
-- AI Progress Coach для родителей/учителей
-- Персональный план обучения на основе mastery/confidence/consistency
+- POST /me/daily-goal
