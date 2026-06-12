@@ -78,6 +78,10 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Get("/me/gamification", h.getGamification)
 		r.Get("/me/weaknesses", h.getWeaknesses)
 		r.Get("/me/review-queue", h.getReviewQueue)
+
+		// Recommendations (Phase 3)
+		r.Post("/recommendations/{recID}/action", h.recommendationAction)
+		r.Get("/recommendations/{recID}/explain", h.recommendationExplain)
 	})
 
 	// Teacher Dashboard — mounted under /groups/:groupID/ai-insights
@@ -483,7 +487,8 @@ func (h *Handler) classInsights(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, domain.NewError("VALIDATION", "invalid group id", domain.ErrValidation))
 		return
 	}
-	insights, err := h.svc.GetClassInsights(r.Context(), groupID)
+	teacherID := mw.UserIDFromCtx(r.Context())
+	insights, err := h.svc.GetClassInsights(r.Context(), groupID, teacherID)
 	if err != nil {
 		response.Error(w, domain.NewError("INTERNAL", "fetch insights failed", domain.ErrInternal))
 		return
@@ -515,4 +520,53 @@ func (h *Handler) studentProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.OK(w, progress)
+}
+
+func (h *Handler) recommendationAction(w http.ResponseWriter, r *http.Request) {
+	teacherID := mw.UserIDFromCtx(r.Context())
+	if mw.RoleFromCtx(r.Context()) != domain.RoleTeacher {
+		response.Error(w, domain.NewError("FORBIDDEN", "only teachers", domain.ErrForbidden))
+		return
+	}
+	recID, err := uuid.Parse(chi.URLParam(r, "recID"))
+	if err != nil {
+		response.Error(w, domain.NewError("VALIDATION", "invalid recommendation id", domain.ErrValidation))
+		return
+	}
+	var body struct {
+		Status string `json:"status"` // accepted | dismissed | snoozed
+		Action string `json:"action"` // free-text: what the teacher plans/did
+	}
+	if err = json.NewDecoder(r.Body).Decode(&body); err != nil {
+		response.Error(w, domain.NewError("VALIDATION", "invalid body", domain.ErrValidation))
+		return
+	}
+	if body.Status != "accepted" && body.Status != "dismissed" && body.Status != "snoozed" {
+		response.Error(w, domain.NewError("VALIDATION", "status must be accepted|dismissed|snoozed", domain.ErrValidation))
+		return
+	}
+	if err = h.svc.RecordRecommendationAction(r.Context(), recID, teacherID, body.Status, body.Action); err != nil {
+		response.Error(w, domain.NewError("INTERNAL", "record action failed", domain.ErrInternal))
+		return
+	}
+	response.OK(w, map[string]string{"status": body.Status})
+}
+
+func (h *Handler) recommendationExplain(w http.ResponseWriter, r *http.Request) {
+	teacherID := mw.UserIDFromCtx(r.Context())
+	if mw.RoleFromCtx(r.Context()) != domain.RoleTeacher {
+		response.Error(w, domain.NewError("FORBIDDEN", "only teachers", domain.ErrForbidden))
+		return
+	}
+	recID, err := uuid.Parse(chi.URLParam(r, "recID"))
+	if err != nil {
+		response.Error(w, domain.NewError("VALIDATION", "invalid recommendation id", domain.ErrValidation))
+		return
+	}
+	text, err := h.svc.ExplainRecommendation(r.Context(), recID, teacherID)
+	if err != nil {
+		response.Error(w, domain.NewError("INTERNAL", "explain failed", domain.ErrInternal))
+		return
+	}
+	response.OK(w, map[string]string{"explanation": text})
 }

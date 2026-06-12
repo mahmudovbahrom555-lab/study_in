@@ -30,6 +30,7 @@ type Service struct {
 	insights InsightsRepository
 	feedback QuizFeedbackRepository
 	genSess  GenerationSessionRepository
+	recRepo  RecommendationRepository
 	ai       *oai.Client
 	cfg      ServiceConfig
 }
@@ -54,6 +55,7 @@ func NewService(
 	insights InsightsRepository,
 	feedback QuizFeedbackRepository,
 	genSess GenerationSessionRepository,
+	recRepo RecommendationRepository,
 	ai *oai.Client,
 	cfg ServiceConfig,
 ) *Service {
@@ -61,7 +63,7 @@ func NewService(
 		docs: docs, jobs: jobs, sessions: sessions,
 		tokens: tokens, mastery: mastery, gamif: gamif,
 		topics: topics, quiz: quiz, store: store,
-		insights: insights, feedback: feedback, genSess: genSess,
+		insights: insights, feedback: feedback, genSess: genSess, recRepo: recRepo,
 		ai: ai, cfg: cfg,
 	}
 }
@@ -647,11 +649,145 @@ func (s *Service) failJob(ctx context.Context, jobID uuid.UUID, err error) error
 
 // ─── Teacher Dashboard ────────────────────────────────────────────────────────
 
-func (s *Service) GetClassInsights(ctx context.Context, groupID uuid.UUID) (*domain.ClassInsights, error) {
+// GetClassInsights fetches raw analytics, runs the Rule Engine, persists recommendations,
+// and lazily measures outcomes for recommendations that are 7+ days old.
+func (s *Service) GetClassInsights(ctx context.Context, groupID, teacherID uuid.UUID) (*domain.ClassInsights, error) {
 	if s.insights == nil {
 		return nil, fmt.Errorf("insights not configured")
 	}
-	return s.insights.ClassInsights(ctx, groupID)
+
+	ins, err := s.insights.ClassInsights(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Skip rule engine if the persistence layer isn't wired up.
+	if s.recRepo == nil {
+		return ins, nil
+	}
+
+	// Build TAR context for the rule engine.
+	tar, tarTotal := 0.0, 0
+	if s.feedback != nil {
+		tar, tarTotal, _ = s.feedback.AcceptanceRate(ctx, teacherID)
+	}
+
+	rc := RuleContext{
+		GroupID:   groupID,
+		TeacherID: teacherID,
+		Insights:  ins,
+		TAR:       tar,
+		TARTotal:  tarTotal,
+	}
+	rawRecs := RunRules(rc)
+
+	// Persist — replaces all pending recs for this group.
+	_ = s.recRepo.ReplaceForGroup(ctx, groupID, rawRecs)
+
+	// Convert to the TeacherRecommendation view (with IDs).
+	recs := make([]domain.TeacherRecommendation, 0, len(rawRecs))
+	for _, r := range rawRecs {
+		recs = append(recs, domain.TeacherRecommendation{
+			ID:           r.ID,
+			Priority:     r.Priority,
+			Action:       r.Action,
+			Topic:        r.Topic,
+			Reason:       r.Reason,
+			StudentCount: r.StudentCount,
+		})
+	}
+	ins.Recommendations = recs
+
+	// Lazily measure outcomes for old recommendations (non-blocking best-effort).
+	go s.measurePendingOutcomes(context.Background(), groupID)
+
+	return ins, nil
+}
+
+// measurePendingOutcomes runs in the background — measures and stores outcome deltas
+// for any recommendations that are 7+ days old with no outcome recorded yet.
+func (s *Service) measurePendingOutcomes(ctx context.Context, groupID uuid.UUID) {
+	recs, err := s.recRepo.PendingForOutcome(ctx, groupID)
+	if err != nil || len(recs) == 0 {
+		return
+	}
+
+	for _, rec := range recs {
+		if rec.Topic == "" {
+			// Non-topic rules (at_risk, tar_low, celebrate) — store zero-delta placeholder.
+			o := &domain.RecommendationOutcome{
+				ID:               uuid.New(),
+				RecommendationID: rec.ID,
+				MeasuredAt:       time.Now(),
+			}
+			_ = s.recRepo.SaveOutcome(ctx, o)
+			continue
+		}
+
+		var snapshot struct {
+			AvgAccuracy float64 `json:"avg_accuracy"`
+		}
+		_ = json.Unmarshal(rec.RuleData, &snapshot)
+
+		o := s.recRepo.MeasureOutcomeForTopic(ctx, groupID, rec.Topic, snapshot.AvgAccuracy)
+		if o != nil {
+			o.RecommendationID = rec.ID
+			_ = s.recRepo.SaveOutcome(ctx, o)
+		}
+	}
+}
+
+// RecordRecommendationAction records the teacher's response to a recommendation.
+func (s *Service) RecordRecommendationAction(ctx context.Context, recID, teacherID uuid.UUID, status, action string) error {
+	if s.recRepo == nil {
+		return nil
+	}
+	rec, err := s.recRepo.GetRecommendation(ctx, recID)
+	if err != nil {
+		return fmt.Errorf("RecordRecommendationAction: %w", err)
+	}
+	if rec == nil {
+		return domain.ErrNotFound
+	}
+	if rec.TeacherID != teacherID {
+		return domain.ErrForbidden
+	}
+	return s.recRepo.RecordAction(ctx, recID, status, action)
+}
+
+// ExplainRecommendation generates a GPT-written explanation for why a recommendation
+// was triggered and what the teacher should do. Falls back to the rule reason if GPT
+// is not configured or fails.
+func (s *Service) ExplainRecommendation(ctx context.Context, recID, teacherID uuid.UUID) (string, error) {
+	if s.recRepo == nil {
+		return "", domain.ErrNotFound
+	}
+	rec, err := s.recRepo.GetRecommendation(ctx, recID)
+	if err != nil {
+		return "", fmt.Errorf("ExplainRecommendation: %w", err)
+	}
+	if rec == nil {
+		return "", domain.ErrNotFound
+	}
+	if rec.TeacherID != teacherID {
+		return "", domain.ErrForbidden
+	}
+
+	if !s.ai.IsConfigured() {
+		return rec.Reason, nil
+	}
+
+	resp, err := s.ai.Chat(ctx, oai.ChatRequest{
+		SystemPrompt: prompts.RecommendationExplainerSystem,
+		Messages:     []oai.ChatMessage{{Role: "user", Content: prompts.RecommendationExplainerPrompt(rec)}},
+		MaxTokens:    200,
+		Temperature:  0.5,
+	})
+	if err != nil {
+		return rec.Reason, nil // graceful degradation
+	}
+	_ = s.logTokens(ctx, teacherID, resp.Model, resp.TokensIn, resp.TokensOut, "rec_explain")
+	return resp.Content, nil
 }
 
 func (s *Service) GetStudentProgress(ctx context.Context, groupID, studentID uuid.UUID) (*domain.StudentProgress, error) {

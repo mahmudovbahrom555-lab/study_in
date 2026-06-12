@@ -34,22 +34,25 @@ func (r *InsightsRepository) ClassInsights(ctx context.Context, groupID uuid.UUI
 		return nil, fmt.Errorf("ClassInsights student count: %w", err)
 	}
 
-	// 2. Class-level topic weaknesses (topics where avg accuracy < 70%).
-	//    Join group_members → topic_mastery → topic_tags.
+	// 2. Class-level topic weaknesses with confidence and consistency averages.
 	type weakRow struct {
 		Topic              string  `db:"topic_name"`
 		AvgAccuracy        float64 `db:"avg_accuracy"`
+		AvgConfidence      float64 `db:"avg_confidence"`
+		AvgConsistency     float64 `db:"avg_consistency"`
 		StudentsStruggling int     `db:"students_struggling"`
 	}
 	var weakRows []weakRow
 	err := r.db.SelectContext(ctx, &weakRows, `
 		SELECT
-		    tt.name                                    AS topic_name,
+		    tt.name                                                               AS topic_name,
 		    AVG(CASE WHEN tm.total_count > 0
 		             THEN tm.correct_count::float / tm.total_count
-		             ELSE 0 END)                       AS avg_accuracy,
+		             ELSE 0 END)                                                 AS avg_accuracy,
+		    AVG(tm.confidence_score)                                             AS avg_confidence,
+		    AVG(tm.consistency_score)                                            AS avg_consistency,
 		    COUNT(*) FILTER (WHERE tm.total_count > 0 AND
-		                    tm.correct_count::float / tm.total_count < 0.6) AS students_struggling
+		                    tm.correct_count::float / tm.total_count < 0.6)     AS students_struggling
 		FROM group_members gm
 		JOIN topic_mastery  tm ON tm.student_id = gm.student_id
 		JOIN topic_tags     tt ON tt.id          = tm.topic_id
@@ -68,6 +71,8 @@ func (r *InsightsRepository) ClassInsights(ctx context.Context, groupID uuid.UUI
 		out.ClassWeakness = append(out.ClassWeakness, domain.TopicWeakness{
 			Topic:              w.Topic,
 			AvgAccuracy:        w.AvgAccuracy,
+			AvgConfidence:      w.AvgConfidence,
+			AvgConsistency:     w.AvgConsistency,
 			StudentsStruggling: w.StudentsStruggling,
 			TotalStudents:      out.StudentCount,
 		})
@@ -170,82 +175,7 @@ func (r *InsightsRepository) ClassInsights(ctx context.Context, groupID uuid.UUI
 		AvgScore:       qs.AvgScore,
 	}
 
-	// 5. "Next Best Action" recommendations — deterministic heuristics, no GPT.
-	out.Recommendations = r.buildRecommendations(out)
-
 	return out, nil
-}
-
-// buildRecommendations derives teacher actions from the already-computed insights.
-// Rules are ordered by estimated impact. All logic is pure Go — zero GPT calls.
-func (r *InsightsRepository) buildRecommendations(ins *domain.ClassInsights) []domain.TeacherRecommendation {
-	var recs []domain.TeacherRecommendation
-	half := ins.StudentCount / 2
-	if half < 1 {
-		half = 1
-	}
-
-	// P1: create a quiz for every topic where ≥50% of students struggle.
-	for _, w := range ins.ClassWeakness {
-		if w.StudentsStruggling >= half {
-			recs = append(recs, domain.TeacherRecommendation{
-				Priority:     1,
-				Action:       "create_quiz",
-				Topic:        w.Topic,
-				Reason:       fmt.Sprintf("%.0f%% средняя точность — %d/%d учеников испытывают трудности", w.AvgAccuracy*100, w.StudentsStruggling, w.TotalStudents),
-				StudentCount: w.StudentsStruggling,
-			})
-		}
-	}
-
-	// P1: if TAR < 70% the model is underperforming — remind teacher to rate questions.
-	if ins.QuizStats.Generated > 0 && ins.QuizStats.AcceptanceRate < 0.70 {
-		recs = append(recs, domain.TeacherRecommendation{
-			Priority: 1,
-			Action:   "rate_questions",
-			Reason:   fmt.Sprintf("TAR %.0f%% — оцените сгенерированные вопросы, чтобы улучшить качество AI", ins.QuizStats.AcceptanceRate*100),
-		})
-	}
-
-	// P2: check in with at-risk students (3+ days inactive).
-	atRisk := 0
-	for _, s := range ins.Students {
-		if s.IsAtRisk {
-			atRisk++
-		}
-	}
-	if atRisk > 0 {
-		recs = append(recs, domain.TeacherRecommendation{
-			Priority:     2,
-			Action:       "check_students",
-			Reason:       fmt.Sprintf("%d учеников не заходили 3+ дня — стоит написать им", atRisk),
-			StudentCount: atRisk,
-		})
-	}
-
-	// P2: topics where 25-49% struggle — schedule a review (lighter than a new quiz).
-	for _, w := range ins.ClassWeakness {
-		if w.StudentsStruggling < half && w.StudentsStruggling > 0 {
-			recs = append(recs, domain.TeacherRecommendation{
-				Priority:     2,
-				Action:       "schedule_review",
-				Topic:        w.Topic,
-				Reason:       fmt.Sprintf("%d ученик(ов) с трудом справляется — назначьте повторение через 3 дня", w.StudentsStruggling),
-				StudentCount: w.StudentsStruggling,
-			})
-		}
-	}
-
-	// P3: celebrate if avg score ≥ 80% and no at-risk students.
-	if ins.QuizStats.AvgScore >= 80 && atRisk == 0 && ins.StudentCount > 0 {
-		recs = append(recs, domain.TeacherRecommendation{
-			Priority: 3,
-			Action:   "celebrate",
-			Reason:   fmt.Sprintf("Средний балл %.0f%% — группа молодцы! Можно усложнить материал", ins.QuizStats.AvgScore),
-		})
-	}
-
-	return recs
 }
 
 // topWeaknessPerStudent returns the lowest-accuracy topic name per student in the group.

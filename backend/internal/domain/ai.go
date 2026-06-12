@@ -193,13 +193,44 @@ type QuizQuestionFeedback struct {
 // ─── Analytics DTOs (read-only, not persisted directly) ──────────────────────
 
 // TeacherRecommendation is a "Next Best Action" item shown on the Teacher Dashboard.
-// Generated deterministically from accumulated class data — no GPT call needed.
+// Persisted in ai_recommendations; ID lets the teacher accept, dismiss, or explain it.
 type TeacherRecommendation struct {
-	Priority     int    `json:"priority"`      // 1=high, 2=medium, 3=low
-	Action       string `json:"action"`        // create_quiz | schedule_review | check_students | celebrate
-	Topic        string `json:"topic,omitempty"`
-	Reason       string `json:"reason"`
-	StudentCount int    `json:"student_count,omitempty"`
+	ID           uuid.UUID `json:"id"`
+	Priority     int       `json:"priority"`      // 1=high, 2=medium, 3=low
+	Action       string    `json:"action"`        // create_quiz | schedule_review | check_students | rate_questions | celebrate
+	Topic        string    `json:"topic,omitempty"`
+	Reason       string    `json:"reason"`
+	StudentCount int       `json:"student_count,omitempty"`
+}
+
+// AIRecommendation is the persisted form stored in ai_recommendations.
+type AIRecommendation struct {
+	ID           uuid.UUID  `db:"id"`
+	TeacherID    uuid.UUID  `db:"teacher_id"`
+	GroupID      *uuid.UUID `db:"group_id"`
+	Priority     int        `db:"priority"`
+	Action       string     `db:"action"`
+	Topic        string     `db:"topic"`
+	Reason       string     `db:"reason"`
+	StudentCount int        `db:"student_count"`
+	RuleKey      string     `db:"rule_key"`
+	RuleData     []byte     `db:"rule_data"` // JSONB snapshot of metrics at creation time
+	Status       string     `db:"status"`
+	CreatedAt    time.Time  `db:"created_at"`
+	ActedAt      *time.Time `db:"acted_at"`
+	ExpiresAt    time.Time  `db:"expires_at"`
+}
+
+// RecommendationOutcome records the measurable impact 7 days after a recommendation.
+type RecommendationOutcome struct {
+	ID               uuid.UUID `db:"id"`
+	RecommendationID uuid.UUID `db:"recommendation_id"`
+	MeasuredAt       time.Time `db:"measured_at"`
+	MasteryDelta     *float64  `db:"mastery_delta"`
+	ConfidenceDelta  *float64  `db:"confidence_delta"`
+	ConsistencyDelta *float64  `db:"consistency_delta"`
+	StudentsImproved int       `db:"students_improved"`
+	StudentsTotal    int       `db:"students_total"`
 }
 
 type ClassInsights struct {
@@ -217,6 +248,8 @@ type TopicWeakness struct {
 	AvgAccuracy        float64 `json:"avg_accuracy"`
 	StudentsStruggling int     `json:"students_struggling"`
 	TotalStudents      int     `json:"total_students"`
+	AvgConfidence      float64 `json:"avg_confidence"`
+	AvgConsistency     float64 `json:"avg_consistency"`
 }
 
 type StudentSummary struct {

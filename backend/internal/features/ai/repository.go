@@ -126,3 +126,20 @@ type QuizFeedbackRepository interface {
 	UpsertFeedback(ctx context.Context, fb *domain.QuizQuestionFeedback) error
 	AcceptanceRate(ctx context.Context, teacherID uuid.UUID) (float64, int, error) // rate, total
 }
+
+// RecommendationRepository persists Rule Engine output and tracks teacher actions.
+type RecommendationRepository interface {
+	// ReplaceForGroup deletes all pending recommendations for the group and inserts fresh ones.
+	ReplaceForGroup(ctx context.Context, groupID uuid.UUID, recs []*domain.AIRecommendation) error
+	// GetRecommendation fetches a single recommendation by ID.
+	GetRecommendation(ctx context.Context, id uuid.UUID) (*domain.AIRecommendation, error)
+	// RecordAction marks a recommendation as accepted/dismissed/snoozed.
+	RecordAction(ctx context.Context, id uuid.UUID, status, teacherAction string) error
+	// PendingForOutcome returns acted-on recommendations >= 7 days old with no outcome yet.
+	PendingForOutcome(ctx context.Context, groupID uuid.UUID) ([]*domain.AIRecommendation, error)
+	// SaveOutcome stores the measured impact for one recommendation.
+	SaveOutcome(ctx context.Context, o *domain.RecommendationOutcome) error
+	// MeasureOutcomeForTopic queries current topic metrics for the group and computes the delta
+	// vs snapshotAccuracy. Returns nil when there's insufficient data.
+	MeasureOutcomeForTopic(ctx context.Context, groupID uuid.UUID, topic string, snapshotAccuracy float64) *domain.RecommendationOutcome
+}

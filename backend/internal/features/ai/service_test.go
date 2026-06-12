@@ -297,7 +297,7 @@ func buildServiceWithFeedback() (*ai.Service, *mockFeedbackRepo) {
 	insights := &mockInsightsRepo{}
 	feedback := newMockFeedbackRepo()
 
-	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, insights, feedback, nil, nil,
+	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, insights, feedback, nil, nil, nil,
 		ai.ServiceConfig{Model: "gpt-4o-mini", MonthlyTokensMax: 500000, ChunkSize: 400, ChunkOverlap: 50})
 	return svc, feedback
 }
@@ -313,7 +313,7 @@ func buildService() (*ai.Service, *mockDocRepo, *mockJobRepo, *mockGamifRepo) {
 	quiz := &mockQuizCreator{}
 	store := &mockObjectStore{data: map[string][]byte{}}
 
-	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, nil, nil, nil, nil,
+	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, nil, nil, nil, nil, nil,
 		ai.ServiceConfig{Model: "gpt-4o-mini", MonthlyTokensMax: 500000, ChunkSize: 400, ChunkOverlap: 50})
 	return svc, docs, jobs, gamif
 }
@@ -481,7 +481,7 @@ func TestGetClassInsights_ReturnsGroupID(t *testing.T) {
 	svc, _ := buildServiceWithFeedback()
 
 	groupID := uuid.New()
-	insights, err := svc.GetClassInsights(context.Background(), groupID)
+	insights, err := svc.GetClassInsights(context.Background(), groupID, uuid.New())
 	if err != nil {
 		t.Fatalf("GetClassInsights: %v", err)
 	}
