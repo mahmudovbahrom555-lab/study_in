@@ -660,11 +660,13 @@ func (s *Service) GetClassInsights(ctx context.Context, groupID, teacherID uuid.
 	}
 
 	// Demo groups return hardcoded rich insights — no DB queries needed.
-	if s.insights != nil {
-		isDemoGroup, _ := s.insights.IsDemo(ctx, groupID)
-		if isDemoGroup {
-			return DemoInsights(groupID, teacherID), nil
-		}
+	isDemoGroup, err := s.insights.IsDemo(ctx, groupID)
+	if err != nil {
+		fmt.Printf("GetClassInsights: IsDemo check failed for group %s: %v\n", groupID, err)
+		// fail-open: treat as non-demo and continue with real queries
+	}
+	if isDemoGroup {
+		return DemoInsights(groupID), nil
 	}
 
 	ins, err := s.insights.ClassInsights(ctx, groupID)

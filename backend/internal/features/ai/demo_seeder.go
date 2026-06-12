@@ -15,6 +15,47 @@ type DemoGroupCreator interface {
 	CreateDemoGroup(ctx context.Context, teacherID uuid.UUID) (uuid.UUID, error)
 }
 
+// Fixed UUIDs for demo data — stable across requests so the frontend can
+// navigate to student detail / call recommendation actions without 404s.
+// These are synthetic identifiers that never exist in the real tables;
+// handler-level guards (isDemoGroup check) must intercept those routes.
+var (
+	demoStudentIDs = [6]uuid.UUID{
+		uuid.MustParse("d1000000-0000-0000-0000-000000000001"),
+		uuid.MustParse("d1000000-0000-0000-0000-000000000002"),
+		uuid.MustParse("d1000000-0000-0000-0000-000000000003"),
+		uuid.MustParse("d1000000-0000-0000-0000-000000000004"),
+		uuid.MustParse("d1000000-0000-0000-0000-000000000005"),
+		uuid.MustParse("d1000000-0000-0000-0000-000000000006"),
+	}
+	demoRecIDs = [4]uuid.UUID{
+		uuid.MustParse("d2000000-0000-0000-0000-000000000001"),
+		uuid.MustParse("d2000000-0000-0000-0000-000000000002"),
+		uuid.MustParse("d2000000-0000-0000-0000-000000000003"),
+		uuid.MustParse("d2000000-0000-0000-0000-000000000004"),
+	}
+)
+
+// IsDemoStudentID returns true if the given UUID belongs to the demo student pool.
+func IsDemoStudentID(id uuid.UUID) bool {
+	for _, sid := range demoStudentIDs {
+		if sid == id {
+			return true
+		}
+	}
+	return false
+}
+
+// IsDemoRecID returns true if the given UUID belongs to the demo recommendation pool.
+func IsDemoRecID(id uuid.UUID) bool {
+	for _, rid := range demoRecIDs {
+		if rid == id {
+			return true
+		}
+	}
+	return false
+}
+
 // SeedDemoGroup creates a demo group and returns its ID.
 // The group is flagged is_demo=true; its AI Insights endpoint returns
 // hardcoded rich data so a new teacher sees the full platform value immediately.
@@ -28,21 +69,23 @@ func (s *Service) SeedDemoGroup(ctx context.Context, teacherID uuid.UUID) (uuid.
 // DemoInsights returns a fully-populated ClassInsights for a demo group.
 // All values are realistic — tuned to show the platform at its most useful.
 // Called instead of the DB query when group.is_demo = true.
-func DemoInsights(groupID, teacherID uuid.UUID) *domain.ClassInsights {
+// Student and recommendation IDs are deterministic (see demoStudentIDs / demoRecIDs)
+// so the frontend can safely navigate to detail pages.
+func DemoInsights(groupID uuid.UUID) *domain.ClassInsights {
 	now := time.Now()
 
 	students := []domain.StudentSummary{
-		{StudentID: uuid.New(), Name: "Алибек Жумаев", XPTotal: 1240, StreakDays: 14,
+		{StudentID: demoStudentIDs[0], Name: "Алибек Жумаев", XPTotal: 1240, StreakDays: 14,
 			TopWeakness: "Passive Voice", IsAtRisk: false, LastActive: strPtr(now.AddDate(0, 0, -1).Format("2006-01-02"))},
-		{StudentID: uuid.New(), Name: "Малика Рашидова", XPTotal: 980, StreakDays: 7,
+		{StudentID: demoStudentIDs[1], Name: "Малика Рашидова", XPTotal: 980, StreakDays: 7,
 			TopWeakness: "Conditionals", IsAtRisk: false, LastActive: strPtr(now.AddDate(0, 0, -2).Format("2006-01-02"))},
-		{StudentID: uuid.New(), Name: "Дилноза Каримова", XPTotal: 740, StreakDays: 3,
+		{StudentID: demoStudentIDs[2], Name: "Дилноза Каримова", XPTotal: 740, StreakDays: 3,
 			TopWeakness: "Past Perfect", IsAtRisk: false, LastActive: strPtr(now.AddDate(0, 0, -1).Format("2006-01-02"))},
-		{StudentID: uuid.New(), Name: "Жасурбек Ибрагимов", XPTotal: 420, StreakDays: 0,
+		{StudentID: demoStudentIDs[3], Name: "Жасурбек Ибрагимов", XPTotal: 420, StreakDays: 0,
 			TopWeakness: "Relative Clauses", IsAtRisk: true, LastActive: strPtr(now.AddDate(0, 0, -5).Format("2006-01-02"))},
-		{StudentID: uuid.New(), Name: "Нилуфар Юсупова", XPTotal: 310, StreakDays: 0,
+		{StudentID: demoStudentIDs[4], Name: "Нилуфар Юсупова", XPTotal: 310, StreakDays: 0,
 			TopWeakness: "Passive Voice", IsAtRisk: true, LastActive: strPtr(now.AddDate(0, 0, -4).Format("2006-01-02"))},
-		{StudentID: uuid.New(), Name: "Отабек Хасанов", XPTotal: 1560, StreakDays: 21,
+		{StudentID: demoStudentIDs[5], Name: "Отабек Хасанов", XPTotal: 1560, StreakDays: 21,
 			TopWeakness: "Reported Speech", IsAtRisk: false, LastActive: strPtr(now.Format("2006-01-02"))},
 	}
 
@@ -58,22 +101,22 @@ func DemoInsights(groupID, teacherID uuid.UUID) *domain.ClassInsights {
 	}
 
 	recs := []domain.TeacherRecommendation{
-		{ID: uuid.New(), Priority: 1, Action: "create_quiz", Topic: "Passive Voice",
+		{ID: demoRecIDs[0], Priority: 1, Action: "create_quiz", Topic: "Passive Voice",
 			Reason: "Средняя точность 38% и уверенность 31% — 4/6 учеников испытывают трудности", StudentCount: 4},
-		{ID: uuid.New(), Priority: 1, Action: "check_students",
+		{ID: demoRecIDs[1], Priority: 1, Action: "check_students",
 			Reason: "2 ученика не заходили 4+ дня — стоит написать им", StudentCount: 2},
-		{ID: uuid.New(), Priority: 2, Action: "schedule_review", Topic: "Conditionals",
+		{ID: demoRecIDs[2], Priority: 2, Action: "schedule_review", Topic: "Conditionals",
 			Reason: "3 ученика с трудом справляются — назначьте повторение через 3 дня", StudentCount: 3},
-		{ID: uuid.New(), Priority: 2, Action: "rate_questions",
+		{ID: demoRecIDs[3], Priority: 2, Action: "rate_questions",
 			Reason: "TAR 71% — оцените сгенерированные вопросы, чтобы улучшить качество AI"},
 	}
 
 	return &domain.ClassInsights{
-		GroupID:      groupID,
-		Period:       "last_30_days",
-		StudentCount: 6,
+		GroupID:       groupID,
+		Period:        "last_30_days",
+		StudentCount:  6,
 		ClassWeakness: weakness,
-		Students:     students,
+		Students:      students,
 		QuizStats: domain.QuizStats{
 			Generated:      12,
 			AcceptanceRate: 0.71,

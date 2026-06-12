@@ -175,30 +175,45 @@ func (r *InsightsRepository) ClassInsights(ctx context.Context, groupID uuid.UUI
 		AvgScore:       qs.AvgScore,
 	}
 
-	// 5. Course Coverage — unique topics with ≥3 student answers in this group.
+	// 5. Course Coverage + CEFR level — single query to groups table, then
+	// count topics scoped strictly to quizzes that belong to this group.
+	// topic_mastery has no group_id, so we trace the full chain:
+	//   group_members → quiz_attempts → quizzes(group_id) → student_answers
+	//   → question_topics → topic_id
+	// "≥3" threshold: at least 3 distinct question answers in this group's quizzes.
+	var groupMeta struct {
+		CEFRLevel string `db:"cefr_level"`
+	}
+	_ = r.db.GetContext(ctx, &groupMeta,
+		`SELECT COALESCE(cefr_level,'') AS cefr_level FROM groups WHERE id=$1`, groupID)
+
 	var covered int
 	_ = r.db.GetContext(ctx, &covered, `
-		SELECT COUNT(DISTINCT tm.topic_id)
-		FROM group_members gm
-		JOIN topic_mastery tm ON tm.student_id = gm.student_id
-		WHERE gm.group_id = $1 AND tm.total_count >= 3`, groupID)
+		SELECT COUNT(DISTINCT sub.topic_id)
+		FROM (
+		    SELECT qt.topic_id
+		    FROM group_members gm
+		    JOIN quiz_attempts qa ON qa.student_id = gm.student_id
+		    JOIN quizzes        q  ON q.id = qa.quiz_id AND q.group_id = $1
+		    JOIN student_answers sa ON sa.attempt_id = qa.id
+		    JOIN question_topics qt ON qt.question_id = sa.question_id
+		    WHERE gm.group_id = $1
+		    GROUP BY qt.topic_id
+		    HAVING COUNT(sa.question_id) >= 3
+		) sub`, groupID)
 
-	// CEFR level from group (optional).
-	var cefrLevel string
-	_ = r.db.GetContext(ctx, &cefrLevel,
-		`SELECT COALESCE(cefr_level,'') FROM groups WHERE id=$1`, groupID)
-	estimated := domain.CEFRTopicBudget(cefrLevel)
-	rate2 := 0.0
+	estimated := domain.CEFRTopicBudget(groupMeta.CEFRLevel)
+	coverageRate := 0.0
 	if estimated > 0 {
-		rate2 = float64(covered) / float64(estimated)
-		if rate2 > 1 {
-			rate2 = 1
+		coverageRate = float64(covered) / float64(estimated)
+		if coverageRate > 1 {
+			coverageRate = 1
 		}
 	}
 	out.CourseCoverage = domain.CourseCoverage{
 		TopicsCovered:   covered,
 		TopicsEstimated: estimated,
-		CoverageRate:    rate2,
+		CoverageRate:    coverageRate,
 	}
 
 	return out, nil
@@ -359,11 +374,15 @@ func (r *InsightsRepository) StudentProgress(ctx context.Context, groupID, stude
 }
 
 // IsDemo returns true when the group is flagged as a demo group.
+// Propagates real DB errors so the caller can log and decide; ErrNoRows → false, nil.
 func (r *InsightsRepository) IsDemo(ctx context.Context, groupID uuid.UUID) (bool, error) {
 	var isDemo bool
 	err := r.db.GetContext(ctx, &isDemo, `SELECT is_demo FROM groups WHERE id = $1`, groupID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil // group not found — treat as non-demo
+	}
 	if err != nil {
-		return false, nil // group not found or column missing — treat as non-demo
+		return false, fmt.Errorf("IsDemo: %w", err)
 	}
 	return isDemo, nil
 }
