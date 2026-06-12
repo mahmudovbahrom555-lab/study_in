@@ -232,9 +232,9 @@ func TestSubmitAttempt_CorrectAnswer(t *testing.T) {
 		Answers: map[string]string{qstID.String(): optID.String()},
 	})
 	require.NoError(t, err)
-	require.NotNil(t, result.Score)
-	assert.Equal(t, int16(1), *result.Score)
-	assert.NotNil(t, result.FinishedAt)
+	require.NotNil(t, result.Attempt.Score)
+	assert.Equal(t, int16(1), *result.Attempt.Score)
+	assert.NotNil(t, result.Attempt.FinishedAt)
 }
 
 func TestSubmitAttempt_WrongAnswer(t *testing.T) {
@@ -251,8 +251,8 @@ func TestSubmitAttempt_WrongAnswer(t *testing.T) {
 		Answers: map[string]string{qstID.String(): uuid.New().String()},
 	})
 	require.NoError(t, err)
-	require.NotNil(t, result.Score)
-	assert.Equal(t, int16(0), *result.Score)
+	require.NotNil(t, result.Attempt.Score)
+	assert.Equal(t, int16(0), *result.Attempt.Score)
 }
 
 func TestAddQuestion_PublishedQuizForbidden(t *testing.T) {
