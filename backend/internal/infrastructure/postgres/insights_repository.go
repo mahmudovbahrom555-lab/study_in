@@ -292,22 +292,26 @@ func (r *InsightsRepository) StudentProgress(ctx context.Context, groupID, stude
 
 	// Weak topics (bottom 10 by accuracy).
 	type topicRow struct {
-		TopicID      uuid.UUID `db:"topic_id"`
-		TopicName    string    `db:"topic_name"`
-		CorrectCount int       `db:"correct_count"`
-		TotalCount   int       `db:"total_count"`
-		NextReview   time.Time `db:"next_review"`
-		IntervalDays int       `db:"interval_days"`
+		TopicID          uuid.UUID `db:"topic_id"`
+		TopicName        string    `db:"topic_name"`
+		CorrectCount     int       `db:"correct_count"`
+		TotalCount       int       `db:"total_count"`
+		NextReview       time.Time `db:"next_review"`
+		IntervalDays     int       `db:"interval_days"`
+		ConfidenceScore  float64   `db:"confidence_score"`
+		ConsistencyScore float64   `db:"consistency_score"`
 	}
 	var topicRows []topicRow
 	_ = r.db.SelectContext(ctx, &topicRows, `
 		SELECT
 		    tm.topic_id,
-		    tt.name       AS topic_name,
+		    tt.name             AS topic_name,
 		    tm.correct_count,
 		    tm.total_count,
 		    tm.next_review,
-		    tm.interval_days
+		    tm.interval_days,
+		    tm.confidence_score,
+		    tm.consistency_score
 		FROM topic_mastery tm
 		JOIN topic_tags tt ON tt.id = tm.topic_id
 		WHERE tm.student_id = $1 AND tm.total_count > 0
@@ -320,12 +324,14 @@ func (r *InsightsRepository) StudentProgress(ctx context.Context, groupID, stude
 			accuracy = float64(tr.CorrectCount) / float64(tr.TotalCount)
 		}
 		out.WeakTopics = append(out.WeakTopics, domain.StudentTopicDetail{
-			TopicID:      tr.TopicID,
-			TopicName:    tr.TopicName,
-			Accuracy:     accuracy,
-			TotalAnswers: tr.TotalCount,
-			NextReview:   tr.NextReview,
-			IntervalDays: tr.IntervalDays,
+			TopicID:          tr.TopicID,
+			TopicName:        tr.TopicName,
+			Accuracy:         accuracy,
+			TotalAnswers:     tr.TotalCount,
+			NextReview:       tr.NextReview,
+			IntervalDays:     tr.IntervalDays,
+			ConfidenceScore:  tr.ConfidenceScore,
+			ConsistencyScore: tr.ConsistencyScore,
 		})
 	}
 

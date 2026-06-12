@@ -92,15 +92,18 @@ type TopicTag struct {
 }
 
 type TopicMastery struct {
-	ID           uuid.UUID `db:"id"`
-	StudentID    uuid.UUID `db:"student_id"`
-	TopicID      uuid.UUID `db:"topic_id"`
-	CorrectCount int       `db:"correct_count"`
-	TotalCount   int       `db:"total_count"`
-	NextReview   time.Time `db:"next_review"`
-	IntervalDays int       `db:"interval_days"`
-	EaseFactor   float64   `db:"ease_factor"`
-	UpdatedAt    time.Time `db:"updated_at"`
+	ID               uuid.UUID `db:"id"`
+	StudentID        uuid.UUID `db:"student_id"`
+	TopicID          uuid.UUID `db:"topic_id"`
+	CorrectCount     int       `db:"correct_count"`
+	TotalCount       int       `db:"total_count"`
+	NextReview       time.Time `db:"next_review"`
+	IntervalDays     int       `db:"interval_days"`
+	EaseFactor       float64   `db:"ease_factor"`
+	ConfidenceScore  float64   `db:"confidence_score"`  // [0,1] EMA of answer confidence
+	ConsistencyScore float64   `db:"consistency_score"` // [0,1] variance-based reliability
+	CorrectStreak    int       `db:"correct_streak"`
+	UpdatedAt        time.Time `db:"updated_at"`
 }
 
 type StudentGamification struct {
@@ -243,12 +246,14 @@ type StudentProgress struct {
 }
 
 type StudentTopicDetail struct {
-	TopicID      uuid.UUID `json:"topic_id"`
-	TopicName    string    `json:"topic_name"`
-	Accuracy     float64   `json:"accuracy"`
-	TotalAnswers int       `json:"total_answers"`
-	NextReview   time.Time `json:"next_review"`
-	IntervalDays int       `json:"interval_days"`
+	TopicID          uuid.UUID `json:"topic_id"`
+	TopicName        string    `json:"topic_name"`
+	Accuracy         float64   `json:"accuracy"`
+	TotalAnswers     int       `json:"total_answers"`
+	NextReview       time.Time `json:"next_review"`
+	IntervalDays     int       `json:"interval_days"`
+	ConfidenceScore  float64   `json:"confidence_score"`
+	ConsistencyScore float64   `json:"consistency_score"`
 }
 
 type QuizAttemptSummary struct {

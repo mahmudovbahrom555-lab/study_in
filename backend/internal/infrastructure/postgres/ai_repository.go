@@ -250,17 +250,23 @@ func NewAIMasteryRepository(db *sqlx.DB) *AIMasteryRepository {
 func (r *AIMasteryRepository) UpsertMastery(ctx context.Context, m *domain.TopicMastery) error {
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO topic_mastery
-		    (id, student_id, topic_id, correct_count, total_count, next_review, interval_days, ease_factor, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+		    (id, student_id, topic_id, correct_count, total_count, next_review,
+		     interval_days, ease_factor, confidence_score, consistency_score,
+		     correct_streak, updated_at)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
 		 ON CONFLICT (student_id, topic_id) DO UPDATE SET
 		    correct_count=EXCLUDED.correct_count,
 		    total_count=EXCLUDED.total_count,
 		    next_review=EXCLUDED.next_review,
 		    interval_days=EXCLUDED.interval_days,
 		    ease_factor=EXCLUDED.ease_factor,
+		    confidence_score=EXCLUDED.confidence_score,
+		    consistency_score=EXCLUDED.consistency_score,
+		    correct_streak=EXCLUDED.correct_streak,
 		    updated_at=EXCLUDED.updated_at`,
-		m.ID, m.StudentID, m.TopicID, m.CorrectCount, m.TotalCount,
-		m.NextReview, m.IntervalDays, m.EaseFactor, m.UpdatedAt)
+		m.ID, m.StudentID, m.TopicID, m.CorrectCount, m.TotalCount, m.NextReview,
+		m.IntervalDays, m.EaseFactor, m.ConfidenceScore, m.ConsistencyScore,
+		m.CorrectStreak, m.UpdatedAt)
 	return err
 }
 

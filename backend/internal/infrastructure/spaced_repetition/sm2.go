@@ -27,6 +27,7 @@ func Update(mastery *domain.TopicMastery, correct bool, quality int) {
 	if !correct {
 		mastery.IntervalDays = 1
 		mastery.EaseFactor = math.Max(1.3, mastery.EaseFactor-0.2)
+		mastery.CorrectStreak = 0
 	} else {
 		switch mastery.IntervalDays {
 		case 1:
@@ -40,9 +41,37 @@ func Update(mastery *domain.TopicMastery, correct bool, quality int) {
 		q := float64(quality)
 		delta := 0.1 - (5-q)*(0.08+(5-q)*0.02)
 		mastery.EaseFactor = math.Max(1.3, mastery.EaseFactor+delta)
+		mastery.CorrectStreak++
 	}
+	// Confidence: EMA with α=0.3. Converges toward 1.0 on correct, 0.0 on wrong.
+	const alpha = 0.3
+	target := 0.0
+	if correct {
+		target = 1.0
+	}
+	mastery.ConfidenceScore = clamp(alpha*target+(1-alpha)*mastery.ConfidenceScore, 0, 1)
+
+	// Consistency: rises as correct streak grows, reset on wrong answer.
+	// streak≥5 → 1.0, streak=0 → max drops to 0.5 floor.
+	streakScore := math.Min(1.0, float64(mastery.CorrectStreak)/5.0)
+	if !correct {
+		// Keep half the previous consistency so one mistake doesn't erase history.
+		streakScore = mastery.ConsistencyScore * 0.5
+	}
+	mastery.ConsistencyScore = clamp(streakScore, 0, 1)
+
 	mastery.NextReview = time.Now().AddDate(0, 0, mastery.IntervalDays)
 	mastery.UpdatedAt = time.Now()
+}
+
+func clamp(v, lo, hi float64) float64 {
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
 }
 
 // IsDue returns true when the mastery item is ready for review.
