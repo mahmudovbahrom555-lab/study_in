@@ -30,4 +30,9 @@ class AiApi {
       total: d['total_questions'] as int,
     );
   }
+
+  Future<TeacherGenerationStatsDto> generationStats() async {
+    final resp = await _dio.get<Map<String, dynamic>>('/me/generation-stats');
+    return TeacherGenerationStatsDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
+  }
 }

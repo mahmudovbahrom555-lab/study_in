@@ -99,6 +99,20 @@ type ObjectStore interface {
 	GetObject(ctx context.Context, key string) ([]byte, error)
 }
 
+// GenerationSessionRepository persists and queries ai_generation_sessions.
+type GenerationSessionRepository interface {
+	// CreateSession opens a session at the start of quiz generation.
+	CreateSession(ctx context.Context, s *domain.AIGenerationSession) error
+	// LinkQuiz is called once the quiz has been created — sets quiz_id + completed_at.
+	LinkQuiz(ctx context.Context, sessionID, quizID uuid.UUID) error
+	// SyncCounts re-computes accepted/rejected from quiz_question_feedback for a session.
+	SyncCounts(ctx context.Context, sessionID uuid.UUID) error
+	// SyncCountsByQuestion looks up the session via question → quiz → session and syncs.
+	SyncCountsByQuestion(ctx context.Context, questionID uuid.UUID) error
+	// TeacherStats returns lifetime aggregates for a teacher.
+	TeacherStats(ctx context.Context, teacherID uuid.UUID) (*domain.TeacherGenerationStats, error)
+}
+
 // InsightsRepository provides analytics queries for the Teacher Dashboard.
 type InsightsRepository interface {
 	// ClassInsights aggregates topic weaknesses, student summaries, and quiz stats for a group.

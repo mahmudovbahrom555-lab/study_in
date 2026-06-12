@@ -12,6 +12,9 @@ class ClassInsightsDto {
             .map((e) => StudentSummaryDto.fromJson(e as Map<String, dynamic>))
             .toList(),
         quizStats: QuizStatsDto.fromJson(j['quiz_stats'] as Map<String, dynamic>? ?? {}),
+        recommendations: (j['recommendations'] as List<dynamic>? ?? [])
+            .map((e) => TeacherRecommendationDto.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 
   const ClassInsightsDto({
@@ -21,6 +24,7 @@ class ClassInsightsDto {
     required this.classWeakness,
     required this.students,
     required this.quizStats,
+    required this.recommendations,
   });
 
   final String groupId;
@@ -29,6 +33,7 @@ class ClassInsightsDto {
   final List<TopicWeaknessDto> classWeakness;
   final List<StudentSummaryDto> students;
   final QuizStatsDto quizStats;
+  final List<TeacherRecommendationDto> recommendations;
 
   ClassInsights toDomain() => ClassInsights(
         groupId: groupId,
@@ -37,6 +42,77 @@ class ClassInsightsDto {
         classWeakness: classWeakness.map((e) => e.toDomain()).toList(),
         students: students.map((e) => e.toDomain()).toList(),
         quizStats: quizStats.toDomain(),
+        recommendations: recommendations.map((e) => e.toDomain()).toList(),
+      );
+}
+
+class TeacherRecommendationDto {
+  factory TeacherRecommendationDto.fromJson(Map<String, dynamic> j) =>
+      TeacherRecommendationDto(
+        priority: j['priority'] as int? ?? 3,
+        action: j['action'] as String? ?? '',
+        reason: j['reason'] as String? ?? '',
+        topic: j['topic'] as String?,
+        studentCount: j['student_count'] as int?,
+      );
+
+  const TeacherRecommendationDto({
+    required this.priority,
+    required this.action,
+    required this.reason,
+    this.topic,
+    this.studentCount,
+  });
+
+  final int priority;
+  final String action;
+  final String reason;
+  final String? topic;
+  final int? studentCount;
+
+  TeacherRecommendation toDomain() => TeacherRecommendation(
+        priority: priority,
+        action: action,
+        reason: reason,
+        topic: topic,
+        studentCount: studentCount,
+      );
+}
+
+class TeacherGenerationStatsDto {
+  factory TeacherGenerationStatsDto.fromJson(Map<String, dynamic> j) =>
+      TeacherGenerationStatsDto(
+        totalSessions: j['total_sessions'] as int? ?? 0,
+        totalGenerated: j['total_generated'] as int? ?? 0,
+        totalAccepted: j['total_accepted'] as int? ?? 0,
+        totalEdited: j['total_edited'] as int? ?? 0,
+        totalRejected: j['total_rejected'] as int? ?? 0,
+        acceptanceRate: (j['acceptance_rate'] as num?)?.toDouble() ?? 0.0,
+      );
+
+  const TeacherGenerationStatsDto({
+    required this.totalSessions,
+    required this.totalGenerated,
+    required this.totalAccepted,
+    required this.totalEdited,
+    required this.totalRejected,
+    required this.acceptanceRate,
+  });
+
+  final int totalSessions;
+  final int totalGenerated;
+  final int totalAccepted;
+  final int totalEdited;
+  final int totalRejected;
+  final double acceptanceRate;
+
+  TeacherGenerationStats toDomain() => TeacherGenerationStats(
+        totalSessions: totalSessions,
+        totalGenerated: totalGenerated,
+        totalAccepted: totalAccepted,
+        totalEdited: totalEdited,
+        totalRejected: totalRejected,
+        acceptanceRate: acceptanceRate,
       );
 }
 

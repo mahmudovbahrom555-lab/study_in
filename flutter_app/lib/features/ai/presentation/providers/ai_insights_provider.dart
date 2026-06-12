@@ -35,3 +35,10 @@ final acceptanceRateProvider =
     FutureProvider<({double rate, int total})>((ref) {
   return ref.watch(aiRepositoryProvider).myAcceptanceRate();
 });
+
+// ─── Generation stats (TAR + session counts) ─────────────────────────────────
+
+final generationStatsProvider =
+    FutureProvider<TeacherGenerationStats>((ref) {
+  return ref.watch(aiRepositoryProvider).generationStats();
+});

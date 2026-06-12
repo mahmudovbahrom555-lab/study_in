@@ -25,4 +25,10 @@ class AiRepositoryImpl implements AiRepository {
 
   @override
   Future<({double rate, int total})> myAcceptanceRate() => _api.myAcceptanceRate();
+
+  @override
+  Future<TeacherGenerationStats> generationStats() async {
+    final dto = await _api.generationStats();
+    return dto.toDomain();
+  }
 }

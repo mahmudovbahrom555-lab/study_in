@@ -170,7 +170,82 @@ func (r *InsightsRepository) ClassInsights(ctx context.Context, groupID uuid.UUI
 		AvgScore:       qs.AvgScore,
 	}
 
+	// 5. "Next Best Action" recommendations — deterministic heuristics, no GPT.
+	out.Recommendations = r.buildRecommendations(out)
+
 	return out, nil
+}
+
+// buildRecommendations derives teacher actions from the already-computed insights.
+// Rules are ordered by estimated impact. All logic is pure Go — zero GPT calls.
+func (r *InsightsRepository) buildRecommendations(ins *domain.ClassInsights) []domain.TeacherRecommendation {
+	var recs []domain.TeacherRecommendation
+	half := ins.StudentCount / 2
+	if half < 1 {
+		half = 1
+	}
+
+	// P1: create a quiz for every topic where ≥50% of students struggle.
+	for _, w := range ins.ClassWeakness {
+		if w.StudentsStruggling >= half {
+			recs = append(recs, domain.TeacherRecommendation{
+				Priority:     1,
+				Action:       "create_quiz",
+				Topic:        w.Topic,
+				Reason:       fmt.Sprintf("%.0f%% средняя точность — %d/%d учеников испытывают трудности", w.AvgAccuracy*100, w.StudentsStruggling, w.TotalStudents),
+				StudentCount: w.StudentsStruggling,
+			})
+		}
+	}
+
+	// P1: if TAR < 70% the model is underperforming — remind teacher to rate questions.
+	if ins.QuizStats.Generated > 0 && ins.QuizStats.AcceptanceRate < 0.70 {
+		recs = append(recs, domain.TeacherRecommendation{
+			Priority: 1,
+			Action:   "rate_questions",
+			Reason:   fmt.Sprintf("TAR %.0f%% — оцените сгенерированные вопросы, чтобы улучшить качество AI", ins.QuizStats.AcceptanceRate*100),
+		})
+	}
+
+	// P2: check in with at-risk students (3+ days inactive).
+	atRisk := 0
+	for _, s := range ins.Students {
+		if s.IsAtRisk {
+			atRisk++
+		}
+	}
+	if atRisk > 0 {
+		recs = append(recs, domain.TeacherRecommendation{
+			Priority:     2,
+			Action:       "check_students",
+			Reason:       fmt.Sprintf("%d учеников не заходили 3+ дня — стоит написать им", atRisk),
+			StudentCount: atRisk,
+		})
+	}
+
+	// P2: topics where 25-49% struggle — schedule a review (lighter than a new quiz).
+	for _, w := range ins.ClassWeakness {
+		if w.StudentsStruggling < half && w.StudentsStruggling > 0 {
+			recs = append(recs, domain.TeacherRecommendation{
+				Priority:     2,
+				Action:       "schedule_review",
+				Topic:        w.Topic,
+				Reason:       fmt.Sprintf("%d ученик(ов) с трудом справляется — назначьте повторение через 3 дня", w.StudentsStruggling),
+				StudentCount: w.StudentsStruggling,
+			})
+		}
+	}
+
+	// P3: celebrate if avg score ≥ 80% and no at-risk students.
+	if ins.QuizStats.AvgScore >= 80 && atRisk == 0 && ins.StudentCount > 0 {
+		recs = append(recs, domain.TeacherRecommendation{
+			Priority: 3,
+			Action:   "celebrate",
+			Reason:   fmt.Sprintf("Средний балл %.0f%% — группа молодцы! Можно усложнить материал", ins.QuizStats.AvgScore),
+		})
+	}
+
+	return recs
 }
 
 // topWeaknessPerStudent returns the lowest-accuracy topic name per student in the group.
@@ -357,4 +432,101 @@ func (r *QuizFeedbackRepository) AcceptanceRate(ctx context.Context, teacherID u
 		return 0, 0, nil
 	}
 	return float64(res.Accepted) / float64(res.Total), res.Total, nil
+}
+
+// ─── AIGenerationSessionRepository ───────────────────────────────────────────
+
+type AIGenerationSessionRepository struct{ db *sqlx.DB }
+
+func NewAIGenerationSessionRepository(db *sqlx.DB) *AIGenerationSessionRepository {
+	return &AIGenerationSessionRepository{db: db}
+}
+
+func (r *AIGenerationSessionRepository) CreateSession(ctx context.Context, s *domain.AIGenerationSession) error {
+	s.ID = uuid.New()
+	_, err := r.db.ExecContext(ctx, `
+		INSERT INTO ai_generation_sessions
+		    (id, teacher_id, source_document_id, group_id, generated_count,
+		     cefr_level, subject, model_used, prompt_tokens, completion_tokens, created_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+		s.ID, s.TeacherID, s.SourceDocumentID, s.GroupID, s.GeneratedCount,
+		s.CEFRLevel, s.Subject, s.ModelUsed, s.PromptTokens, s.CompletionTokens, s.CreatedAt)
+	return err
+}
+
+func (r *AIGenerationSessionRepository) SyncCountsByQuestion(ctx context.Context, questionID uuid.UUID) error {
+	// Resolve question → quiz → session, then re-derive counts.
+	var sessionID uuid.UUID
+	err := r.db.GetContext(ctx, &sessionID, `
+		SELECT gs.id
+		FROM ai_generation_sessions gs
+		JOIN questions q ON q.quiz_id = gs.quiz_id
+		WHERE q.id = $1
+		LIMIT 1`, questionID)
+	if err != nil {
+		return nil // no session linked yet — not an error
+	}
+	return r.SyncCounts(ctx, sessionID)
+}
+
+func (r *AIGenerationSessionRepository) LinkQuiz(ctx context.Context, sessionID, quizID uuid.UUID) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE ai_generation_sessions SET quiz_id=$1, completed_at=NOW() WHERE id=$2`,
+		quizID, sessionID)
+	return err
+}
+
+// SyncCounts re-derives accepted/rejected from quiz_question_feedback for the quiz
+// linked to this session. Safe to call multiple times (idempotent).
+func (r *AIGenerationSessionRepository) SyncCounts(ctx context.Context, sessionID uuid.UUID) error {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE ai_generation_sessions gs
+		SET
+		    accepted_count = COALESCE((
+		        SELECT COUNT(*) FROM quiz_question_feedback qf
+		        JOIN questions q ON q.id = qf.question_id
+		        WHERE q.quiz_id = gs.quiz_id AND qf.accepted
+		    ), 0),
+		    rejected_count = COALESCE((
+		        SELECT COUNT(*) FROM quiz_question_feedback qf
+		        JOIN questions q ON q.id = qf.question_id
+		        WHERE q.quiz_id = gs.quiz_id AND NOT qf.accepted
+		    ), 0)
+		WHERE gs.id = $1`, sessionID)
+	return err
+}
+
+func (r *AIGenerationSessionRepository) TeacherStats(ctx context.Context, teacherID uuid.UUID) (*domain.TeacherGenerationStats, error) {
+	type row struct {
+		Sessions   int `db:"sessions"`
+		Generated  int `db:"generated"`
+		Accepted   int `db:"accepted"`
+		Edited     int `db:"edited"`
+		Rejected   int `db:"rejected"`
+	}
+	var res row
+	err := r.db.GetContext(ctx, &res, `
+		SELECT
+		    COUNT(*)                  AS sessions,
+		    COALESCE(SUM(generated_count), 0) AS generated,
+		    COALESCE(SUM(accepted_count), 0)  AS accepted,
+		    COALESCE(SUM(edited_count), 0)    AS edited,
+		    COALESCE(SUM(rejected_count), 0)  AS rejected
+		FROM ai_generation_sessions
+		WHERE teacher_id = $1`, teacherID)
+	if err != nil {
+		return nil, err
+	}
+	rate := 0.0
+	if res.Generated > 0 {
+		rate = float64(res.Accepted) / float64(res.Generated)
+	}
+	return &domain.TeacherGenerationStats{
+		TotalSessions:  res.Sessions,
+		TotalGenerated: res.Generated,
+		TotalAccepted:  res.Accepted,
+		TotalEdited:    res.Edited,
+		TotalRejected:  res.Rejected,
+		AcceptanceRate: rate,
+	}, nil
 }

@@ -145,6 +145,38 @@ type AITokenUsage struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
+// AIGenerationSession records one quiz-generation event end-to-end.
+// Persisted at generation time; accepted/rejected counts updated lazily from feedback.
+// Over time becomes the dataset for model quality analysis and TAR trend tracking.
+type AIGenerationSession struct {
+	ID               uuid.UUID  `db:"id"`
+	TeacherID        uuid.UUID  `db:"teacher_id"`
+	SourceDocumentID *uuid.UUID `db:"source_document_id"`
+	GroupID          *uuid.UUID `db:"group_id"`
+	QuizID           *uuid.UUID `db:"quiz_id"`
+	GeneratedCount   int        `db:"generated_count"`
+	AcceptedCount    int        `db:"accepted_count"`
+	EditedCount      int        `db:"edited_count"`
+	RejectedCount    int        `db:"rejected_count"`
+	CEFRLevel        *string    `db:"cefr_level"`
+	Subject          *string    `db:"subject"`
+	ModelUsed        string     `db:"model_used"`
+	PromptTokens     int        `db:"prompt_tokens"`
+	CompletionTokens int        `db:"completion_tokens"`
+	CreatedAt        time.Time  `db:"created_at"`
+	CompletedAt      *time.Time `db:"completed_at"`
+}
+
+// TeacherGenerationStats aggregates all generation sessions for one teacher.
+type TeacherGenerationStats struct {
+	TotalSessions  int     `json:"total_sessions"`
+	TotalGenerated int     `json:"total_generated"`
+	TotalAccepted  int     `json:"total_accepted"`
+	TotalEdited    int     `json:"total_edited"`
+	TotalRejected  int     `json:"total_rejected"`
+	AcceptanceRate float64 `json:"acceptance_rate"`
+}
+
 // QuizQuestionFeedback tracks teacher acceptance/rejection of AI-generated questions.
 // Used to compute Teacher Acceptance Rate (TAR) — the primary quality metric.
 type QuizQuestionFeedback struct {
@@ -157,13 +189,24 @@ type QuizQuestionFeedback struct {
 
 // ─── Analytics DTOs (read-only, not persisted directly) ──────────────────────
 
+// TeacherRecommendation is a "Next Best Action" item shown on the Teacher Dashboard.
+// Generated deterministically from accumulated class data — no GPT call needed.
+type TeacherRecommendation struct {
+	Priority     int    `json:"priority"`      // 1=high, 2=medium, 3=low
+	Action       string `json:"action"`        // create_quiz | schedule_review | check_students | celebrate
+	Topic        string `json:"topic,omitempty"`
+	Reason       string `json:"reason"`
+	StudentCount int    `json:"student_count,omitempty"`
+}
+
 type ClassInsights struct {
-	GroupID      uuid.UUID         `json:"group_id"`
-	Period       string            `json:"period"`
-	StudentCount int               `json:"student_count"`
-	ClassWeakness []TopicWeakness  `json:"class_weakness"`
-	Students     []StudentSummary  `json:"students"`
-	QuizStats    QuizStats         `json:"quiz_stats"`
+	GroupID         uuid.UUID               `json:"group_id"`
+	Period          string                  `json:"period"`
+	StudentCount    int                     `json:"student_count"`
+	ClassWeakness   []TopicWeakness         `json:"class_weakness"`
+	Students        []StudentSummary        `json:"students"`
+	QuizStats       QuizStats               `json:"quiz_stats"`
+	Recommendations []TeacherRecommendation `json:"recommendations"`
 }
 
 type TopicWeakness struct {

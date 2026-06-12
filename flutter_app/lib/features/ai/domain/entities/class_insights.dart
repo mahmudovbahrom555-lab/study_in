@@ -6,6 +6,7 @@ class ClassInsights {
     required this.classWeakness,
     required this.students,
     required this.quizStats,
+    required this.recommendations,
   });
 
   final String groupId;
@@ -14,6 +15,7 @@ class ClassInsights {
   final List<TopicWeakness> classWeakness;
   final List<StudentSummary> students;
   final QuizStats quizStats;
+  final List<TeacherRecommendation> recommendations;
 }
 
 class TopicWeakness {
@@ -62,6 +64,40 @@ class QuizStats {
   final double acceptanceRate;
   final int totalAttempts;
   final double avgScore;
+}
+
+class TeacherRecommendation {
+  const TeacherRecommendation({
+    required this.priority,
+    required this.action,
+    required this.reason,
+    this.topic,
+    this.studentCount,
+  });
+
+  final int priority;
+  final String action;
+  final String reason;
+  final String? topic;
+  final int? studentCount;
+}
+
+class TeacherGenerationStats {
+  const TeacherGenerationStats({
+    required this.totalSessions,
+    required this.totalGenerated,
+    required this.totalAccepted,
+    required this.totalEdited,
+    required this.totalRejected,
+    required this.acceptanceRate,
+  });
+
+  final int totalSessions;
+  final int totalGenerated;
+  final int totalAccepted;
+  final int totalEdited;
+  final int totalRejected;
+  final double acceptanceRate;
 }
 
 class StudentProgress {

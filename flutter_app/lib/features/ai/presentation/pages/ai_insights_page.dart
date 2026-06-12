@@ -39,14 +39,21 @@ class _InsightsBody extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         _StatRow(insights: insights),
-        const SizedBox(height: 16),
+        if (insights.recommendations.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          _NextBestActionPanel(recommendations: insights.recommendations),
+        ],
+        const SizedBox(height: 20),
         Text('Слабые темы класса', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         if (insights.classWeakness.isEmpty)
-          const Text('Нет данных — тесты ещё не проходились')
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text('Нет данных — тесты ещё не проходились'),
+          )
         else
           ...insights.classWeakness.map((t) => _WeakTopicTile(topic: t)),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         Text('Таблица лидеров', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         ...insights.students.asMap().entries.map(
@@ -57,6 +64,100 @@ class _InsightsBody extends StatelessWidget {
               ),
             ),
       ],
+    );
+  }
+}
+
+// ─── Next Best Action ─────────────────────────────────────────────────────────
+
+class _NextBestActionPanel extends StatelessWidget {
+  const _NextBestActionPanel({required this.recommendations});
+
+  final List<TeacherRecommendation> recommendations;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Рекомендации', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        ...recommendations.map((r) => _RecommendationCard(rec: r)),
+      ],
+    );
+  }
+}
+
+class _RecommendationCard extends StatelessWidget {
+  const _RecommendationCard({required this.rec});
+
+  final TeacherRecommendation rec;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final (icon, color) = _iconFor(rec.action);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: color.withValues(alpha:0.4)),
+      ),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: color.withValues(alpha:0.12),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        title: Text(
+          rec.topic != null ? '${_labelFor(rec.action)}: ${rec.topic}' : _labelFor(rec.action),
+          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(rec.reason, style: theme.textTheme.bodySmall),
+        trailing: _PriorityBadge(priority: rec.priority),
+      ),
+    );
+  }
+
+  (IconData, Color) _iconFor(String action) => switch (action) {
+        'create_quiz' => (Icons.quiz_outlined, Colors.blue),
+        'schedule_review' => (Icons.event_repeat, Colors.orange),
+        'check_students' => (Icons.person_search, Colors.red),
+        'rate_questions' => (Icons.rate_review_outlined, Colors.purple),
+        'celebrate' => (Icons.celebration, Colors.green),
+        _ => (Icons.lightbulb_outline, Colors.grey),
+      };
+
+  String _labelFor(String action) => switch (action) {
+        'create_quiz' => 'Создать тест',
+        'schedule_review' => 'Назначить повторение',
+        'check_students' => 'Написать ученикам',
+        'rate_questions' => 'Оценить вопросы',
+        'celebrate' => 'Отличный результат',
+        _ => 'Рекомендация',
+      };
+}
+
+class _PriorityBadge extends StatelessWidget {
+  const _PriorityBadge({required this.priority});
+
+  final int priority;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (priority) {
+      1 => ('Важно', Colors.red),
+      2 => ('Средне', Colors.orange),
+      _ => ('Инфо', Colors.grey),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha:0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }
 }

@@ -5,4 +5,5 @@ abstract class AiRepository {
   Future<StudentProgress> studentProgress(String groupId, String studentId);
   Future<void> submitQuestionFeedback(String questionId, {required bool accepted});
   Future<({double rate, int total})> myAcceptanceRate();
+  Future<TeacherGenerationStats> generationStats();
 }

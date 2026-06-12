@@ -176,6 +176,7 @@ func (s *Server) setupRouter() {
 	aiQuizCreator := &aiQuizCreatorAdapter{quizRepo: quizRepo, topicRepo: aiTopicRepo}
 	aiInsightsRepo := postgres.NewInsightsRepository(s.db)
 	aiFeedbackRepo := postgres.NewQuizFeedbackRepository(s.db)
+	aiGenSessRepo := postgres.NewAIGenerationSessionRepository(s.db)
 
 	var aiObjectStore aifeature.ObjectStore
 	if minioClient != nil {
@@ -187,7 +188,7 @@ func (s *Server) setupRouter() {
 	s.aiSvc = aifeature.NewService(
 		aiDocRepo, aiJobRepo, aiSessRepo, aiTokenRepo,
 		aiMasteryRepo, aiGamifRepo, aiTopicRepo, aiQuizCreator, aiObjectStore,
-		aiInsightsRepo, aiFeedbackRepo,
+		aiInsightsRepo, aiFeedbackRepo, aiGenSessRepo,
 		openaiClient,
 		aifeature.ServiceConfig{
 			Model:            s.cfg.AI.OpenAI.Model,

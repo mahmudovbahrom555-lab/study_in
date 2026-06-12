@@ -29,6 +29,7 @@ type Service struct {
 	store    ObjectStore
 	insights InsightsRepository
 	feedback QuizFeedbackRepository
+	genSess  GenerationSessionRepository
 	ai       *oai.Client
 	cfg      ServiceConfig
 }
@@ -52,6 +53,7 @@ func NewService(
 	store ObjectStore,
 	insights InsightsRepository,
 	feedback QuizFeedbackRepository,
+	genSess GenerationSessionRepository,
 	ai *oai.Client,
 	cfg ServiceConfig,
 ) *Service {
@@ -59,7 +61,7 @@ func NewService(
 		docs: docs, jobs: jobs, sessions: sessions,
 		tokens: tokens, mastery: mastery, gamif: gamif,
 		topics: topics, quiz: quiz, store: store,
-		insights: insights, feedback: feedback,
+		insights: insights, feedback: feedback, genSess: genSess,
 		ai: ai, cfg: cfg,
 	}
 }
@@ -268,6 +270,33 @@ func (s *Service) GenerateQuiz(ctx context.Context, req GenerateQuizRequest, job
 
 	_ = s.logTokens(ctx, req.TeacherID, resp.Model, resp.TokensIn, resp.TokensOut, "quiz_gen")
 
+	// Open a generation session to track TAR for this quiz.
+	var sessionID uuid.UUID
+	if s.genSess != nil {
+		var cefrPtr, subjectPtr *string
+		if req.CEFRLevel != "" {
+			cefrPtr = &req.CEFRLevel
+		}
+		if req.Subject != "" {
+			subjectPtr = &req.Subject
+		}
+		gSess := &domain.AIGenerationSession{
+			TeacherID:        req.TeacherID,
+			SourceDocumentID: &req.DocumentID,
+			GroupID:          &req.GroupID,
+			GeneratedCount:   req.NumQuestions,
+			CEFRLevel:        cefrPtr,
+			Subject:          subjectPtr,
+			ModelUsed:        resp.Model,
+			PromptTokens:     resp.TokensIn,
+			CompletionTokens: resp.TokensOut,
+			CreatedAt:        time.Now(),
+		}
+		if err2 := s.genSess.CreateSession(ctx, gSess); err2 == nil {
+			sessionID = gSess.ID
+		}
+	}
+
 	// Parse GPT response.
 	var generated struct {
 		Title     string `json:"title"`
@@ -312,6 +341,11 @@ func (s *Service) GenerateQuiz(ctx context.Context, req GenerateQuizRequest, job
 	quizID, err := s.quiz.CreateQuizWithQuestions(ctx, qcReq)
 	if err != nil {
 		return s.failJob(ctx, jobID, fmt.Errorf("persist quiz: %w", err))
+	}
+
+	// Link session → quiz so TAR queries can join via quiz_id.
+	if s.genSess != nil && sessionID != uuid.Nil {
+		_ = s.genSess.LinkQuiz(ctx, sessionID, quizID)
 	}
 
 	result, _ := json.Marshal(map[string]string{"quiz_id": quizID.String()})
@@ -638,7 +672,21 @@ func (s *Service) SubmitQuestionFeedback(ctx context.Context, questionID, teache
 		Accepted:   accepted,
 		CreatedAt:  time.Now(),
 	}
-	return s.feedback.UpsertFeedback(ctx, fb)
+	if err := s.feedback.UpsertFeedback(ctx, fb); err != nil {
+		return err
+	}
+	// Lazily sync session counts so TeacherStats stays accurate.
+	if s.genSess != nil {
+		_ = s.genSess.SyncCountsByQuestion(ctx, questionID)
+	}
+	return nil
+}
+
+func (s *Service) GetTeacherStats(ctx context.Context, teacherID uuid.UUID) (*domain.TeacherGenerationStats, error) {
+	if s.genSess == nil {
+		return &domain.TeacherGenerationStats{}, nil
+	}
+	return s.genSess.TeacherStats(ctx, teacherID)
 }
 
 func (s *Service) GetMyAcceptanceRate(ctx context.Context, teacherID uuid.UUID) (float64, int, error) {

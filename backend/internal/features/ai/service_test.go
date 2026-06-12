@@ -297,7 +297,7 @@ func buildServiceWithFeedback() (*ai.Service, *mockFeedbackRepo) {
 	insights := &mockInsightsRepo{}
 	feedback := newMockFeedbackRepo()
 
-	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, insights, feedback, nil,
+	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, insights, feedback, nil, nil,
 		ai.ServiceConfig{Model: "gpt-4o-mini", MonthlyTokensMax: 500000, ChunkSize: 400, ChunkOverlap: 50})
 	return svc, feedback
 }
@@ -313,7 +313,7 @@ func buildService() (*ai.Service, *mockDocRepo, *mockJobRepo, *mockGamifRepo) {
 	quiz := &mockQuizCreator{}
 	store := &mockObjectStore{data: map[string][]byte{}}
 
-	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, nil, nil, nil,
+	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, nil, nil, nil, nil,
 		ai.ServiceConfig{Model: "gpt-4o-mini", MonthlyTokensMax: 500000, ChunkSize: 400, ChunkOverlap: 50})
 	return svc, docs, jobs, gamif
 }

@@ -64,6 +64,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		// Quiz question feedback (Teacher Acceptance Rate)
 		r.Post("/questions/{questionID}/feedback", h.questionFeedback)
 		r.Get("/me/acceptance-rate", h.myAcceptanceRate)
+		r.Get("/me/generation-stats", h.generationStats)
 
 		// AI Mentor sessions
 		r.Post("/sessions", h.createSession)
@@ -458,6 +459,16 @@ func (h *Handler) myAcceptanceRate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.OK(w, map[string]any{"acceptance_rate": rate, "total_questions": total})
+}
+
+func (h *Handler) generationStats(w http.ResponseWriter, r *http.Request) {
+	callerID := mw.UserIDFromCtx(r.Context())
+	stats, err := h.svc.GetTeacherStats(r.Context(), callerID)
+	if err != nil {
+		response.Error(w, domain.NewError("INTERNAL", "fetch generation stats failed", domain.ErrInternal))
+		return
+	}
+	response.OK(w, stats)
 }
 
 // ─── Teacher Dashboard ────────────────────────────────────────────────────────
