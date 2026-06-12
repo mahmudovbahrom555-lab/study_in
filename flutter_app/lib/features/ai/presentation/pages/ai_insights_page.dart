@@ -41,7 +41,7 @@ class _InsightsBody extends StatelessWidget {
         _StatRow(insights: insights),
         if (insights.recommendations.isNotEmpty) ...[
           const SizedBox(height: 20),
-          _NextBestActionPanel(recommendations: insights.recommendations),
+          _NextBestActionPanel(recommendations: insights.recommendations, groupId: groupId),
         ],
         const SizedBox(height: 20),
         Text('Слабые темы класса', style: theme.textTheme.titleMedium),
@@ -71,9 +71,10 @@ class _InsightsBody extends StatelessWidget {
 // ─── Next Best Action ─────────────────────────────────────────────────────────
 
 class _NextBestActionPanel extends StatelessWidget {
-  const _NextBestActionPanel({required this.recommendations});
+  const _NextBestActionPanel({required this.recommendations, required this.groupId});
 
   final List<TeacherRecommendation> recommendations;
+  final String groupId;
 
   @override
   Widget build(BuildContext context) {
@@ -83,39 +84,129 @@ class _NextBestActionPanel extends StatelessWidget {
       children: [
         Text('Рекомендации', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
-        ...recommendations.map((r) => _RecommendationCard(rec: r)),
+        ...recommendations.map((r) => _RecommendationCard(rec: r, groupId: groupId)),
       ],
     );
   }
 }
 
-class _RecommendationCard extends StatelessWidget {
-  const _RecommendationCard({required this.rec});
+class _RecommendationCard extends ConsumerStatefulWidget {
+  const _RecommendationCard({required this.rec, required this.groupId});
 
   final TeacherRecommendation rec;
+  final String groupId;
+
+  @override
+  ConsumerState<_RecommendationCard> createState() => _RecommendationCardState();
+}
+
+class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
+  bool _dismissed = false;
+  bool _accepted = false;
+
+  Future<void> _act(String status) async {
+    await ref
+        .read(aiRepositoryProvider)
+        .recordRecommendationAction(widget.rec.id, status: status);
+    if (!mounted) return;
+    setState(() {
+      _dismissed = status == 'dismissed';
+      _accepted = status == 'accepted';
+    });
+  }
+
+  Future<void> _explain() async {
+    final text = await ref.read(aiRepositoryProvider).explainRecommendation(widget.rec.id);
+    if (!mounted) return;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Объяснение AI', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            Text(text),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_dismissed) return const SizedBox.shrink();
+
     final theme = Theme.of(context);
-    final (icon, color) = _iconFor(rec.action);
+    final (icon, color) = _iconFor(widget.rec.action);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: color.withValues(alpha:0.4)),
+        side: BorderSide(
+          color: _accepted ? Colors.green.withValues(alpha: 0.6) : color.withValues(alpha: 0.4),
+        ),
       ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: color.withValues(alpha:0.12),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        title: Text(
-          rec.topic != null ? '${_labelFor(rec.action)}: ${rec.topic}' : _labelFor(rec.action),
-          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(rec.reason, style: theme.textTheme.bodySmall),
-        trailing: _PriorityBadge(priority: rec.priority),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(
+            leading: CircleAvatar(
+              backgroundColor: color.withValues(alpha: 0.12),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            title: Text(
+              widget.rec.topic != null
+                  ? '${_labelFor(widget.rec.action)}: ${widget.rec.topic}'
+                  : _labelFor(widget.rec.action),
+              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(widget.rec.reason, style: theme.textTheme.bodySmall),
+            trailing: _PriorityBadge(priority: widget.rec.priority),
+          ),
+          if (!_accepted)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Row(
+                children: [
+                  TextButton.icon(
+                    onPressed: () => _act('accepted'),
+                    icon: const Icon(Icons.check, size: 16),
+                    label: const Text('Принять'),
+                    style: TextButton.styleFrom(foregroundColor: Colors.green),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _act('dismissed'),
+                    icon: const Icon(Icons.close, size: 16),
+                    label: const Text('Отклонить'),
+                    style: TextButton.styleFrom(foregroundColor: Colors.grey),
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: _explain,
+                    icon: const Icon(Icons.auto_awesome, size: 16),
+                    label: const Text('Почему?'),
+                    style: TextButton.styleFrom(foregroundColor: Colors.indigo),
+                  ),
+                ],
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  const SizedBox(width: 4),
+                  Text('Принято', style: theme.textTheme.bodySmall?.copyWith(color: Colors.green)),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

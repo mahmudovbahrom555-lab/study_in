@@ -35,4 +35,19 @@ class AiApi {
     final resp = await _dio.get<Map<String, dynamic>>('/me/generation-stats');
     return TeacherGenerationStatsDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }
+
+  Future<void> recordRecommendationAction(
+    String recId, {
+    required String status,
+    String action = '',
+  }) =>
+      _dio.post<void>(
+        '/recommendations/$recId/action',
+        data: {'status': status, 'action': action},
+      );
+
+  Future<String> explainRecommendation(String recId) async {
+    final resp = await _dio.get<Map<String, dynamic>>('/recommendations/$recId/explain');
+    return (resp.data!['data'] as Map<String, dynamic>)['explanation'] as String? ?? '';
+  }
 }

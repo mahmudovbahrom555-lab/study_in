@@ -31,4 +31,15 @@ class AiRepositoryImpl implements AiRepository {
     final dto = await _api.generationStats();
     return dto.toDomain();
   }
+
+  @override
+  Future<void> recordRecommendationAction(
+    String recId, {
+    required String status,
+    String action = '',
+  }) =>
+      _api.recordRecommendationAction(recId, status: status, action: action);
+
+  @override
+  Future<String> explainRecommendation(String recId) => _api.explainRecommendation(recId);
 }

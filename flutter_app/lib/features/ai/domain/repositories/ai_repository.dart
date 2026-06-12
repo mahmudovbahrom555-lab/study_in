@@ -6,4 +6,6 @@ abstract class AiRepository {
   Future<void> submitQuestionFeedback(String questionId, {required bool accepted});
   Future<({double rate, int total})> myAcceptanceRate();
   Future<TeacherGenerationStats> generationStats();
+  Future<void> recordRecommendationAction(String recId, {required String status, String action});
+  Future<String> explainRecommendation(String recId);
 }

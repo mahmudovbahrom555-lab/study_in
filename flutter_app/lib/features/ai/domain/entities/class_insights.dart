@@ -24,12 +24,16 @@ class TopicWeakness {
     required this.avgAccuracy,
     required this.studentsStruggling,
     required this.totalStudents,
+    this.avgConfidence = 0.5,
+    this.avgConsistency = 0.5,
   });
 
   final String topic;
   final double avgAccuracy;
   final int studentsStruggling;
   final int totalStudents;
+  final double avgConfidence;
+  final double avgConsistency;
 }
 
 class StudentSummary {
@@ -68,6 +72,7 @@ class QuizStats {
 
 class TeacherRecommendation {
   const TeacherRecommendation({
+    required this.id,
     required this.priority,
     required this.action,
     required this.reason,
@@ -75,6 +80,7 @@ class TeacherRecommendation {
     this.studentCount,
   });
 
+  final String id;
   final int priority;
   final String action;
   final String reason;

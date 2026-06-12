@@ -49,6 +49,7 @@ class ClassInsightsDto {
 class TeacherRecommendationDto {
   factory TeacherRecommendationDto.fromJson(Map<String, dynamic> j) =>
       TeacherRecommendationDto(
+        id: j['id'] as String? ?? '',
         priority: j['priority'] as int? ?? 3,
         action: j['action'] as String? ?? '',
         reason: j['reason'] as String? ?? '',
@@ -57,6 +58,7 @@ class TeacherRecommendationDto {
       );
 
   const TeacherRecommendationDto({
+    required this.id,
     required this.priority,
     required this.action,
     required this.reason,
@@ -64,6 +66,7 @@ class TeacherRecommendationDto {
     this.studentCount,
   });
 
+  final String id;
   final int priority;
   final String action;
   final String reason;
@@ -71,6 +74,7 @@ class TeacherRecommendationDto {
   final int? studentCount;
 
   TeacherRecommendation toDomain() => TeacherRecommendation(
+        id: id,
         priority: priority,
         action: action,
         reason: reason,
@@ -122,6 +126,8 @@ class TopicWeaknessDto {
         avgAccuracy: (j['avg_accuracy'] as num?)?.toDouble() ?? 0.0,
         studentsStruggling: j['students_struggling'] as int? ?? 0,
         totalStudents: j['total_students'] as int? ?? 0,
+        avgConfidence: (j['avg_confidence'] as num?)?.toDouble() ?? 0.5,
+        avgConsistency: (j['avg_consistency'] as num?)?.toDouble() ?? 0.5,
       );
 
   const TopicWeaknessDto({
@@ -129,18 +135,24 @@ class TopicWeaknessDto {
     required this.avgAccuracy,
     required this.studentsStruggling,
     required this.totalStudents,
+    this.avgConfidence = 0.5,
+    this.avgConsistency = 0.5,
   });
 
   final String topic;
   final double avgAccuracy;
   final int studentsStruggling;
   final int totalStudents;
+  final double avgConfidence;
+  final double avgConsistency;
 
   TopicWeakness toDomain() => TopicWeakness(
         topic: topic,
         avgAccuracy: avgAccuracy,
         studentsStruggling: studentsStruggling,
         totalStudents: totalStudents,
+        avgConfidence: avgConfidence,
+        avgConsistency: avgConsistency,
       );
 }
 
