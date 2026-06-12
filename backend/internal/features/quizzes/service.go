@@ -266,7 +266,7 @@ func (s *Service) StartAttempt(ctx context.Context, quizID, studentID uuid.UUID)
 }
 
 // SubmitAttempt grades the attempt and saves student answers.
-func (s *Service) SubmitAttempt(ctx context.Context, attemptID, studentID uuid.UUID, req SubmitAnswersRequest) (*domain.QuizAttempt, error) {
+func (s *Service) SubmitAttempt(ctx context.Context, attemptID, studentID uuid.UUID, req SubmitAnswersRequest) (*SubmitAttemptResult, error) {
 	attempt, err := s.repo.GetAttempt(ctx, attemptID)
 	if err != nil {
 		return nil, fmt.Errorf("quizzes.SubmitAttempt fetch: %w", err)
@@ -288,35 +288,54 @@ func (s *Service) SubmitAttempt(ctx context.Context, attemptID, studentID uuid.U
 
 	var score int16
 	var answers []*domain.StudentAnswer
+	var resultItems []QuizResultItem
 
 	for _, qst := range questions {
-		chosenIDStr, ok := req.Answers[qst.ID.String()]
-		if !ok {
-			continue
-		}
-		chosenID, err := uuid.Parse(chosenIDStr)
-		if err != nil {
-			continue
-		}
-
 		opts, err := s.repo.ListOptions(ctx, qst.ID)
 		if err != nil {
 			return nil, fmt.Errorf("quizzes.SubmitAttempt options: %w", err)
 		}
 
+		item := QuizResultItem{
+			QuestionID:   qst.ID,
+			QuestionBody: qst.Body,
+			Points:       qst.Points,
+			Explanation:  qst.Explanation,
+		}
+		// find correct option
 		for _, o := range opts {
-			if o.ID == chosenID {
-				if o.IsCorrect {
-					score += qst.Points
-				}
-				answers = append(answers, &domain.StudentAnswer{
-					AttemptID:  attemptID,
-					QuestionID: qst.ID,
-					OptionID:   chosenID,
-				})
+			if o.IsCorrect {
+				item.CorrectOptionID = o.ID
+				item.CorrectBody = o.Body
 				break
 			}
 		}
+
+		// apply student answer if present
+		if chosenIDStr, ok := req.Answers[qst.ID.String()]; ok {
+			if chosenID, parseErr := uuid.Parse(chosenIDStr); parseErr == nil {
+				for _, o := range opts {
+					if o.ID == chosenID {
+						sid := o.ID
+						sbody := o.Body
+						item.SelectedOptionID = &sid
+						item.SelectedBody = &sbody
+						item.IsCorrect = o.IsCorrect
+						if o.IsCorrect {
+							score += qst.Points
+						}
+						answers = append(answers, &domain.StudentAnswer{
+							AttemptID:  attemptID,
+							QuestionID: qst.ID,
+							OptionID:   chosenID,
+						})
+						break
+					}
+				}
+			}
+		}
+
+		resultItems = append(resultItems, item)
 	}
 
 	if len(answers) > 0 {
@@ -332,7 +351,7 @@ func (s *Service) SubmitAttempt(ctx context.Context, attemptID, studentID uuid.U
 	attempt.Score = &score
 	now := time.Now()
 	attempt.FinishedAt = &now
-	return attempt, nil
+	return &SubmitAttemptResult{Attempt: attempt, QuestionResults: resultItems}, nil
 }
 
 func (s *Service) assertVisible(ctx context.Context, groupID, callerID uuid.UUID, role domain.Role) error {

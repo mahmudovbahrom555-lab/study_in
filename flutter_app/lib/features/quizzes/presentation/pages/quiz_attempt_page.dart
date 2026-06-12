@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/quiz.dart';
 import '../providers/quizzes_provider.dart';
+import 'quiz_result_page.dart';
 
 class QuizAttemptPage extends ConsumerStatefulWidget {
   const QuizAttemptPage({
@@ -51,31 +52,13 @@ class _QuizAttemptPageState extends ConsumerState<QuizAttemptPage> {
         .read(attemptProviderFamily(widget.groupId).notifier)
         .submit(widget.quizId);
     if (result != null && mounted) {
-      _showResult(result);
-    }
-  }
-
-  void _showResult(QuizAttempt result) {
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        title: const Text('Результат'),
-        content: Text(
-          'Правильных: ${result.score} / ${result.maxScore}',
-          style: const TextStyle(fontSize: 20),
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => QuizResultPage(result: result),
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-            },
-            child: const Text('Закрыть'),
-          ),
-        ],
-      ),
-    );
+      );
+      if (mounted) Navigator.of(context).pop();
+    }
   }
 
   @override

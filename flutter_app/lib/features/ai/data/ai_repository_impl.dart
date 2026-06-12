@@ -42,4 +42,7 @@ class AiRepositoryImpl implements AiRepository {
 
   @override
   Future<String> explainRecommendation(String recId) => _api.explainRecommendation(recId);
+
+  @override
+  Future<String> createDemoGroup() => _api.createDemoGroup();
 }

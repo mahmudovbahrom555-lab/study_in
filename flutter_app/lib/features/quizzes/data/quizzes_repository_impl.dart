@@ -109,7 +109,7 @@ class QuizzesRepositoryImpl implements QuizzesRepository {
   }
 
   @override
-  Future<QuizAttempt> submitAttempt({
+  Future<QuizResult> submitAttempt({
     required String quizId,
     required String attemptId,
     required Map<String, String> answers,

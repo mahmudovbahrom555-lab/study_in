@@ -91,3 +91,44 @@ class QuizAttempt {
 
   bool get isFinished => finishedAt != null;
 }
+
+@immutable
+class QuestionResult {
+  const QuestionResult({
+    required this.questionId,
+    required this.questionBody,
+    required this.points,
+    required this.correctOptionId,
+    required this.correctBody,
+    required this.isCorrect,
+    this.selectedOptionId,
+    this.selectedBody,
+    this.explanation,
+  });
+
+  final String questionId;
+  final String questionBody;
+  final int points;
+  final String? explanation;
+  final String? selectedOptionId;
+  final String? selectedBody;
+  final String correctOptionId;
+  final String correctBody;
+  final bool isCorrect;
+}
+
+@immutable
+class QuizResult {
+  const QuizResult({
+    required this.attempt,
+    required this.questionResults,
+  });
+
+  final QuizAttempt attempt;
+  final List<QuestionResult> questionResults;
+
+  double get percentage =>
+      attempt.maxScore == 0 ? 0 : (attempt.score ?? 0) / attempt.maxScore;
+
+  int get xpEarned => (attempt.score ?? 0) * 10;
+}

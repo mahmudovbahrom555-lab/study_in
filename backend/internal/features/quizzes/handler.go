@@ -248,7 +248,10 @@ func (h *Handler) submitAttempt(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, attemptToResponse(result))
+	writeJSON(w, http.StatusOK, SubmitAttemptFullResponse{
+		Attempt:         attemptToResponse(result.Attempt),
+		QuestionResults: result.QuestionResults,
+	})
 }
 
 // --- helpers ---

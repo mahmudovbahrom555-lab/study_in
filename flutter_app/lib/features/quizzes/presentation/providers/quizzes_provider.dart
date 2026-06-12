@@ -183,7 +183,7 @@ class AttemptNotifier extends StateNotifier<AttemptState> {
     );
   }
 
-  Future<QuizAttempt?> submit(String quizId) async {
+  Future<QuizResult?> submit(String quizId) async {
     final attempt = state.attempt;
     if (attempt == null) return null;
     state = state.copyWith(isSubmitting: true, clearError: true);
@@ -193,7 +193,7 @@ class AttemptNotifier extends StateNotifier<AttemptState> {
         attemptId: attempt.id,
         answers: state.answers,
       );
-      state = state.copyWith(isSubmitting: false, attempt: result);
+      state = state.copyWith(isSubmitting: false, attempt: result.attempt);
       return result;
     } catch (e) {
       state = state.copyWith(isSubmitting: false, error: e.toString());

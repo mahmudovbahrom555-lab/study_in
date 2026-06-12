@@ -181,3 +181,78 @@ class QuizAttemptDto {
         score: score,
       );
 }
+
+class QuestionResultDto {
+  factory QuestionResultDto.fromJson(Map<String, dynamic> json) =>
+      QuestionResultDto(
+        questionId: json['question_id'] as String,
+        questionBody: json['question_body'] as String,
+        points: json['points'] as int? ?? 1,
+        explanation: json['explanation'] as String?,
+        selectedOptionId: json['selected_option_id'] as String?,
+        selectedBody: json['selected_body'] as String?,
+        correctOptionId: json['correct_option_id'] as String,
+        correctBody: json['correct_body'] as String,
+        isCorrect: json['is_correct'] as bool? ?? false,
+      );
+
+  const QuestionResultDto({
+    required this.questionId,
+    required this.questionBody,
+    required this.points,
+    required this.correctOptionId,
+    required this.correctBody,
+    required this.isCorrect,
+    this.explanation,
+    this.selectedOptionId,
+    this.selectedBody,
+  });
+
+  final String questionId;
+  final String questionBody;
+  final int points;
+  final String? explanation;
+  final String? selectedOptionId;
+  final String? selectedBody;
+  final String correctOptionId;
+  final String correctBody;
+  final bool isCorrect;
+
+  QuestionResult toDomain() => QuestionResult(
+        questionId: questionId,
+        questionBody: questionBody,
+        points: points,
+        explanation: explanation,
+        selectedOptionId: selectedOptionId,
+        selectedBody: selectedBody,
+        correctOptionId: correctOptionId,
+        correctBody: correctBody,
+        isCorrect: isCorrect,
+      );
+}
+
+class QuizResultDto {
+  factory QuizResultDto.fromJson(Map<String, dynamic> json) {
+    return QuizResultDto(
+      attempt: QuizAttemptDto.fromJson(
+        json['attempt'] as Map<String, dynamic>,
+      ),
+      questionResults: (json['question_results'] as List<dynamic>? ?? [])
+          .map((e) => QuestionResultDto.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  const QuizResultDto({
+    required this.attempt,
+    required this.questionResults,
+  });
+
+  final QuizAttemptDto attempt;
+  final List<QuestionResultDto> questionResults;
+
+  QuizResult toDomain() => QuizResult(
+        attempt: attempt.toDomain(),
+        questionResults: questionResults.map((r) => r.toDomain()).toList(),
+      );
+}

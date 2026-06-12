@@ -46,6 +46,31 @@ type SubmitAnswersRequest struct {
 	Answers map[string]string `json:"answers" validate:"required"` // question_id → option_id (string UUIDs)
 }
 
+// QuizResultItem carries per-question feedback returned after submission.
+type QuizResultItem struct {
+	QuestionID       uuid.UUID  `json:"question_id"`
+	QuestionBody     string     `json:"question_body"`
+	Points           int16      `json:"points"`
+	Explanation      *string    `json:"explanation,omitempty"`
+	SelectedOptionID *uuid.UUID `json:"selected_option_id,omitempty"`
+	SelectedBody     *string    `json:"selected_body,omitempty"`
+	CorrectOptionID  uuid.UUID  `json:"correct_option_id"`
+	CorrectBody      string     `json:"correct_body"`
+	IsCorrect        bool       `json:"is_correct"`
+}
+
+// SubmitAttemptFullResponse wraps the attempt result + per-question feedback.
+type SubmitAttemptFullResponse struct {
+	Attempt         AttemptResponse  `json:"attempt"`
+	QuestionResults []QuizResultItem `json:"question_results"`
+}
+
+// SubmitAttemptResult is returned by the service after scoring.
+type SubmitAttemptResult struct {
+	Attempt         *domain.QuizAttempt
+	QuestionResults []QuizResultItem
+}
+
 // --- Responses ---
 
 type OptionResponse struct {

@@ -101,7 +101,7 @@ class QuizzesApi {
     return QuizAttemptDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }
 
-  Future<QuizAttemptDto> submitAttempt({
+  Future<QuizResultDto> submitAttempt({
     required String groupId,
     required String quizId,
     required String attemptId,
@@ -111,6 +111,6 @@ class QuizzesApi {
       '/groups/$groupId/quizzes/$quizId/attempt/$attemptId/submit',
       data: {'answers': answers},
     );
-    return QuizAttemptDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
+    return QuizResultDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }
 }

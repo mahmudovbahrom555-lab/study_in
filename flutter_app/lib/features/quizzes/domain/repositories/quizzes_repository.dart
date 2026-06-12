@@ -26,7 +26,7 @@ abstract class QuizzesRepository {
     int position,
   });
   Future<QuizAttempt> startAttempt(String quizId);
-  Future<QuizAttempt> submitAttempt({
+  Future<QuizResult> submitAttempt({
     required String quizId,
     required String attemptId,
     required Map<String, String> answers,

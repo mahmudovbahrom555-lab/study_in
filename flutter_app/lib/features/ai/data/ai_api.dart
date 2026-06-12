@@ -50,4 +50,10 @@ class AiApi {
     final resp = await _dio.get<Map<String, dynamic>>('/recommendations/$recId/explain');
     return (resp.data!['data'] as Map<String, dynamic>)['explanation'] as String? ?? '';
   }
+
+  Future<String> createDemoGroup() async {
+    final resp = await _dio.post<Map<String, dynamic>>('/ai/me/demo');
+    final data = resp.data!['data'] as Map<String, dynamic>;
+    return data['group_id'] as String;
+  }
 }
