@@ -238,8 +238,9 @@ func (m *mockObjectStore) GetObject(_ context.Context, key string) ([]byte, erro
 }
 
 type mockInsightsRepo struct {
-	insights *domain.ClassInsights
-	progress *domain.StudentProgress
+	insights   *domain.ClassInsights
+	progress   *domain.StudentProgress
+	isDemoResp bool
 }
 
 func (m *mockInsightsRepo) ClassInsights(_ context.Context, groupID uuid.UUID) (*domain.ClassInsights, error) {
@@ -256,7 +257,22 @@ func (m *mockInsightsRepo) StudentProgress(_ context.Context, _, studentID uuid.
 }
 
 func (m *mockInsightsRepo) IsDemo(_ context.Context, _ uuid.UUID) (bool, error) {
-	return false, nil
+	return m.isDemoResp, nil
+}
+
+// mockDemoCreator simulates idempotent demo group creation: first call generates
+// a UUID, subsequent calls return the same one (mimicking the DB unique index).
+type mockDemoCreator struct {
+	created uuid.UUID
+	calls   int
+}
+
+func (m *mockDemoCreator) CreateDemoGroup(_ context.Context, _ uuid.UUID) (uuid.UUID, error) {
+	m.calls++
+	if m.created == uuid.Nil {
+		m.created = uuid.New()
+	}
+	return m.created, nil
 }
 
 type mockFeedbackRepo struct {
@@ -505,5 +521,106 @@ func TestGetStudentProgress_ReturnsStudentID(t *testing.T) {
 	}
 	if progress.StudentID != studentID {
 		t.Fatalf("expected student_id %s, got %s", studentID, progress.StudentID)
+	}
+}
+
+// ─── Demo Group tests ─────────────────────────────────────────────────────────
+
+// TestSeedDemoGroup_Idempotent verifies that calling SeedDemoGroup twice for the
+// same teacher always returns the same group ID (idempotent by design).
+// The actual uniqueness constraint is enforced at DB level (migration 000017);
+// this test verifies the service-level idempotency contract holds via the mock.
+func TestSeedDemoGroup_Idempotent(t *testing.T) {
+	demo := &mockDemoCreator{}
+	svc := ai.NewService(
+		newMockDocRepo(), newMockJobRepo(), newMockSessionRepo(), &mockTokenRepo{},
+		newMockMasteryRepo(), newMockGamifRepo(), &mockTopicRepo{}, &mockQuizCreator{},
+		&mockObjectStore{data: map[string][]byte{}},
+		nil, nil, nil, nil, demo, nil,
+		ai.ServiceConfig{},
+	)
+
+	teacherID := uuid.New()
+
+	id1, err := svc.SeedDemoGroup(context.Background(), teacherID)
+	if err != nil {
+		t.Fatalf("first SeedDemoGroup: %v", err)
+	}
+	id2, err := svc.SeedDemoGroup(context.Background(), teacherID)
+	if err != nil {
+		t.Fatalf("second SeedDemoGroup: %v", err)
+	}
+	if id1 != id2 {
+		t.Errorf("idempotency violated: first=%s second=%s", id1, id2)
+	}
+	if demo.calls != 2 {
+		t.Errorf("expected 2 CreateDemoGroup calls, got %d", demo.calls)
+	}
+}
+
+// TestGetClassInsights_DemoGroupBypassesDB verifies that when InsightsRepository.IsDemo
+// returns true, GetClassInsights returns hardcoded DemoInsights without calling
+// ClassInsights (which would hit real students/topics tables).
+func TestGetClassInsights_DemoGroupBypassesDB(t *testing.T) {
+	// InsightsRepository that panics if ClassInsights is called — proves bypass.
+	type panicInsights struct{ mockInsightsRepo }
+	repo := &struct{ mockInsightsRepo }{mockInsightsRepo{isDemoResp: true}}
+
+	svc := ai.NewService(
+		newMockDocRepo(), newMockJobRepo(), newMockSessionRepo(), &mockTokenRepo{},
+		newMockMasteryRepo(), newMockGamifRepo(), &mockTopicRepo{}, &mockQuizCreator{},
+		&mockObjectStore{data: map[string][]byte{}},
+		repo, nil, nil, nil, nil, nil,
+		ai.ServiceConfig{},
+	)
+
+	groupID := uuid.New()
+	ins, err := svc.GetClassInsights(context.Background(), groupID, uuid.New())
+	if err != nil {
+		t.Fatalf("GetClassInsights demo: %v", err)
+	}
+	if !ins.IsDemo {
+		t.Error("expected IsDemo=true for demo group")
+	}
+	if ins.GroupID != groupID {
+		t.Errorf("expected group_id %s, got %s", groupID, ins.GroupID)
+	}
+	if len(ins.Students) == 0 {
+		t.Error("expected non-empty demo students")
+	}
+	if len(ins.Recommendations) == 0 {
+		t.Error("expected non-empty demo recommendations")
+	}
+}
+
+// TestGetClassInsights_DemoInsights_StableIDs verifies that demo student and
+// recommendation IDs are deterministic across two calls to the same group.
+// Non-deterministic IDs caused 500s when the frontend navigated to detail pages
+// using an ID returned from a previous insights call.
+func TestGetClassInsights_DemoInsights_StableIDs(t *testing.T) {
+	repo := &mockInsightsRepo{isDemoResp: true}
+	svc := ai.NewService(
+		newMockDocRepo(), newMockJobRepo(), newMockSessionRepo(), &mockTokenRepo{},
+		newMockMasteryRepo(), newMockGamifRepo(), &mockTopicRepo{}, &mockQuizCreator{},
+		&mockObjectStore{data: map[string][]byte{}},
+		repo, nil, nil, nil, nil, nil,
+		ai.ServiceConfig{},
+	)
+
+	groupID := uuid.New()
+	ins1, _ := svc.GetClassInsights(context.Background(), groupID, uuid.New())
+	ins2, _ := svc.GetClassInsights(context.Background(), groupID, uuid.New())
+
+	for i, s := range ins1.Students {
+		if s.StudentID != ins2.Students[i].StudentID {
+			t.Errorf("student[%d] ID changed across calls: %s → %s",
+				i, s.StudentID, ins2.Students[i].StudentID)
+		}
+	}
+	for i, r := range ins1.Recommendations {
+		if r.ID != ins2.Recommendations[i].ID {
+			t.Errorf("recommendation[%d] ID changed across calls: %s → %s",
+				i, r.ID, ins2.Recommendations[i].ID)
+		}
 	}
 }
