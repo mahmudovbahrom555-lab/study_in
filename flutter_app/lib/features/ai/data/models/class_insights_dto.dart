@@ -263,6 +263,8 @@ class StudentTopicDetailDto {
         accuracy: (j['accuracy'] as num?)?.toDouble() ?? 0.0,
         totalAnswers: j['total_answers'] as int? ?? 0,
         intervalDays: j['interval_days'] as int? ?? 1,
+        confidenceScore: (j['confidence_score'] as num?)?.toDouble() ?? 0.5,
+        consistencyScore: (j['consistency_score'] as num?)?.toDouble() ?? 0.5,
       );
 
   const StudentTopicDetailDto({
@@ -271,6 +273,8 @@ class StudentTopicDetailDto {
     required this.accuracy,
     required this.totalAnswers,
     required this.intervalDays,
+    this.confidenceScore = 0.5,
+    this.consistencyScore = 0.5,
   });
 
   final String topicId;
@@ -278,6 +282,8 @@ class StudentTopicDetailDto {
   final double accuracy;
   final int totalAnswers;
   final int intervalDays;
+  final double confidenceScore;
+  final double consistencyScore;
 
   StudentTopicDetail toDomain() => StudentTopicDetail(
         topicId: topicId,
@@ -285,6 +291,8 @@ class StudentTopicDetailDto {
         accuracy: accuracy,
         totalAnswers: totalAnswers,
         intervalDays: intervalDays,
+        confidenceScore: confidenceScore,
+        consistencyScore: consistencyScore,
       );
 }
 

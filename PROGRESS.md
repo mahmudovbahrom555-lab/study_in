@@ -1,6 +1,6 @@
 # Прогресс разработки repetapp
 
-## Статус: AI Phase 1 завершена ✅
+## Статус: Teacher Dashboard завершён ✅ | AI Phase 2 в работе
 
 ### AI Phase 1 — PDF→Quiz + AI Mentor + Writing Checker + Gamification ✅ (commit abf3a2d)
 
@@ -83,21 +83,62 @@
 - Prometheus /metrics, Grafana, Loki, Sentry, FCM stub
 - docker-compose.monitoring.yml
 
+---
+
+## Teacher Dashboard ✅ (commits 0ed9056, d3ee7b1, 5b54964)
+
+### Backend:
+- Migration 000012: quiz_question_feedback (TAR — Teacher Acceptance Rate)
+- Migration 000013: ai_generation_sessions (golden dataset: generated/accepted/edited/rejected)
+- InsightsRepository: ClassInsights + StudentProgress (SQL analytics)
+- QuizFeedbackRepository: UpsertFeedback + AcceptanceRate
+- AIGenerationSessionRepository: CreateSession → LinkQuiz → SyncCounts → TeacherStats
+- GenerateQuiz: открывает session до GPT-вызова, линкует к quiz после
+- SubmitQuestionFeedback: lazily SyncCountsByQuestion
+- "Next Best Action" эвристики (P1/P2/P3) — без GPT, чистый Go
+- Новые эндпоинты: /groups/{id}/ai-insights, /groups/{id}/students/{sid}/progress,
+  /questions/{id}/feedback, /me/acceptance-rate, /me/generation-stats
+- 9 unit тестов (race clean)
+
+### Flutter:
+- AiInsightsPage: статкарты (студенты/TAR/средний балл), "Next Best Action" панель
+  с цветными карточками + приоритетными бейджами, слабые темы, таблица лидеров
+- StudentProgressPage: геймификация (XP/стрик/рекорд), CEFR навыки, темы, история тестов
+- Роуты: /groups/:id/ai-insights, /groups/:id/students/:id/progress
+- Кнопка "AI Insights" в group_detail быстрых действиях (только для teacher)
+- TeacherGenerationStats DTO + provider
+
+---
+
+---
+
+## AI Phase 2 — Confidence + Consistency + SM-2 Extension ✅
+
+### Backend:
+- Migration 000014: topic_mastery ← confidence_score (NUMERIC 4,3), consistency_score (NUMERIC 4,3), correct_streak (INT)
+- SM-2: Update() расширен — EMA confidence (α=0.3), streak-based consistency (÷2 на ошибке), correct_streak
+- domain/ai.go: TopicMastery + StudentTopicDetail получили confidence_score, consistency_score, correct_streak
+- ai_repository.go: UpsertMastery SQL обновлён с новыми колонками
+- insights_repository.go: StudentProgress запрос читает confidence_score, consistency_score
+- 7 unit тестов SM-2 (race clean)
+
+### Flutter:
+- StudentTopicDetail entity: confidenceScore, consistencyScore (default 0.5)
+- StudentTopicDetailDto: парсит confidence_score, consistency_score из JSON
+- StudentProgressPage: `_TopicRow` → Card + `_ScoreBar` (mini progress bars для Уверенности и Стабильности)
+
 ## Следующие фазы AI
 
-### AI Phase 2 (не начата)
+### AI Phase 3 — AI Recommendation Engine (следующее)
+- GPT-based рекомендации на базе накопленных TAR + confidence/consistency данных
 - Speaking Assessment (Whisper API)
-- История проверок writing
 - DELETE /ai/sessions/{id}
 
 ### AI Phase 3 (не начата)
-- skill_assessments: speaking + reading CEFR оценки
-- GET /students/{id}/skill-history
+- AI Recommendation Engine v2: GPT-based рекомендации на базе накопленных данных
+- POST /me/daily-goal
+- skill_assessments CEFR оценки
 
 ### AI Phase 4 (не начата)
-- Дашборд учителя: GET /groups/{id}/ai-insights
-- POST /me/daily-goal
-
-### AI Phase 5 (не начата)
 - AI Progress Coach для родителей/учителей
-- GET /groups/{id}/students/{sid}/progress
+- Персональный план обучения на основе mastery/confidence/consistency

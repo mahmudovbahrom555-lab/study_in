@@ -174,26 +174,102 @@ class _TopicRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final pct = (topic.accuracy * 100).toStringAsFixed(0);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(child: Text(topic.topicName)),
-          Text(
-            '$pct%',
-            style: TextStyle(
-              color: topic.accuracy < 0.6 ? Colors.red : Colors.green,
-              fontWeight: FontWeight.w600,
+    final accColor = topic.accuracy < 0.6 ? Colors.red : Colors.green;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 6),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    topic.topicName,
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Text(
+                  '$pct%',
+                  style: TextStyle(
+                    color: accColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '(${topic.totalAnswers})',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _ScoreBar(
+              label: 'Уверенность',
+              value: topic.confidenceScore,
+              color: Colors.blue,
+            ),
+            const SizedBox(height: 4),
+            _ScoreBar(
+              label: 'Стабильность',
+              value: topic.consistencyScore,
+              color: Colors.purple,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScoreBar extends StatelessWidget {
+  const _ScoreBar({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final double value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 88,
+          child: Text(label, style: const TextStyle(fontSize: 11)),
+        ),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: value,
+              color: color,
+              backgroundColor: color.withValues(alpha: 0.15),
+              minHeight: 6,
             ),
           ),
-          const SizedBox(width: 8),
-          Text(
-            '(${topic.totalAnswers} отв.)',
-            style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(width: 6),
+        SizedBox(
+          width: 30,
+          child: Text(
+            '${(value * 100).toStringAsFixed(0)}%',
+            style: TextStyle(
+              fontSize: 11,
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.right,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

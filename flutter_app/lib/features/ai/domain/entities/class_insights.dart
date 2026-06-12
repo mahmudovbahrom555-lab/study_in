@@ -125,6 +125,8 @@ class StudentTopicDetail {
     required this.accuracy,
     required this.totalAnswers,
     required this.intervalDays,
+    this.confidenceScore = 0.5,
+    this.consistencyScore = 0.5,
   });
 
   final String topicId;
@@ -132,6 +134,8 @@ class StudentTopicDetail {
   final double accuracy;
   final int totalAnswers;
   final int intervalDays;
+  final double confidenceScore;
+  final double consistencyScore;
 }
 
 class QuizAttemptSummary {
