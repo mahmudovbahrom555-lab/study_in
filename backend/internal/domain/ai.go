@@ -241,6 +241,8 @@ type ClassInsights struct {
 	Students        []StudentSummary        `json:"students"`
 	QuizStats       QuizStats               `json:"quiz_stats"`
 	Recommendations []TeacherRecommendation `json:"recommendations"`
+	CourseCoverage  CourseCoverage          `json:"course_coverage"`
+	IsDemo          bool                    `json:"is_demo"`
 }
 
 type TopicWeakness struct {
@@ -314,3 +316,47 @@ const (
 	XPDailyGoalReached  = 50
 	XPPerfectScore      = 50
 )
+
+// ConsentEvent is an immutable record of a user granting or revoking consent.
+// Each change appends a new row — never updated in place (GDPR audit trail).
+type ConsentEvent struct {
+	ID             uuid.UUID `db:"id"`
+	UserID         uuid.UUID `db:"user_id"`
+	ConsentType    string    `db:"consent_type"`    // data_sharing | anonymous_research | network_learning
+	ConsentVersion string    `db:"consent_version"` // privacy policy version, e.g. "v1.0"
+	Granted        bool      `db:"granted"`
+	IPAddress      *string   `db:"ip_address"`
+	UserAgent      *string   `db:"user_agent"`
+	CreatedAt      time.Time `db:"created_at"`
+}
+
+// CourseCoverage summarises how much of a teacher's curriculum has been
+// tested through the platform. It is the leading indicator of whether
+// the data moat is actually forming.
+type CourseCoverage struct {
+	TopicsCovered   int     `json:"topics_covered"`   // unique topics with ≥3 student answers
+	TopicsEstimated int     `json:"topics_estimated"` // expected for CEFR level (0 = unknown)
+	CoverageRate    float64 `json:"coverage_rate"`    // [0,1]; 0 when estimated unknown
+}
+
+// CEFRTopicBudget returns the approximate number of distinct grammar/vocabulary
+// topics a teacher needs to cover for a given CEFR level.
+// Values are conservative estimates based on the Common European Framework.
+func CEFRTopicBudget(level string) int {
+	switch level {
+	case "A1":
+		return 30
+	case "A2":
+		return 50
+	case "B1":
+		return 70
+	case "B2":
+		return 90
+	case "C1":
+		return 110
+	case "C2":
+		return 130
+	default:
+		return 0 // unknown level → no denominator
+	}
+}

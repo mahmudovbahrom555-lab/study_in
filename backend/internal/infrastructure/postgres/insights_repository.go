@@ -175,6 +175,32 @@ func (r *InsightsRepository) ClassInsights(ctx context.Context, groupID uuid.UUI
 		AvgScore:       qs.AvgScore,
 	}
 
+	// 5. Course Coverage — unique topics with ≥3 student answers in this group.
+	var covered int
+	_ = r.db.GetContext(ctx, &covered, `
+		SELECT COUNT(DISTINCT tm.topic_id)
+		FROM group_members gm
+		JOIN topic_mastery tm ON tm.student_id = gm.student_id
+		WHERE gm.group_id = $1 AND tm.total_count >= 3`, groupID)
+
+	// CEFR level from group (optional).
+	var cefrLevel string
+	_ = r.db.GetContext(ctx, &cefrLevel,
+		`SELECT COALESCE(cefr_level,'') FROM groups WHERE id=$1`, groupID)
+	estimated := domain.CEFRTopicBudget(cefrLevel)
+	rate2 := 0.0
+	if estimated > 0 {
+		rate2 = float64(covered) / float64(estimated)
+		if rate2 > 1 {
+			rate2 = 1
+		}
+	}
+	out.CourseCoverage = domain.CourseCoverage{
+		TopicsCovered:   covered,
+		TopicsEstimated: estimated,
+		CoverageRate:    rate2,
+	}
+
 	return out, nil
 }
 
@@ -330,6 +356,16 @@ func (r *InsightsRepository) StudentProgress(ctx context.Context, groupID, stude
 	}
 
 	return out, nil
+}
+
+// IsDemo returns true when the group is flagged as a demo group.
+func (r *InsightsRepository) IsDemo(ctx context.Context, groupID uuid.UUID) (bool, error) {
+	var isDemo bool
+	err := r.db.GetContext(ctx, &isDemo, `SELECT is_demo FROM groups WHERE id = $1`, groupID)
+	if err != nil {
+		return false, nil // group not found or column missing — treat as non-demo
+	}
+	return isDemo, nil
 }
 
 // ─── QuizFeedbackRepository ───────────────────────────────────────────────────

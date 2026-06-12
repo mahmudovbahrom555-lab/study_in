@@ -255,6 +255,10 @@ func (m *mockInsightsRepo) StudentProgress(_ context.Context, _, studentID uuid.
 	return &domain.StudentProgress{StudentID: studentID, Name: "Test Student"}, nil
 }
 
+func (m *mockInsightsRepo) IsDemo(_ context.Context, _ uuid.UUID) (bool, error) {
+	return false, nil
+}
+
 type mockFeedbackRepo struct {
 	feedback map[uuid.UUID]*domain.QuizQuestionFeedback
 }
@@ -297,7 +301,7 @@ func buildServiceWithFeedback() (*ai.Service, *mockFeedbackRepo) {
 	insights := &mockInsightsRepo{}
 	feedback := newMockFeedbackRepo()
 
-	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, insights, feedback, nil, nil, nil,
+	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, insights, feedback, nil, nil, nil, nil,
 		ai.ServiceConfig{Model: "gpt-4o-mini", MonthlyTokensMax: 500000, ChunkSize: 400, ChunkOverlap: 50})
 	return svc, feedback
 }
@@ -313,7 +317,7 @@ func buildService() (*ai.Service, *mockDocRepo, *mockJobRepo, *mockGamifRepo) {
 	quiz := &mockQuizCreator{}
 	store := &mockObjectStore{data: map[string][]byte{}}
 
-	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, nil, nil, nil, nil, nil,
+	svc := ai.NewService(docs, jobs, sessions, tokens, mastery, gamif, topics, quiz, store, nil, nil, nil, nil, nil, nil,
 		ai.ServiceConfig{Model: "gpt-4o-mini", MonthlyTokensMax: 500000, ChunkSize: 400, ChunkOverlap: 50})
 	return svc, docs, jobs, gamif
 }

@@ -119,6 +119,8 @@ type InsightsRepository interface {
 	ClassInsights(ctx context.Context, groupID uuid.UUID) (*domain.ClassInsights, error)
 	// StudentProgress returns detailed per-student analytics (mastery, quiz history, skills).
 	StudentProgress(ctx context.Context, groupID, studentID uuid.UUID) (*domain.StudentProgress, error)
+	// IsDemo returns true when the group has is_demo=true (skips real DB analytics).
+	IsDemo(ctx context.Context, groupID uuid.UUID) (bool, error)
 }
 
 // QuizFeedbackRepository stores Teacher Acceptance Rate data.

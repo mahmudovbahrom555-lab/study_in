@@ -18,21 +18,22 @@ import (
 
 // Service is the AI feature orchestrator.
 type Service struct {
-	docs     DocumentRepository
-	jobs     JobRepository
-	sessions SessionRepository
-	tokens   TokenRepository
-	mastery  MasteryRepository
-	gamif    GamificationRepository
-	topics   TopicRepository
-	quiz     QuizCreator
-	store    ObjectStore
-	insights InsightsRepository
-	feedback QuizFeedbackRepository
-	genSess  GenerationSessionRepository
-	recRepo  RecommendationRepository
-	ai       *oai.Client
-	cfg      ServiceConfig
+	docs        DocumentRepository
+	jobs        JobRepository
+	sessions    SessionRepository
+	tokens      TokenRepository
+	mastery     MasteryRepository
+	gamif       GamificationRepository
+	topics      TopicRepository
+	quiz        QuizCreator
+	store       ObjectStore
+	insights    InsightsRepository
+	feedback    QuizFeedbackRepository
+	genSess     GenerationSessionRepository
+	recRepo     RecommendationRepository
+	demoCreator DemoGroupCreator
+	ai          *oai.Client
+	cfg         ServiceConfig
 }
 
 type ServiceConfig struct {
@@ -56,6 +57,7 @@ func NewService(
 	feedback QuizFeedbackRepository,
 	genSess GenerationSessionRepository,
 	recRepo RecommendationRepository,
+	demoCreator DemoGroupCreator,
 	ai *oai.Client,
 	cfg ServiceConfig,
 ) *Service {
@@ -64,6 +66,7 @@ func NewService(
 		tokens: tokens, mastery: mastery, gamif: gamif,
 		topics: topics, quiz: quiz, store: store,
 		insights: insights, feedback: feedback, genSess: genSess, recRepo: recRepo,
+		demoCreator: demoCreator,
 		ai: ai, cfg: cfg,
 	}
 }
@@ -654,6 +657,14 @@ func (s *Service) failJob(ctx context.Context, jobID uuid.UUID, err error) error
 func (s *Service) GetClassInsights(ctx context.Context, groupID, teacherID uuid.UUID) (*domain.ClassInsights, error) {
 	if s.insights == nil {
 		return nil, fmt.Errorf("insights not configured")
+	}
+
+	// Demo groups return hardcoded rich insights — no DB queries needed.
+	if s.insights != nil {
+		isDemoGroup, _ := s.insights.IsDemo(ctx, groupID)
+		if isDemoGroup {
+			return DemoInsights(groupID, teacherID), nil
+		}
 	}
 
 	ins, err := s.insights.ClassInsights(ctx, groupID)

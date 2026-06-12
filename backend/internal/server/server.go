@@ -186,10 +186,11 @@ func (s *Server) setupRouter() {
 		aiObjectStore = noopAIStore{}
 	}
 
+	aiDemoRepo := postgres.NewDemoRepository(s.db)
 	s.aiSvc = aifeature.NewService(
 		aiDocRepo, aiJobRepo, aiSessRepo, aiTokenRepo,
 		aiMasteryRepo, aiGamifRepo, aiTopicRepo, aiQuizCreator, aiObjectStore,
-		aiInsightsRepo, aiFeedbackRepo, aiGenSessRepo, aiRecRepo,
+		aiInsightsRepo, aiFeedbackRepo, aiGenSessRepo, aiRecRepo, aiDemoRepo,
 		openaiClient,
 		aifeature.ServiceConfig{
 			Model:            s.cfg.AI.OpenAI.Model,

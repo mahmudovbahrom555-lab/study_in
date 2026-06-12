@@ -1,0 +1,3 @@
+ALTER TABLE groups DROP COLUMN IF EXISTS cefr_level;
+ALTER TABLE groups DROP COLUMN IF EXISTS is_demo;
+DROP TABLE IF EXISTS consent_events;

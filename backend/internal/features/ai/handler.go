@@ -82,6 +82,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		// Recommendations (Phase 3)
 		r.Post("/recommendations/{recID}/action", h.recommendationAction)
 		r.Get("/recommendations/{recID}/explain", h.recommendationExplain)
+
+		// Demo group seeder (Phase 4)
+		r.Post("/me/demo", h.createDemoGroup)
 	})
 
 	// Teacher Dashboard — mounted under /groups/:groupID/ai-insights
@@ -569,4 +572,18 @@ func (h *Handler) recommendationExplain(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	response.OK(w, map[string]string{"explanation": text})
+}
+
+func (h *Handler) createDemoGroup(w http.ResponseWriter, r *http.Request) {
+	teacherID := mw.UserIDFromCtx(r.Context())
+	if mw.RoleFromCtx(r.Context()) != domain.RoleTeacher {
+		response.Error(w, domain.NewError("FORBIDDEN", "only teachers", domain.ErrForbidden))
+		return
+	}
+	groupID, err := h.svc.SeedDemoGroup(r.Context(), teacherID)
+	if err != nil {
+		response.Error(w, domain.NewError("INTERNAL", "demo group creation failed", domain.ErrInternal))
+		return
+	}
+	response.OK(w, map[string]string{"group_id": groupID.String()})
 }
