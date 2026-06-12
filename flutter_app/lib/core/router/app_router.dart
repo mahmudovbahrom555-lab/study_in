@@ -19,6 +19,8 @@ import '../../features/attendance/presentation/pages/attendance_page.dart';
 import '../../features/assignments/presentation/pages/assignments_page.dart';
 import '../../features/home/presentation/pages/home_shell.dart';
 import '../../features/parents/presentation/pages/parents_page.dart';
+import '../../features/ai/presentation/pages/ai_insights_page.dart';
+import '../../features/ai/presentation/pages/student_progress_page.dart';
 import 'routes.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -135,6 +137,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.parentChildren,
         builder: (_, __) => const ParentsPage(),
+      ),
+      GoRoute(
+        path: '/groups/:groupId/ai-insights',
+        builder: (_, state) =>
+            AiInsightsPage(groupId: state.pathParameters['groupId']!),
+      ),
+      GoRoute(
+        path: '/groups/:groupId/students/:studentId/progress',
+        builder: (_, state) => StudentProgressPage(
+          groupId: state.pathParameters['groupId']!,
+          studentId: state.pathParameters['studentId']!,
+        ),
       ),
     ],
   );

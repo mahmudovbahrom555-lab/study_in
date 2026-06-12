@@ -234,6 +234,12 @@ class _QuickActions extends StatelessWidget {
               '${Routes.groupAttendance(groupId)}?role=$role',
             ),
           ),
+          if (isTeacher)
+            _ActionChip(
+              icon: Icons.insights,
+              label: 'AI Insights',
+              onTap: () => context.push(Routes.aiInsights(groupId)),
+            ),
         ],
       ),
     );

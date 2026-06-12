@@ -1,0 +1,137 @@
+class ClassInsights {
+  const ClassInsights({
+    required this.groupId,
+    required this.period,
+    required this.studentCount,
+    required this.classWeakness,
+    required this.students,
+    required this.quizStats,
+  });
+
+  final String groupId;
+  final String period;
+  final int studentCount;
+  final List<TopicWeakness> classWeakness;
+  final List<StudentSummary> students;
+  final QuizStats quizStats;
+}
+
+class TopicWeakness {
+  const TopicWeakness({
+    required this.topic,
+    required this.avgAccuracy,
+    required this.studentsStruggling,
+    required this.totalStudents,
+  });
+
+  final String topic;
+  final double avgAccuracy;
+  final int studentsStruggling;
+  final int totalStudents;
+}
+
+class StudentSummary {
+  const StudentSummary({
+    required this.studentId,
+    required this.name,
+    required this.xpTotal,
+    required this.streakDays,
+    required this.topWeakness,
+    required this.isAtRisk,
+    this.lastActive,
+  });
+
+  final String studentId;
+  final String name;
+  final int xpTotal;
+  final int streakDays;
+  final String topWeakness;
+  final bool isAtRisk;
+  final String? lastActive;
+}
+
+class QuizStats {
+  const QuizStats({
+    required this.generated,
+    required this.acceptanceRate,
+    required this.totalAttempts,
+    required this.avgScore,
+  });
+
+  final int generated;
+  final double acceptanceRate;
+  final int totalAttempts;
+  final double avgScore;
+}
+
+class StudentProgress {
+  const StudentProgress({
+    required this.studentId,
+    required this.name,
+    required this.weakTopics,
+    required this.quizHistory,
+    required this.skillLevels,
+    this.gamification,
+  });
+
+  final String studentId;
+  final String name;
+  final List<StudentTopicDetail> weakTopics;
+  final List<QuizAttemptSummary> quizHistory;
+  final Map<String, SkillLevel> skillLevels;
+  final Gamification? gamification;
+}
+
+class StudentTopicDetail {
+  const StudentTopicDetail({
+    required this.topicId,
+    required this.topicName,
+    required this.accuracy,
+    required this.totalAnswers,
+    required this.intervalDays,
+  });
+
+  final String topicId;
+  final String topicName;
+  final double accuracy;
+  final int totalAnswers;
+  final int intervalDays;
+}
+
+class QuizAttemptSummary {
+  const QuizAttemptSummary({
+    required this.quizTitle,
+    required this.score,
+    required this.maxScore,
+    required this.percentage,
+    required this.finishedAt,
+  });
+
+  final String quizTitle;
+  final int score;
+  final int maxScore;
+  final double percentage;
+  final DateTime finishedAt;
+}
+
+class SkillLevel {
+  const SkillLevel({required this.cefr, required this.score, required this.lastAssessed});
+
+  final String cefr;
+  final double score;
+  final DateTime lastAssessed;
+}
+
+class Gamification {
+  const Gamification({
+    required this.xpTotal,
+    required this.streakDays,
+    required this.longestStreak,
+    required this.dailyGoalXp,
+  });
+
+  final int xpTotal;
+  final int streakDays;
+  final int longestStreak;
+  final int dailyGoalXp;
+}
