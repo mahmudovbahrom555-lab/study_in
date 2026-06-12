@@ -305,7 +305,8 @@ func (s *Service) SubmitAttempt(ctx context.Context, attemptID, studentID uuid.U
 		// find correct option
 		for _, o := range opts {
 			if o.IsCorrect {
-				item.CorrectOptionID = o.ID
+				cid := o.ID
+				item.CorrectOptionID = &cid
 				item.CorrectBody = o.Body
 				break
 			}
@@ -313,7 +314,11 @@ func (s *Service) SubmitAttempt(ctx context.Context, attemptID, studentID uuid.U
 
 		// apply student answer if present
 		if chosenIDStr, ok := req.Answers[qst.ID.String()]; ok {
-			if chosenID, parseErr := uuid.Parse(chosenIDStr); parseErr == nil {
+			chosenID, parseErr := uuid.Parse(chosenIDStr)
+			if parseErr != nil {
+				fmt.Printf("SubmitAttempt: invalid option UUID %q for question %s: %v\n", chosenIDStr, qst.ID, parseErr)
+			}
+			if parseErr == nil {
 				for _, o := range opts {
 					if o.ID == chosenID {
 						sid := o.ID

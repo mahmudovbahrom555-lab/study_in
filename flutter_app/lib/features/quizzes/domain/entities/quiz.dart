@@ -98,9 +98,9 @@ class QuestionResult {
     required this.questionId,
     required this.questionBody,
     required this.points,
-    required this.correctOptionId,
     required this.correctBody,
     required this.isCorrect,
+    this.correctOptionId,
     this.selectedOptionId,
     this.selectedBody,
     this.explanation,
@@ -112,7 +112,7 @@ class QuestionResult {
   final String? explanation;
   final String? selectedOptionId;
   final String? selectedBody;
-  final String correctOptionId;
+  final String? correctOptionId; // null when question has no correct option
   final String correctBody;
   final bool isCorrect;
 }

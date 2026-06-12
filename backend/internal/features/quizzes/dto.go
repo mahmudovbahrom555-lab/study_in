@@ -54,7 +54,7 @@ type QuizResultItem struct {
 	Explanation      *string    `json:"explanation,omitempty"`
 	SelectedOptionID *uuid.UUID `json:"selected_option_id,omitempty"`
 	SelectedBody     *string    `json:"selected_body,omitempty"`
-	CorrectOptionID  uuid.UUID  `json:"correct_option_id"`
+	CorrectOptionID  *uuid.UUID `json:"correct_option_id,omitempty"`
 	CorrectBody      string     `json:"correct_body"`
 	IsCorrect        bool       `json:"is_correct"`
 }

@@ -191,8 +191,8 @@ class QuestionResultDto {
         explanation: json['explanation'] as String?,
         selectedOptionId: json['selected_option_id'] as String?,
         selectedBody: json['selected_body'] as String?,
-        correctOptionId: json['correct_option_id'] as String,
-        correctBody: json['correct_body'] as String,
+        correctOptionId: json['correct_option_id'] as String?,
+        correctBody: json['correct_body'] as String? ?? '',
         isCorrect: json['is_correct'] as bool? ?? false,
       );
 
@@ -200,9 +200,9 @@ class QuestionResultDto {
     required this.questionId,
     required this.questionBody,
     required this.points,
-    required this.correctOptionId,
     required this.correctBody,
     required this.isCorrect,
+    this.correctOptionId,
     this.explanation,
     this.selectedOptionId,
     this.selectedBody,
@@ -214,7 +214,7 @@ class QuestionResultDto {
   final String? explanation;
   final String? selectedOptionId;
   final String? selectedBody;
-  final String correctOptionId;
+  final String? correctOptionId;
   final String correctBody;
   final bool isCorrect;
 

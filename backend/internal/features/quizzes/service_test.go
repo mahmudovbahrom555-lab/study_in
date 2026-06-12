@@ -279,3 +279,90 @@ func TestListGroupQuizzes_StudentOnlySeesPublished(t *testing.T) {
 	assert.Len(t, visible, 1)
 	assert.Equal(t, "Published", visible[0].Title)
 }
+
+// TestSubmitAttempt_UnansweredQuestion — student skips a question entirely.
+// Expected: QuestionResults has an item with SelectedOptionID == nil and IsCorrect == false.
+func TestSubmitAttempt_UnansweredQuestion(t *testing.T) {
+	svc, _, gid := buildSvc()
+	q, _ := svc.CreateQuiz(context.Background(), teacherID, gid,
+		quizzes.CreateQuizRequest{Title: "Skip Test", MaxAttempts: 1})
+	qstID, _ := addQuestionWithCorrectOption(t, svc, q.ID)
+	_, _ = svc.Publish(context.Background(), q.ID, teacherID, true)
+
+	attempt, _ := svc.StartAttempt(context.Background(), q.ID, studentID)
+
+	// Submit with empty answers map — question left unanswered.
+	result, err := svc.SubmitAttempt(context.Background(), attempt.ID, studentID, quizzes.SubmitAnswersRequest{
+		Answers: map[string]string{},
+	})
+	require.NoError(t, err)
+	require.Len(t, result.QuestionResults, 1)
+
+	item := result.QuestionResults[0]
+	assert.Equal(t, qstID, item.QuestionID, "result item must correspond to the quiz question")
+	assert.Nil(t, item.SelectedOptionID, "unanswered question: SelectedOptionID must be nil")
+	assert.False(t, item.IsCorrect, "unanswered question: IsCorrect must be false")
+	require.NotNil(t, result.Attempt.Score)
+	assert.Equal(t, int16(0), *result.Attempt.Score, "unanswered question: score must be 0")
+}
+
+// TestSubmitAttempt_ResultItems_Count — number of items in QuestionResults must equal
+// the number of questions in the quiz, regardless of how many answers were submitted.
+func TestSubmitAttempt_ResultItems_Count(t *testing.T) {
+	svc, _, gid := buildSvc()
+	q, _ := svc.CreateQuiz(context.Background(), teacherID, gid,
+		quizzes.CreateQuizRequest{Title: "Count Test", MaxAttempts: 1})
+
+	// Add three questions.
+	q1ID, q1Opt := addQuestionWithCorrectOption(t, svc, q.ID)
+	q2ID, _ := addQuestionWithCorrectOption(t, svc, q.ID)
+	addQuestionWithCorrectOption(t, svc, q.ID)
+	_, _ = svc.Publish(context.Background(), q.ID, teacherID, true)
+
+	attempt, _ := svc.StartAttempt(context.Background(), q.ID, studentID)
+
+	// Answer only 2 out of 3 questions (one correct, one wrong uuid).
+	result, err := svc.SubmitAttempt(context.Background(), attempt.ID, studentID, quizzes.SubmitAnswersRequest{
+		Answers: map[string]string{
+			q1ID.String(): q1Opt.String(),    // correct
+			q2ID.String(): uuid.New().String(), // wrong option id
+		},
+	})
+	require.NoError(t, err)
+	assert.Len(t, result.QuestionResults, 3,
+		"QuestionResults count must equal number of quiz questions")
+}
+
+// TestSubmitAttempt_QuestionWithNoCorrectOption — a question where no option has IsCorrect=true.
+// CorrectOptionID will be uuid.Nil (zero-value). This is a data-integrity bug but the service
+// must not panic and must return IsCorrect=false for any answer.
+func TestSubmitAttempt_QuestionWithNoCorrectOption(t *testing.T) {
+	svc, _, gid := buildSvc()
+	q, _ := svc.CreateQuiz(context.Background(), teacherID, gid,
+		quizzes.CreateQuizRequest{Title: "No Correct", MaxAttempts: 1})
+
+	// Add a question with only wrong options.
+	qst, err := svc.AddQuestion(context.Background(), q.ID, teacherID, quizzes.CreateQuestionRequest{
+		Body: "trick question", Points: 1,
+	})
+	require.NoError(t, err)
+	opt, err := svc.AddOption(context.Background(), qst.ID, teacherID, quizzes.CreateOptionRequest{
+		Body: "always wrong", IsCorrect: false,
+	})
+	require.NoError(t, err)
+
+	_, _ = svc.Publish(context.Background(), q.ID, teacherID, true)
+	attempt, _ := svc.StartAttempt(context.Background(), q.ID, studentID)
+
+	result, err := svc.SubmitAttempt(context.Background(), attempt.ID, studentID, quizzes.SubmitAnswersRequest{
+		Answers: map[string]string{qst.ID.String(): opt.ID.String()},
+	})
+	require.NoError(t, err)
+	require.Len(t, result.QuestionResults, 1)
+
+	item := result.QuestionResults[0]
+	// After fix: CorrectOptionID is nil (not zero UUID) when no option is marked correct.
+	assert.Nil(t, item.CorrectOptionID,
+		"when no option is correct, CorrectOptionID must be nil (omitted from JSON), not zero UUID")
+	assert.False(t, item.IsCorrect, "selecting an option where none is correct must return IsCorrect=false")
+}
