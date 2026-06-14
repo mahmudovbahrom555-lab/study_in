@@ -220,6 +220,9 @@ func (m *mockTopicRepo) UpsertTopic(_ context.Context, name string, subject *str
 func (m *mockTopicRepo) GetTopic(_ context.Context, id uuid.UUID) (*domain.TopicTag, error) {
 	return &domain.TopicTag{ID: id}, nil
 }
+func (m *mockTopicRepo) GetTopicsByQuestion(_ context.Context, _ uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
 func (m *mockTopicRepo) LinkQuestionTopics(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
 	return nil
 }

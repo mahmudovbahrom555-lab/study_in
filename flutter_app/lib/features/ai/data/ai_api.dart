@@ -56,4 +56,9 @@ class AiApi {
     final data = resp.data!['data'] as Map<String, dynamic>;
     return data['group_id'] as String;
   }
+
+  Future<GamificationDto> myGamification() async {
+    final resp = await _dio.get<Map<String, dynamic>>('/me/gamification');
+    return GamificationDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
+  }
 }

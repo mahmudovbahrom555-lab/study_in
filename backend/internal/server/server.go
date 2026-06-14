@@ -141,7 +141,8 @@ func (s *Server) setupRouter() {
 	assignHandler := assignments.NewHandler(assignService)
 
 	quizRepo := postgres.NewQuizRepository(s.db)
-	quizService := quizzes.NewService(quizRepo, groupRepo)
+	// observer wired after aiService is constructed below
+	quizService := quizzes.NewService(quizRepo, groupRepo, nil)
 	quizHandler := quizzes.NewHandler(quizService)
 
 	gradeRepo := postgres.NewGradeRepository(s.db)
@@ -199,6 +200,9 @@ func (s *Server) setupRouter() {
 			ChunkOverlap:     s.cfg.AI.ChunkOverlap,
 		},
 	)
+
+	// Wire SM-2 observer now that aiService is ready.
+	quizService.SetObserver(s.aiSvc)
 
 	var aiUploader aifeature.DocumentUploader
 	if minioClient != nil {

@@ -29,6 +29,12 @@ class Quiz {
   final bool isPublished;
   final DateTime createdAt;
   final List<Question> questions;
+
+  bool get isClosed =>
+      closeAt != null && closeAt!.isBefore(DateTime.now());
+
+  bool get isNotYetOpen =>
+      openAt != null && openAt!.isAfter(DateTime.now());
 }
 
 @immutable

@@ -1,20 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../features/ai/domain/entities/class_insights.dart';
+import '../../../../features/ai/presentation/providers/ai_insights_provider.dart';
 import '../../domain/entities/quiz.dart';
 
-class QuizResultPage extends StatelessWidget {
+class QuizResultPage extends ConsumerWidget {
   const QuizResultPage({super.key, required this.result});
 
   final QuizResult result;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final pct = result.percentage;
     final color = pct >= 0.8
         ? Colors.green
         : pct >= 0.6
             ? Colors.orange
             : Colors.red;
+
+    final gamification = ref.watch(gamificationProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -25,7 +30,13 @@ class QuizResultPage extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         children: [
           _ScoreHeader(result: result, color: color),
-          const SizedBox(height: 28),
+          const SizedBox(height: 12),
+          gamification.when(
+            data: (g) => _GamificationBanner(gamification: g),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+          const SizedBox(height: 16),
           Text(
             'Разбор ответов',
             style: Theme.of(context).textTheme.titleMedium,
@@ -44,6 +55,79 @@ class QuizResultPage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _GamificationBanner extends StatelessWidget {
+  const _GamificationBanner({required this.gamification});
+
+  final Gamification gamification;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: Colors.deepPurple.withValues(alpha: 0.07),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.deepPurple.withValues(alpha: 0.2)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _Stat(
+              icon: Icons.bolt,
+              iconColor: Colors.amber,
+              value: '${gamification.xpTotal} XP',
+              label: 'Всего опыта',
+            ),
+            Container(width: 1, height: 36, color: Colors.deepPurple.withValues(alpha: 0.15)),
+            _Stat(
+              icon: Icons.local_fire_department,
+              iconColor: Colors.orange,
+              value: '${gamification.streakDays} дн.',
+              label: 'Серия',
+            ),
+            Container(width: 1, height: 36, color: Colors.deepPurple.withValues(alpha: 0.15)),
+            _Stat(
+              icon: Icons.emoji_events,
+              iconColor: Colors.deepPurple,
+              value: '${gamification.longestStreak} дн.',
+              label: 'Рекорд',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  const _Stat({
+    required this.icon,
+    required this.iconColor,
+    required this.value,
+    required this.label,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: iconColor, size: 20),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+      ],
     );
   }
 }

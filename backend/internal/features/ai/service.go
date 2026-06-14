@@ -592,6 +592,25 @@ func (s *Service) GetReviewQueue(ctx context.Context, studentID uuid.UUID) ([]*d
 	return s.mastery.ListDueMastery(ctx, studentID, 20)
 }
 
+// OnAnswer implements quizzes.AnswerObserver — called after each quiz answer to
+// update SM-2 mastery and award XP. Errors are logged, not propagated (fire-and-forget).
+func (s *Service) OnAnswer(ctx context.Context, studentID, questionID uuid.UUID, correct bool) {
+	topicIDs, err := s.topics.GetTopicsByQuestion(ctx, questionID)
+	if err != nil {
+		fmt.Printf("OnAnswer: GetTopicsByQuestion %s: %v\n", questionID, err)
+		return
+	}
+	quality := 0 // SM-2 blackout on wrong
+	if correct {
+		quality = 5 // SM-2 easy on correct (single-attempt quiz)
+	}
+	for _, topicID := range topicIDs {
+		if err := s.RecordAnswer(ctx, studentID, topicID, correct, quality); err != nil {
+			fmt.Printf("OnAnswer: RecordAnswer student=%s topic=%s: %v\n", studentID, topicID, err)
+		}
+	}
+}
+
 func (s *Service) GetWeakTopics(ctx context.Context, studentID uuid.UUID) ([]*domain.TopicMastery, error) {
 	return s.mastery.ListWeakTopics(ctx, studentID, 10)
 }

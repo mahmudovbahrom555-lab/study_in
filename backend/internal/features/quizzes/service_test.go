@@ -140,7 +140,7 @@ var (
 func buildSvc() (*quizzes.Service, *memGroups, uuid.UUID) {
 	mg, gid := newGroups(teacherID)
 	mg.addMember(gid, studentID)
-	return quizzes.NewService(newMemRepo(), mg), mg, gid
+	return quizzes.NewService(newMemRepo(), mg, nil), mg, gid
 }
 
 func addQuestionWithCorrectOption(t *testing.T, svc *quizzes.Service, quizID uuid.UUID) (uuid.UUID, uuid.UUID) {

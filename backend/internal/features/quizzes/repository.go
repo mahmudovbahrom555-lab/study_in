@@ -46,3 +46,10 @@ type GroupChecker interface {
 	GetGroupByID(ctx context.Context, id uuid.UUID) (*domain.Group, error)
 	GetMember(ctx context.Context, groupID, userID uuid.UUID) (*domain.GroupMember, error)
 }
+
+// AnswerObserver receives quiz answer events so the AI layer can update
+// spaced-repetition state (SM-2) and award XP without coupling the two packages.
+// Called fire-and-forget after each submission — errors are logged, not returned.
+type AnswerObserver interface {
+	OnAnswer(ctx context.Context, studentID, questionID uuid.UUID, correct bool)
+}

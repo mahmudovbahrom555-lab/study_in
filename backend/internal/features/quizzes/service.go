@@ -12,13 +12,17 @@ import (
 )
 
 type Service struct {
-	repo   Repository
-	groups GroupChecker
+	repo     Repository
+	groups   GroupChecker
+	observer AnswerObserver // optional; nil = no SM-2 updates
 }
 
-func NewService(repo Repository, groups GroupChecker) *Service {
-	return &Service{repo: repo, groups: groups}
+func NewService(repo Repository, groups GroupChecker, observer AnswerObserver) *Service {
+	return &Service{repo: repo, groups: groups, observer: observer}
 }
+
+// SetObserver wires in the SM-2 observer after construction (breaks circular init order).
+func (s *Service) SetObserver(o AnswerObserver) { s.observer = o }
 
 // CreateQuiz creates a new quiz (teacher only, unpublished by default).
 func (s *Service) CreateQuiz(ctx context.Context, teacherID, groupID uuid.UUID, req CreateQuizRequest) (*domain.Quiz, error) {
@@ -341,6 +345,15 @@ func (s *Service) SubmitAttempt(ctx context.Context, attemptID, studentID uuid.U
 		}
 
 		resultItems = append(resultItems, item)
+	}
+
+	// Notify AI layer for SM-2 / XP updates (fire-and-forget, non-blocking).
+	if s.observer != nil {
+		for _, item := range resultItems {
+			if item.SelectedOptionID != nil {
+				s.observer.OnAnswer(ctx, attempt.StudentID, item.QuestionID, item.IsCorrect)
+			}
+		}
 	}
 
 	if len(answers) > 0 {

@@ -42,3 +42,9 @@ final generationStatsProvider =
     FutureProvider<TeacherGenerationStats>((ref) {
   return ref.watch(aiRepositoryProvider).generationStats();
 });
+
+// ─── Student gamification (XP + streak) ──────────────────────────────────────
+
+final gamificationProvider = FutureProvider<Gamification>((ref) {
+  return ref.watch(aiRepositoryProvider).myGamification();
+});

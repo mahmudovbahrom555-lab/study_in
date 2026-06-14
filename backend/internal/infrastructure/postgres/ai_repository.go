@@ -388,3 +388,13 @@ func (r *AITopicRepository) LinkQuestionTopics(ctx context.Context, questionID u
 	return nil
 }
 
+func (r *AITopicRepository) GetTopicsByQuestion(ctx context.Context, questionID uuid.UUID) ([]uuid.UUID, error) {
+	var ids []uuid.UUID
+	err := r.db.SelectContext(ctx, &ids,
+		`SELECT topic_id FROM question_topics WHERE question_id = $1`, questionID)
+	if err != nil {
+		return nil, fmt.Errorf("GetTopicsByQuestion: %w", err)
+	}
+	return ids, nil
+}
+

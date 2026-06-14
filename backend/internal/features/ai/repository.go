@@ -65,6 +65,7 @@ type TopicRepository interface {
 	UpsertTopic(ctx context.Context, name string, subject *string) (*domain.TopicTag, error)
 	GetTopic(ctx context.Context, id uuid.UUID) (*domain.TopicTag, error)
 	LinkQuestionTopics(ctx context.Context, questionID uuid.UUID, topicIDs []uuid.UUID) error
+	GetTopicsByQuestion(ctx context.Context, questionID uuid.UUID) ([]uuid.UUID, error)
 }
 
 // QuizCreator is the minimal interface the AI service needs to persist

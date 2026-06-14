@@ -58,15 +58,28 @@ class QuizCard extends StatelessWidget {
                           ),
                         ],
                         const SizedBox(width: 8),
-                        _Chip(
-                          icon: quiz.isPublished
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                          label: quiz.isPublished ? 'Опубл.' : 'Черновик',
-                          color: quiz.isPublished
-                              ? Colors.green
-                              : Colors.orange,
-                        ),
+                        if (quiz.isClosed)
+                          const _Chip(
+                            icon: Icons.lock_outline,
+                            label: 'Закрыт',
+                            color: Colors.grey,
+                          )
+                        else if (quiz.isNotYetOpen)
+                          const _Chip(
+                            icon: Icons.schedule_outlined,
+                            label: 'Не начался',
+                            color: Colors.blue,
+                          )
+                        else
+                          _Chip(
+                            icon: quiz.isPublished
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                            label: quiz.isPublished ? 'Опубл.' : 'Черновик',
+                            color: quiz.isPublished
+                                ? Colors.green
+                                : Colors.orange,
+                          ),
                       ],
                     ),
                   ],
@@ -104,8 +117,10 @@ class _Chip extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: c),
         const SizedBox(width: 4),
-        Text(label,
-            style: TextStyle(fontSize: 12, color: c)),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: c),
+        ),
       ],
     );
   }

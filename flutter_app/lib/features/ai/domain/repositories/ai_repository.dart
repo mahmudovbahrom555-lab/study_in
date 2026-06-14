@@ -9,4 +9,5 @@ abstract class AiRepository {
   Future<void> recordRecommendationAction(String recId, {required String status, String action});
   Future<String> explainRecommendation(String recId);
   Future<String> createDemoGroup();
+  Future<Gamification> myGamification();
 }
