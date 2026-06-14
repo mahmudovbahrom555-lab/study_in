@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 
-import '../../../attendance/data/models/attendance_dto.dart';
-import '../../../grades/data/models/grade_dto.dart';
-import '../../../groups/data/models/group_dto.dart';
+import '../../attendance/data/models/attendance_dto.dart';
+import '../../grades/data/models/grade_dto.dart';
+import '../../groups/data/models/group_dto.dart';
 import 'models/parent_link_dto.dart';
 
 class ParentsApi {
@@ -22,8 +22,7 @@ class ParentsApi {
       _dio.delete<void>('/parent/children/$studentId');
 
   Future<List<ParentLinkDto>> listChildren() async {
-    final resp =
-        await _dio.get<Map<String, dynamic>>('/parent/children');
+    final resp = await _dio.get<Map<String, dynamic>>('/parent/children');
     final list = resp.data!['data'] as List<dynamic>;
     return list
         .map((e) => ParentLinkDto.fromJson(e as Map<String, dynamic>))
@@ -51,7 +50,9 @@ class ParentsApi {
   }
 
   Future<List<AttendanceDto>> childAttendance(
-      String studentId, String groupId) async {
+    String studentId,
+    String groupId,
+  ) async {
     final resp = await _dio.get<Map<String, dynamic>>(
       '/parent/children/$studentId/groups/$groupId/attendance',
     );

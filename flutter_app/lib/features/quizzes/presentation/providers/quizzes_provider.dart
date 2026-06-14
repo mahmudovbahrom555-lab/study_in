@@ -110,6 +110,7 @@ class QuizDetailNotifier extends StateNotifier<AsyncValue<Quiz>> {
   }
 
   final QuizzesRepository _repo;
+  // ignore: unused_field — kept for future group-scoped quiz filtering
   final String _groupId;
   final String _quizId;
 

@@ -1,6 +1,6 @@
-import '../../../attendance/domain/entities/attendance.dart';
-import '../../../grades/domain/entities/grade.dart';
-import '../../../groups/domain/entities/group.dart';
+import '../../attendance/domain/entities/attendance.dart';
+import '../../grades/domain/entities/grade.dart';
+import '../../groups/domain/entities/group.dart';
 import '../domain/entities/parent_link.dart';
 import '../domain/repositories/parents_repository.dart';
 import 'parents_api.dart';
@@ -39,7 +39,9 @@ class ParentsRepositoryImpl implements ParentsRepository {
 
   @override
   Future<List<Attendance>> childAttendance(
-      String studentId, String groupId) async {
+    String studentId,
+    String groupId,
+  ) async {
     final dtos = await _api.childAttendance(studentId, groupId);
     return dtos.map((d) => d.toDomain()).toList();
   }
