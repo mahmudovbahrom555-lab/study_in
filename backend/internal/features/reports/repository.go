@@ -19,8 +19,8 @@ type Repository interface {
 	GetLatestReport(ctx context.Context, studentID, groupID uuid.UUID) (*domain.ParentReport, error)
 	// ComputeRiskAlerts runs SQL heuristics and returns at-risk students for a teacher.
 	ComputeRiskAlerts(ctx context.Context, teacherID uuid.UUID) ([]*domain.RiskAlert, error)
-	// SaveRiskAlerts replaces today's alerts for the teacher (idempotent refresh).
-	SaveRiskAlerts(ctx context.Context, alerts []*domain.RiskAlert) error
+	// SaveRiskAlerts deletes stale 'new' alerts for teacherID and batch-inserts fresh ones.
+	SaveRiskAlerts(ctx context.Context, teacherID uuid.UUID, alerts []*domain.RiskAlert) error
 	// GetRiskAlerts returns saved alerts for a teacher filtered by status.
 	GetRiskAlerts(ctx context.Context, teacherID uuid.UUID, status string) ([]*domain.RiskAlert, error)
 	// ResolveRiskAlert marks a single alert as resolved.
@@ -29,6 +29,8 @@ type Repository interface {
 	IsGroupMember(ctx context.Context, groupID, studentID uuid.UUID) (bool, error)
 	// IsGroupTeacher verifies the caller owns the group.
 	IsGroupTeacher(ctx context.Context, groupID, teacherID uuid.UUID) (bool, error)
+	// IsParentOfStudent verifies a parent-child link exists.
+	IsParentOfStudent(ctx context.Context, parentID, studentID uuid.UUID) (bool, error)
 }
 
 // RawMetrics contains computed statistics for a period.

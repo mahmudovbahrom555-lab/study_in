@@ -26,13 +26,11 @@ func (s *Service) GenerateParentReport(ctx context.Context, studentID, groupID u
 	periodStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	periodEnd := periodStart.AddDate(0, 1, -1)
 
-	// Return cached if it exists and was generated today.
+	// Cache hit: a report for this month already exists — return it without recomputing.
+	// Keyed on PeriodStart (not created_at) so ON CONFLICT RETURNING semantics don't matter.
 	existing, err := s.repo.GetLatestReport(ctx, studentID, groupID)
-	if err == nil && existing != nil {
-		today := now.Truncate(24 * time.Hour)
-		if !existing.CreatedAt.Before(today) {
-			return existing, nil
-		}
+	if err == nil && existing != nil && existing.PeriodStart.Equal(periodStart) {
+		return existing, nil
 	}
 
 	metrics, err := s.repo.ComputeMetrics(ctx, studentID, groupID, periodStart, periodEnd)
@@ -54,16 +52,11 @@ func (s *Service) GenerateParentReport(ctx context.Context, studentID, groupID u
 		QuizAttemptsCount:     metrics.QuizAttemptsCount,
 	}
 
+	// SaveReport uses RETURNING id, created_at and populates report in-place.
 	if err := s.repo.SaveReport(ctx, report); err != nil {
 		return nil, fmt.Errorf("reports.GenerateParentReport save: %w", err)
 	}
-
-	// Re-fetch to get the DB-assigned ID and created_at.
-	saved, err := s.repo.GetLatestReport(ctx, studentID, groupID)
-	if err != nil {
-		return report, nil
-	}
-	return saved, nil
+	return report, nil
 }
 
 // RefreshRiskAlerts recalculates risk signals and persists them for a teacher.
@@ -72,10 +65,8 @@ func (s *Service) RefreshRiskAlerts(ctx context.Context, teacherID uuid.UUID) ([
 	if err != nil {
 		return nil, fmt.Errorf("reports.RefreshRiskAlerts compute: %w", err)
 	}
-	if len(alerts) > 0 {
-		if err := s.repo.SaveRiskAlerts(ctx, alerts); err != nil {
-			return nil, fmt.Errorf("reports.RefreshRiskAlerts save: %w", err)
-		}
+	if err := s.repo.SaveRiskAlerts(ctx, teacherID, alerts); err != nil {
+		return nil, fmt.Errorf("reports.RefreshRiskAlerts save: %w", err)
 	}
 	return alerts, nil
 }

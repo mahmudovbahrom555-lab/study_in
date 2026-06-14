@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,6 +25,9 @@ func NewReportRepository(db *sqlx.DB) *ReportRepository {
 
 // ComputeMetrics runs SQL aggregations for a student in a group over [from, to].
 // The "previous period" is the same-length window ending just before from.
+//
+// Fix: mastery CTEs now filter by group via question_topics→questions→quizzes,
+// so only topics that appear in this group's quizzes are included.
 func (r *ReportRepository) ComputeMetrics(
 	ctx context.Context,
 	studentID, groupID uuid.UUID,
@@ -34,14 +38,22 @@ func (r *ReportRepository) ComputeMetrics(
 
 	const q = `
 WITH
+-- Topics that belong to this group (via question_topics → questions → quizzes)
+group_topics AS (
+    SELECT DISTINCT qt.topic_id
+    FROM question_topics qt
+    JOIN questions qn ON qn.id = qt.question_id
+    JOIN quizzes qz    ON qz.id = qn.quiz_id
+    WHERE qz.group_id = $2
+),
 -- Attendance for current period
 att_cur AS (
     SELECT
         COUNT(*) FILTER (WHERE status = 'present' OR status = 'late') * 100.0
         / NULLIF(COUNT(*), 0) AS pct
     FROM attendance
-    WHERE student_id = $1
-      AND group_id   = $2
+    WHERE student_id  = $1
+      AND group_id    = $2
       AND lesson_date BETWEEN $3 AND $4
 ),
 -- Quiz scores current period
@@ -52,11 +64,11 @@ quiz_cur AS (
         ), 0) AS avg_score,
         COUNT(qa.id) AS attempts
     FROM quiz_attempts qa
-    JOIN quizzes q ON q.id = qa.quiz_id
-    WHERE qa.student_id = $1
-      AND q.group_id    = $2
-      AND qa.finished_at BETWEEN $3 AND $4
-      AND qa.finished_at IS NOT NULL
+    JOIN quizzes qz ON qz.id = qa.quiz_id
+    WHERE qa.student_id   = $1
+      AND qz.group_id     = $2
+      AND qa.finished_at  BETWEEN $3 AND $4
+      AND qa.finished_at  IS NOT NULL
 ),
 -- Quiz scores previous period
 quiz_prev AS (
@@ -65,31 +77,41 @@ quiz_prev AS (
             qa.score::float * 100.0 / NULLIF(qa.max_score, 0)
         ), 0) AS avg_score
     FROM quiz_attempts qa
-    JOIN quizzes q ON q.id = qa.quiz_id
-    WHERE qa.student_id = $1
-      AND q.group_id    = $2
-      AND qa.finished_at BETWEEN $5 AND $6
-      AND qa.finished_at IS NOT NULL
+    JOIN quizzes qz ON qz.id = qa.quiz_id
+    WHERE qa.student_id   = $1
+      AND qz.group_id     = $2
+      AND qa.finished_at  BETWEEN $5 AND $6
+      AND qa.finished_at  IS NOT NULL
 ),
--- Mastery current
+-- Mastery at end of current period — computed from skill_logs for a true point-in-time snapshot.
+-- topic_mastery is a mutable aggregate (one row per topic); using it with updated_at <= $4
+-- gives 0 for any topic updated after that cutoff, inflating the delta to 100% every month.
 mastery_cur AS (
-    SELECT
-        COALESCE(
-            AVG(correct_count::float / NULLIF(total_count, 0)), 0
-        ) AS avg_mastery
-    FROM topic_mastery
-    WHERE student_id = $1
-      AND updated_at <= $4
+    SELECT COALESCE(AVG(per_topic.ratio), 0) AS avg_mastery
+    FROM (
+        SELECT
+            sl.topic_id,
+            COUNT(*) FILTER (WHERE sl.is_correct)::float / NULLIF(COUNT(*), 0) AS ratio
+        FROM skill_logs sl
+        JOIN group_topics gt ON gt.topic_id = sl.topic_id
+        WHERE sl.student_id = $1
+          AND sl.answered_at <= $4
+        GROUP BY sl.topic_id
+    ) per_topic
 ),
--- Mastery previous
+-- Mastery at end of previous period — same logic, earlier cutoff.
 mastery_prev AS (
-    SELECT
-        COALESCE(
-            AVG(correct_count::float / NULLIF(total_count, 0)), 0
-        ) AS avg_mastery
-    FROM topic_mastery
-    WHERE student_id = $1
-      AND updated_at <= $6
+    SELECT COALESCE(AVG(per_topic.ratio), 0) AS avg_mastery
+    FROM (
+        SELECT
+            sl.topic_id,
+            COUNT(*) FILTER (WHERE sl.is_correct)::float / NULLIF(COUNT(*), 0) AS ratio
+        FROM skill_logs sl
+        JOIN group_topics gt ON gt.topic_id = sl.topic_id
+        WHERE sl.student_id = $1
+          AND sl.answered_at <= $6
+        GROUP BY sl.topic_id
+    ) per_topic
 ),
 -- Homework completion
 hw AS (
@@ -98,18 +120,18 @@ hw AS (
     FROM assignments a
     LEFT JOIN submissions s
         ON s.assignment_id = a.id AND s.student_id = $1
-    WHERE a.group_id  = $2
-      AND a.due_date BETWEEN $3 AND $4
+    WHERE a.group_id   = $2
+      AND a.due_date   BETWEEN $3 AND $4
       AND a.deleted_at IS NULL
 )
 SELECT
-    COALESCE(att.pct,               0) AS attendance_pct,
-    COALESCE(qc.avg_score,          0) AS quiz_score_avg,
-    COALESCE(qp.avg_score,          0) AS quiz_score_prev_avg,
-    COALESCE(mc.avg_mastery,        0) AS mastery_avg,
-    COALESCE(mp.avg_mastery,        0) AS mastery_prev_avg,
-    COALESCE(hw.completion_pct,     0) AS homework_completion_pct,
-    COALESCE(qc.attempts,           0) AS quiz_attempts_count
+    COALESCE(att.pct,            0) AS attendance_pct,
+    COALESCE(qc.avg_score,       0) AS quiz_score_avg,
+    COALESCE(qp.avg_score,       0) AS quiz_score_prev_avg,
+    COALESCE(mc.avg_mastery,     0) AS mastery_avg,
+    COALESCE(mp.avg_mastery,     0) AS mastery_prev_avg,
+    COALESCE(hw.completion_pct,  0) AS homework_completion_pct,
+    COALESCE(qc.attempts,        0) AS quiz_attempts_count
 FROM att_cur att, quiz_cur qc, quiz_prev qp, mastery_cur mc, mastery_prev mp, hw;
 `
 
@@ -145,7 +167,8 @@ FROM att_cur att, quiz_cur qc, quiz_prev qp, mastery_cur mc, mastery_prev mp, hw
 	}, nil
 }
 
-// SaveReport upserts a parent report by (student_id, group_id, period_start).
+// SaveReport upserts a monthly report and scans the DB-assigned id and created_at back
+// into rep. created_at is not reset on conflict so its value reflects first-insert time.
 func (r *ReportRepository) SaveReport(ctx context.Context, rep *domain.ParentReport) error {
 	const q = `
 INSERT INTO parent_reports
@@ -163,20 +186,16 @@ DO UPDATE SET
     mastery_prev_avg        = EXCLUDED.mastery_prev_avg,
     homework_completion_pct = EXCLUDED.homework_completion_pct,
     quiz_attempts_count     = EXCLUDED.quiz_attempts_count,
-    ai_summary              = EXCLUDED.ai_summary,
-    created_at              = NOW()
+    ai_summary              = EXCLUDED.ai_summary
+RETURNING id, created_at
 `
-	_, err := r.db.ExecContext(ctx, q,
+	return r.db.QueryRowContext(ctx, q,
 		rep.StudentID, rep.GroupID,
 		rep.PeriodStart, rep.PeriodEnd,
 		rep.AttendancePct, rep.QuizScoreAvg, rep.QuizScorePrevAvg,
 		rep.MasteryAvg, rep.MasteryPrevAvg,
 		rep.HomeworkCompletionPct, rep.QuizAttemptsCount, rep.AISummary,
-	)
-	if err != nil {
-		return fmt.Errorf("ReportRepository.SaveReport: %w", err)
-	}
-	return nil
+	).Scan(&rep.ID, &rep.CreatedAt)
 }
 
 // GetLatestReport returns the most recent report for student+group.
@@ -191,7 +210,7 @@ SELECT id, student_id, group_id, period_start, period_end,
        homework_completion_pct, quiz_attempts_count, ai_summary, created_at
 FROM parent_reports
 WHERE student_id = $1 AND group_id = $2
-ORDER BY created_at DESC
+ORDER BY period_start DESC
 LIMIT 1
 `
 	var rep domain.ParentReport
@@ -204,7 +223,7 @@ LIMIT 1
 	return &rep, nil
 }
 
-// ComputeRiskAlerts finds at-risk students across all groups owned by teacherID.
+// ComputeRiskAlerts finds at-risk students across all active groups owned by teacherID.
 func (r *ReportRepository) ComputeRiskAlerts(
 	ctx context.Context,
 	teacherID uuid.UUID,
@@ -221,17 +240,14 @@ group_students AS (
     JOIN teacher_groups g ON g.id = gm.group_id
     JOIN users u ON u.id = gm.student_id
 ),
--- Absences in last 14 days
 absences AS (
     SELECT student_id, group_id,
-           COUNT(*) FILTER (WHERE status = 'absent') AS absent_count,
-           COUNT(*) AS total
+           COUNT(*) FILTER (WHERE status = 'absent') AS absent_count
     FROM attendance
     WHERE group_id IN (SELECT id FROM teacher_groups)
       AND lesson_date >= NOW() - INTERVAL '14 days'
     GROUP BY student_id, group_id
 ),
--- Missing homework in last 14 days
 missing_hw AS (
     SELECT gm.student_id, a.group_id,
            COUNT(a.id) - COUNT(s.id) AS missing_count
@@ -241,7 +257,7 @@ missing_hw AS (
         ON s.assignment_id = a.id AND s.student_id = gm.student_id
     WHERE a.group_id IN (SELECT id FROM teacher_groups)
       AND a.due_date >= NOW() - INTERVAL '14 days'
-      AND a.due_date < NOW()
+      AND a.due_date  < NOW()
       AND a.deleted_at IS NULL
     GROUP BY gm.student_id, a.group_id
 )
@@ -250,18 +266,20 @@ SELECT
     gs.student_name,
     gs.group_id,
     gs.group_name,
-    COALESCE(ab.absent_count, 0) AS absent_count,
+    COALESCE(ab.absent_count,  0) AS absent_count,
     COALESCE(mh.missing_count, 0) AS missing_count,
     CASE
         WHEN COALESCE(ab.absent_count, 0) >= 3 THEN 'high'
-        WHEN COALESCE(ab.absent_count, 0) >= 2 OR COALESCE(mh.missing_count, 0) >= 2 THEN 'medium'
+        WHEN COALESCE(ab.absent_count, 0) >= 2
+          OR COALESCE(mh.missing_count, 0) >= 2 THEN 'medium'
         ELSE 'low'
     END AS risk_level
 FROM group_students gs
-LEFT JOIN absences ab ON ab.student_id = gs.student_id AND ab.group_id = gs.group_id
-LEFT JOIN missing_hw mh ON mh.student_id = gs.student_id AND mh.group_id = gs.group_id
-WHERE COALESCE(ab.absent_count, 0) >= 2 OR COALESCE(mh.missing_count, 0) >= 2
-ORDER BY risk_level, gs.student_name
+LEFT JOIN absences ab    ON ab.student_id = gs.student_id AND ab.group_id = gs.group_id
+LEFT JOIN missing_hw mh  ON mh.student_id = gs.student_id AND mh.group_id = gs.group_id
+WHERE COALESCE(ab.absent_count, 0) >= 2
+   OR COALESCE(mh.missing_count, 0) >= 2
+ORDER BY CASE risk_level WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END, gs.student_name
 `
 
 	type row struct {
@@ -283,7 +301,6 @@ ORDER BY risk_level, gs.student_name
 	for _, rw := range rows {
 		reason, rec := buildRiskText(rw.AbsentCount, rw.MissingCount)
 		alerts = append(alerts, &domain.RiskAlert{
-			ID:             uuid.New(),
 			TeacherID:      teacherID,
 			StudentID:      rw.StudentID,
 			GroupID:        rw.GroupID,
@@ -316,23 +333,68 @@ func buildRiskText(absences, missing int) (reason, recommendation string) {
 	return
 }
 
-// SaveRiskAlerts inserts fresh alerts (ignores conflicts by student+group generated today).
-func (r *ReportRepository) SaveRiskAlerts(ctx context.Context, alerts []*domain.RiskAlert) error {
-	for _, a := range alerts {
-		const q = `
-INSERT INTO owner_risk_alerts
-    (id, teacher_id, student_id, group_id, risk_level, trigger_reason, recommendation, status)
-VALUES ($1,$2,$3,$4,$5,$6,$7,'new')
-ON CONFLICT DO NOTHING
-`
-		if _, err := r.db.ExecContext(ctx, q,
-			a.ID, a.TeacherID, a.StudentID, a.GroupID,
-			a.RiskLevel, a.TriggerReason, a.Recommendation,
-		); err != nil {
-			return fmt.Errorf("ReportRepository.SaveRiskAlerts: %w", err)
-		}
+// SaveRiskAlerts atomically replaces unresolved alerts for teacherID with the fresh set.
+// Resolved alerts are preserved. DELETE and INSERT run inside a single transaction so a
+// failed INSERT cannot leave the teacher with zero alerts.
+func (r *ReportRepository) SaveRiskAlerts(
+	ctx context.Context,
+	teacherID uuid.UUID,
+	alerts []*domain.RiskAlert,
+) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("ReportRepository.SaveRiskAlerts begin: %w", err)
 	}
-	return nil
+	defer tx.Rollback() //nolint:errcheck
+
+	// Clear new + in_progress alerts. Resolved history is kept intentionally.
+	// in_progress is also cleared: the student may no longer be at risk this cycle.
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM owner_risk_alerts WHERE teacher_id = $1 AND status IN ('new', 'in_progress')`,
+		teacherID,
+	); err != nil {
+		return fmt.Errorf("ReportRepository.SaveRiskAlerts delete: %w", err)
+	}
+
+	if len(alerts) == 0 {
+		return tx.Commit()
+	}
+
+	// Single multi-row INSERT with RETURNING id so callers get real DB-assigned UUIDs.
+	const paramsPerRow = 6
+	placeholders := make([]string, len(alerts))
+	args := make([]any, 0, len(alerts)*paramsPerRow)
+	for i, a := range alerts {
+		base := i * paramsPerRow
+		placeholders[i] = fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d,'new')",
+			base+1, base+2, base+3, base+4, base+5, base+6)
+		args = append(args,
+			a.TeacherID, a.StudentID, a.GroupID,
+			a.RiskLevel, a.TriggerReason, a.Recommendation,
+		)
+	}
+	q := `INSERT INTO owner_risk_alerts
+	    (teacher_id, student_id, group_id, risk_level, trigger_reason, recommendation, status)
+	    VALUES ` + strings.Join(placeholders, ",") + ` RETURNING id`
+
+	dbRows, err := tx.QueryContext(ctx, q, args...)
+	if err != nil {
+		return fmt.Errorf("ReportRepository.SaveRiskAlerts insert: %w", err)
+	}
+	defer dbRows.Close()
+
+	i := 0
+	for dbRows.Next() {
+		if err := dbRows.Scan(&alerts[i].ID); err != nil {
+			return fmt.Errorf("ReportRepository.SaveRiskAlerts scan: %w", err)
+		}
+		i++
+	}
+	if err := dbRows.Err(); err != nil {
+		return fmt.Errorf("ReportRepository.SaveRiskAlerts rows: %w", err)
+	}
+
+	return tx.Commit()
 }
 
 // GetRiskAlerts returns alerts for a teacher, optionally filtered by status.
@@ -343,11 +405,12 @@ func (r *ReportRepository) GetRiskAlerts(
 ) ([]*domain.RiskAlert, error) {
 	q := `
 SELECT ora.id, ora.teacher_id, ora.student_id, ora.group_id,
-       u.name AS student_name, g.name AS group_name,
+       u.name  AS student_name,
+       g.name  AS group_name,
        ora.risk_level, ora.trigger_reason, ora.recommendation,
        ora.status, ora.created_at
 FROM owner_risk_alerts ora
-JOIN users u ON u.id = ora.student_id
+JOIN users  u ON u.id = ora.student_id
 JOIN groups g ON g.id = ora.group_id
 WHERE ora.teacher_id = $1
 `
@@ -356,7 +419,7 @@ WHERE ora.teacher_id = $1
 		q += " AND ora.status = $2"
 		args = append(args, status)
 	}
-	q += " ORDER BY ora.risk_level, ora.created_at DESC LIMIT 100"
+	q += " ORDER BY CASE ora.risk_level WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END, ora.created_at DESC LIMIT 100"
 
 	var rows []*domain.RiskAlert
 	if err := r.db.SelectContext(ctx, &rows, q, args...); err != nil {
@@ -402,6 +465,16 @@ func (r *ReportRepository) IsGroupTeacher(ctx context.Context, groupID, teacherI
 	var ok bool
 	if err := r.db.GetContext(ctx, &ok, q, groupID, teacherID); err != nil {
 		return false, fmt.Errorf("ReportRepository.IsGroupTeacher: %w", err)
+	}
+	return ok, nil
+}
+
+// IsParentOfStudent verifies that a parent_links row exists for (parentID, studentID).
+func (r *ReportRepository) IsParentOfStudent(ctx context.Context, parentID, studentID uuid.UUID) (bool, error) {
+	const q = `SELECT EXISTS(SELECT 1 FROM parent_links WHERE parent_id=$1 AND student_id=$2)`
+	var ok bool
+	if err := r.db.GetContext(ctx, &ok, q, parentID, studentID); err != nil {
+		return false, fmt.Errorf("ReportRepository.IsParentOfStudent: %w", err)
 	}
 	return ok, nil
 }

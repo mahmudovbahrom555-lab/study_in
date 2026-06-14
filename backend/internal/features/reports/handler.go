@@ -61,11 +61,32 @@ func (h *Handler) getParentROI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Teachers may also pull this report (for their own students).
-	// Parents must own the child link — simplified: we just verify student is in group.
-	_ = callerID
-	_ = role
+	// Role-based access: parent must own the student link; teacher must own the group;
+	// student can only view their own report.
+	switch role {
+	case domain.RoleParent:
+		ok, err := h.repo.IsParentOfStudent(r.Context(), callerID, studentID)
+		if err != nil || !ok {
+			response.Error(w, domain.ErrForbidden)
+			return
+		}
+	case domain.RoleTeacher:
+		ok, err := h.repo.IsGroupTeacher(r.Context(), groupID, callerID)
+		if err != nil || !ok {
+			response.Error(w, domain.ErrForbidden)
+			return
+		}
+	case domain.RoleStudent:
+		if callerID != studentID {
+			response.Error(w, domain.ErrForbidden)
+			return
+		}
+	default:
+		response.Error(w, domain.ErrForbidden)
+		return
+	}
 
+	// Verify the student actually belongs to the group regardless of caller role.
 	ok, err := h.repo.IsGroupMember(r.Context(), groupID, studentID)
 	if err != nil || !ok {
 		response.Error(w, domain.ErrNotFound)
