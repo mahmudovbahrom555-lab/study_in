@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../attendance/presentation/pages/attendance_page.dart';
 import '../../../grades/presentation/pages/grades_page.dart';
+import '../../../reports/presentation/pages/parent_roi_page.dart';
 import '../../domain/entities/parent_link.dart';
 import '../providers/parents_provider.dart';
 
@@ -32,27 +33,29 @@ class _ParentsPageState extends ConsumerState<ParentsPage> {
         label: const Text('Добавить'),
         onPressed: () => _showLinkDialog(context),
       ),
-      body: Builder(builder: (_) {
-        if (state.isLoading && state.children.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (state.error != null && state.children.isEmpty) {
-          return Center(child: Text('Ошибка: ${state.error}'));
-        }
-        if (state.children.isEmpty) {
-          return const Center(
-            child: Text('Нет привязанных детей.\nНажмите + чтобы добавить.'),
+      body: Builder(
+        builder: (_) {
+          if (state.isLoading && state.children.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (state.error != null && state.children.isEmpty) {
+            return Center(child: Text('Ошибка: ${state.error}'));
+          }
+          if (state.children.isEmpty) {
+            return const Center(
+              child: Text('Нет привязанных детей.\nНажмите + чтобы добавить.'),
+            );
+          }
+          return RefreshIndicator(
+            onRefresh: () => ref.read(childrenProvider.notifier).load(),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: state.children.length,
+              itemBuilder: (_, i) => _ChildCard(link: state.children[i]),
+            ),
           );
-        }
-        return RefreshIndicator(
-          onRefresh: () => ref.read(childrenProvider.notifier).load(),
-          child: ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: state.children.length,
-            itemBuilder: (_, i) => _ChildCard(link: state.children[i]),
-          ),
-        );
-      }),
+        },
+      ),
     );
   }
 
@@ -179,43 +182,59 @@ class _ChildGroupsSection extends ConsumerWidget {
         }
         return Column(
           children: groups
-              .map((g) => ListTile(
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-                    title: Text(g.name),
-                    subtitle: Text(g.subject ?? ''),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextButton.icon(
-                          icon: const Icon(Icons.grade, size: 18),
-                          label: const Text('Оценки'),
-                          onPressed: () => Navigator.push<void>(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => GradesPage(
-                                groupId: g.id,
-                                studentId: studentId,
-                              ),
+              .map(
+                (g) => ListTile(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+                  title: Text(g.name),
+                  subtitle: Text(g.subject ?? ''),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton.icon(
+                        icon: const Icon(Icons.grade, size: 18),
+                        label: const Text('Оценки'),
+                        onPressed: () => Navigator.push<void>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => GradesPage(
+                              groupId: g.id,
+                              studentId: studentId,
                             ),
                           ),
                         ),
-                        TextButton.icon(
-                          icon: const Icon(Icons.calendar_month, size: 18),
-                          label: const Text('Посещ.'),
-                          onPressed: () => Navigator.push<void>(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => AttendancePage(
-                                groupId: g.id,
-                                studentId: studentId,
-                              ),
+                      ),
+                      TextButton.icon(
+                        icon: const Icon(Icons.calendar_month, size: 18),
+                        label: const Text('Посещ.'),
+                        onPressed: () => Navigator.push<void>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AttendancePage(
+                              groupId: g.id,
+                              studentId: studentId,
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ))
+                      ),
+                      TextButton.icon(
+                        icon: const Icon(Icons.bar_chart, size: 18),
+                        label: const Text('ROI'),
+                        onPressed: () => Navigator.push<void>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ParentRoiPage(
+                              studentId: studentId,
+                              groupId: g.id,
+                              studentName: g.name,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
               .toList(),
         );
       },

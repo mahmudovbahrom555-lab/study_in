@@ -30,6 +30,7 @@ import (
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/notifications"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/parents"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/quizzes"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/reports"
 	openaiinfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/openai"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/minio"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/postgres"
@@ -157,6 +158,10 @@ func (s *Server) setupRouter() {
 	parentService := parents.NewService(parentRepo, gradeRepo, attendanceRepo, groupMemberAdapter{groupRepo})
 	parentHandler := parents.NewHandler(parentService)
 
+	reportRepo := postgres.NewReportRepository(s.db)
+	reportService := reports.NewService(reportRepo)
+	reportHandler := reports.NewHandler(reportService, reportRepo)
+
 	notifRepo := postgres.NewNotificationRepository(s.db)
 	notifService := notifications.NewService(notifRepo, &pushEnqueuer{q: queueClient})
 	notifHandler := notifications.NewHandler(notifService)
@@ -231,6 +236,7 @@ func (s *Server) setupRouter() {
 			parentHandler.RegisterRoutes(r)
 			notifHandler.RegisterRoutes(r)
 			aiHandler.RegisterRoutes(r)
+			reportHandler.RegisterRoutes(r)
 		})
 	})
 

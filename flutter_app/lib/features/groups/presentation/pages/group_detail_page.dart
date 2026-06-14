@@ -241,12 +241,18 @@ class _QuickActions extends StatelessWidget {
               '${Routes.groupAttendance(groupId)}?role=$role',
             ),
           ),
-          if (isTeacher)
+          if (isTeacher) ...[
             _ActionChip(
               icon: Icons.insights,
               label: 'AI Insights',
               onTap: () => context.push(Routes.aiInsights(groupId)),
             ),
+            _ActionChip(
+              icon: Icons.warning_amber_outlined,
+              label: 'Риски',
+              onTap: () => context.push(Routes.ownerRisk),
+            ),
+          ],
         ],
       ),
     );

@@ -20,6 +20,8 @@ import '../../features/parents/presentation/pages/parents_page.dart';
 import '../../features/ai/presentation/pages/ai_insights_page.dart';
 import '../../features/ai/presentation/pages/student_progress_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
+import '../../features/reports/presentation/pages/parent_roi_page.dart';
+import '../../features/reports/presentation/pages/owner_risk_page.dart';
 import 'routes.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -151,6 +153,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.notifications,
         builder: (_, __) => const NotificationsPage(),
+      ),
+      GoRoute(
+        path: '/parent/children/:studentId/groups/:groupId/roi',
+        builder: (_, state) => ParentRoiPage(
+          studentId: state.pathParameters['studentId']!,
+          groupId: state.pathParameters['groupId']!,
+          studentName: state.uri.queryParameters['name'],
+        ),
+      ),
+      GoRoute(
+        path: Routes.ownerRisk,
+        builder: (_, __) => const OwnerRiskPage(),
       ),
     ],
   );
