@@ -150,16 +150,18 @@ class MembersNotifier extends StateNotifier<AsyncValue<List<GroupMember>>> {
     final current = state.valueOrNull ?? [];
     state = AsyncValue.data(
       current
-          .map((m) => m.studentId == studentId
-              ? GroupMember(
-                  studentId: m.studentId,
-                  name: m.name,
-                  phone: m.phone,
-                  avatarUrl: m.avatarUrl,
-                  joinedAt: m.joinedAt,
-                  paymentStatus: status,
-                )
-              : m)
+          .map(
+            (m) => m.studentId == studentId
+                ? GroupMember(
+                    studentId: m.studentId,
+                    name: m.name,
+                    phone: m.phone,
+                    avatarUrl: m.avatarUrl,
+                    joinedAt: m.joinedAt,
+                    paymentStatus: status,
+                  )
+                : m,
+          )
           .toList(),
     );
   }

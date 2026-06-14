@@ -21,9 +21,8 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
   @override
   Widget build(BuildContext context) {
     final groupsState = ref.watch(groupsProvider);
-    final group = groupsState.groups
-        .where((g) => g.id == widget.groupId)
-        .firstOrNull;
+    final group =
+        groupsState.groups.where((g) => g.id == widget.groupId).firstOrNull;
     final membersAsync = ref.watch(membersProvider(widget.groupId));
     final authState = ref.watch(authProvider);
     final isTeacher = authState.user?.role == 'teacher';
@@ -51,7 +50,8 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
             PopupMenuButton<String>(
               onSelected: (v) => _onMenuSelected(context, v, group),
               itemBuilder: (_) => [
-                const PopupMenuItem(value: 'edit', child: Text('Редактировать')),
+                const PopupMenuItem(
+                    value: 'edit', child: Text('Редактировать')),
                 const PopupMenuItem(
                   value: 'delete',
                   child: Text('Удалить', style: TextStyle(color: Colors.red)),
@@ -82,8 +82,7 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
           ),
           Expanded(
             child: membersAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(child: Text(e.toString())),
               data: (members) => members.isEmpty
                   ? const Center(child: Text('Нет участников'))
@@ -124,12 +123,16 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
         content: Text('«${group.name}» будет удалена безвозвратно.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Отмена')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Удалить',
-                  style: TextStyle(color: Colors.red))),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Удалить',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
         ],
       ),
     );
@@ -147,18 +150,18 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
         content: Text('Вы покинете «${group.name}».'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Отмена')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Покинуть')),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Покинуть'),
+          ),
         ],
       ),
     );
     if (ok == true && mounted) {
-      await ref
-          .read(groupsRepositoryProvider)
-          .leaveGroup(group.id);
+      await ref.read(groupsRepositoryProvider).leaveGroup(group.id);
       await ref.read(groupsProvider.notifier).load();
       if (mounted) Navigator.of(context).pop();
     }
@@ -172,12 +175,16 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
         content: Text('${member.name} будет удалён из группы.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Отмена')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Удалить',
-                  style: TextStyle(color: Colors.red))),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Удалить',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
         ],
       ),
     );
@@ -283,10 +290,12 @@ class _GroupInfoCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (group.subject != null) ...[
-            Text(group.subject!,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                    )),
+            Text(
+              group.subject!,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
             const SizedBox(height: 4),
           ],
           if (group.description != null) ...[
@@ -298,8 +307,10 @@ class _GroupInfoCard extends StatelessWidget {
               children: [
                 const Icon(Icons.link, size: 16),
                 const SizedBox(width: 4),
-                Text('Код: ${group.inviteCode}',
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  'Код: ${group.inviteCode}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ],
             ),
         ],
