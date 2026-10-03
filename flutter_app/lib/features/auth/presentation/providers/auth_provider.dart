@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_client.dart';
@@ -69,9 +70,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isAuthenticated: true,
         user: user,
       );
-    } catch (_) {
-      await _storage.clearTokens();
-      state = state.copyWith(isLoading: false, isAuthenticated: false);
+    } catch (e) {
+      // Стираем вход только если сервер отверг сессию. Сервер недоступен
+      // (нет интернета, бэкенд не запущен) — не повод заново просить SMS:
+      // токены остаются, SplashPage покажет ошибку с «Повторить».
+      final rejected = e is DioException && e.response?.statusCode == 401;
+      if (rejected) await _storage.clearTokens();
+      state = state.copyWith(
+        isLoading: false,
+        isAuthenticated: false,
+        error: rejected ? null : _message(e),
+      );
     }
   }
 
@@ -127,9 +136,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       try {
         await _repo.logout(refreshToken);
       } catch (_) {
-        // Даже при ошибке сервера — очищаем локально
+        // Сервер недоступен — refresh-токен истечёт сам; выходим локально.
       }
     }
+    // _repo.logout очищает токены только при успехе запроса — чистим всегда.
+    await _storage.clearTokens();
     state = const AuthState();
   }
 

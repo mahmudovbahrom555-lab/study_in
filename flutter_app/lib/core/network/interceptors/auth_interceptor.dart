@@ -61,8 +61,11 @@ class AuthInterceptor extends Interceptor {
         ..headers['Authorization'] = 'Bearer ${data['access_token']}';
       final retryResp = await _dio.fetch<dynamic>(opts);
       handler.resolve(retryResp);
-    } catch (_) {
-      await _storage.clearTokens();
+    } catch (e) {
+      // Выходим, только если сервер отверг refresh-токен (истёк, отозван).
+      // Обрыв сети при обновлении — не повод терять вход.
+      final status = e is DioException ? e.response?.statusCode : null;
+      if (status == 400 || status == 401) await _storage.clearTokens();
       handler.next(err);
     }
   }

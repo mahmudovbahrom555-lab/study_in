@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
+import 'core/app_restart.dart';
 import 'core/localization/locale_provider.dart';
 
 Future<void> main() async {
@@ -18,8 +19,12 @@ Future<void> main() async {
   // - Инициализация Sentry
 
   runApp(
-    const ProviderScope(
-      child: App(),
+    // AppRestartScope снаружи ProviderScope: при выходе из аккаунта
+    // пересоздаются все провайдеры (см. AccountPage).
+    const AppRestartScope(
+      child: ProviderScope(
+        child: App(),
+      ),
     ),
   );
 }

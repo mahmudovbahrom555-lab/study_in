@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/routes.dart';
+import '../../../../core/widgets/error_view.dart';
 import '../providers/auth_provider.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
@@ -33,15 +34,19 @@ class _SplashPageState extends ConsumerState<SplashPage> {
       } else {
         context.go(Routes.home);
       }
-    } else {
+    } else if (state.error == null) {
       context.go(Routes.phone);
     }
+    // Иначе сервер недоступен, а вход сохранён — остаёмся здесь с «Повторить».
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
+    final auth = ref.watch(authProvider);
+    return Scaffold(
+      body: !auth.isLoading && auth.error != null
+          ? ErrorView(message: auth.error, onRetry: _init)
+          : const Center(child: CircularProgressIndicator()),
     );
   }
 }

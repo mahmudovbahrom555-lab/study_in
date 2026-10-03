@@ -1,11 +1,9 @@
 {
   "@@locale": "en",
   "appName": "StudyIn",
-  "welcome": "Welcome",
   "loading": "Loading...",
   "retry": "Retry",
   "error": "Error",
-  "noConnection": "No internet connection",
 
   "cancel": "Cancel",
   "delete": "Delete",
@@ -269,7 +267,6 @@
   "myChildren": "My children",
   "noChildren": "No linked children.\nTap + to add one.",
   "linkChild": "Link a child",
-  "studentUuidHint": "Student UUID",
   "linkAction": "Link",
   "studentShort": "Student: {id}…",
   "@studentShort": {"placeholders": {"id": {"type": "String"}}},
@@ -300,5 +297,23 @@
   "@vsPrevMonth": {"placeholders": {"delta": {"type": "String"}}},
   "quizAttemptsLabel": "Quiz\nattempts",
   "quizScoreLabel": "Score\n(quizzes)",
-  "homeworkSubmittedLabel": "Homework\nsubmitted"
+  "homeworkSubmittedLabel": "Homework\nsubmitted",
+  "account": "Account",
+  "signOut": "Sign out",
+  "signOutQ": "Sign out?",
+  "signOutBody": "To sign in again you will need an SMS code.",
+  "language": "Language",
+  "roleLabel": "Role",
+  "nameLabel": "Name",
+  "childCodeLabel": "Code from your child",
+  "childCodeHint": "For example: K7M2QX",
+  "childCodeHelp": "Ask your child to open Account → Code for parent.",
+  "childLinked": "Child linked",
+  "parentCodeTitle": "Code for parent",
+  "parentCodeHelp": "Give this code to your parent so they can follow your progress. The code is valid for 24 hours.",
+  "codeValidUntil": "Valid until {time}",
+  "@codeValidUntil": {"placeholders": {"time": {"type": "String"}}},
+  "copy": "Copy",
+  "copied": "Copied",
+  "newCode": "New code"
 }

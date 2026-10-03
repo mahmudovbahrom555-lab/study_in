@@ -1,11 +1,9 @@
 {
   "@@locale": "ru",
   "appName": "StudyIn",
-  "welcome": "Добро пожаловать",
   "loading": "Загрузка...",
   "retry": "Повторить",
   "error": "Ошибка",
-  "noConnection": "Нет соединения с интернетом",
 
   "cancel": "Отмена",
   "delete": "Удалить",
@@ -238,7 +236,6 @@
   "myChildren": "Мои дети",
   "noChildren": "Нет привязанных детей.\nНажмите + чтобы добавить.",
   "linkChild": "Привязать ребёнка",
-  "studentUuidHint": "UUID ученика",
   "linkAction": "Привязать",
   "studentShort": "Ученик: {id}…",
   "unlink": "Отвязать",
@@ -264,5 +261,22 @@
   "vsPrevMonth": "{delta}% vs пр. мес.",
   "quizAttemptsLabel": "Попыток\nтестов",
   "quizScoreLabel": "Балл\n(тесты)",
-  "homeworkSubmittedLabel": "ДЗ\nсдано"
+  "homeworkSubmittedLabel": "ДЗ\nсдано",
+  "account": "Аккаунт",
+  "signOut": "Выйти",
+  "signOutQ": "Выйти из аккаунта?",
+  "signOutBody": "Чтобы войти снова, понадобится код из SMS.",
+  "language": "Язык",
+  "roleLabel": "Роль",
+  "nameLabel": "Имя",
+  "childCodeLabel": "Код от ребёнка",
+  "childCodeHint": "Например: K7M2QX",
+  "childCodeHelp": "Попросите ребёнка открыть «Аккаунт» → «Код для родителя».",
+  "childLinked": "Ребёнок привязан",
+  "parentCodeTitle": "Код для родителя",
+  "parentCodeHelp": "Дайте этот код родителю, чтобы он видел ваши успехи. Код действует 24 часа.",
+  "codeValidUntil": "Действует до {time}",
+  "copy": "Скопировать",
+  "copied": "Скопировано",
+  "newCode": "Новый код"
 }

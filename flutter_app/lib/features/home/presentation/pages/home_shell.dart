@@ -37,8 +37,13 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('repetapp'),
+        title: Text(context.l10n.appName),
         actions: [
+          IconButton(
+            tooltip: context.l10n.account,
+            icon: const Icon(Icons.account_circle_outlined),
+            onPressed: () => context.push(Routes.account),
+          ),
           IconButton(
             tooltip: unread > 0 ? context.l10n.notificationsUnread(unread) : context.l10n.notifications,
             icon: Badge(
