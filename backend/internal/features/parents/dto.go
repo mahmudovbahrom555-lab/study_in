@@ -6,8 +6,13 @@ import (
 	"github.com/google/uuid"
 )
 
-type LinkRequest struct {
-	StudentID uuid.UUID `json:"student_id" validate:"required"`
+type LinkByCodeRequest struct {
+	Code string `json:"code" validate:"required,min=4,max=12"`
+}
+
+type LinkCodeResponse struct {
+	Code      string    `json:"code"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 type ParentLinkResponse struct {

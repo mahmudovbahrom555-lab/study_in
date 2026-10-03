@@ -56,16 +56,15 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
     }
   }
 
-  Future<void> linkChild(String studentId) async {
-    state = state.copyWith(isLoading: true, clearError: true);
+  /// Привязывает ребёнка по коду. Возвращает текст ошибки или null при успехе —
+  /// диалог показывает её сразу, а не прячет в состоянии списка.
+  Future<String?> linkChildByCode(String code) async {
     try {
-      final link = await _repo.linkChild(studentId);
-      state = state.copyWith(
-        isLoading: false,
-        children: [link, ...state.children],
-      );
+      final link = await _repo.linkChildByCode(code);
+      state = state.copyWith(children: [link, ...state.children], clearError: true);
+      return null;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
+      return userErrorMessage(e);
     }
   }
 

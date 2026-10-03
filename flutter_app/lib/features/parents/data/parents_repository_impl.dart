@@ -11,10 +11,14 @@ class ParentsRepositoryImpl implements ParentsRepository {
   final ParentsApi _api;
 
   @override
-  Future<ParentLink> linkChild(String studentId) async {
-    final dto = await _api.linkChild(studentId);
+  Future<ParentLink> linkChildByCode(String code) async {
+    final dto = await _api.linkChildByCode(code);
     return dto.toDomain();
   }
+
+  @override
+  Future<({String code, DateTime expiresAt})> createLinkCode() =>
+      _api.createLinkCode();
 
   @override
   Future<void> unlinkChild(String studentId) => _api.unlinkChild(studentId);

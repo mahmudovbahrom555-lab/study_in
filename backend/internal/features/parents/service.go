@@ -31,9 +31,9 @@ func NewService(
 	}
 }
 
-// LinkChild links a parent to a student. Only users with the parent role may call this.
-func (s *Service) LinkChild(ctx context.Context, parentID uuid.UUID, req LinkRequest) (*domain.ParentLink, error) {
-	existing, err := s.repo.GetLink(ctx, parentID, req.StudentID)
+// LinkChild links a parent to a student. Called from LinkByCode — the student's code is the consent.
+func (s *Service) LinkChild(ctx context.Context, parentID, studentID uuid.UUID) (*domain.ParentLink, error) {
+	existing, err := s.repo.GetLink(ctx, parentID, studentID)
 	if err != nil {
 		return nil, fmt.Errorf("parents.LinkChild get: %w", err)
 	}
@@ -44,7 +44,7 @@ func (s *Service) LinkChild(ctx context.Context, parentID uuid.UUID, req LinkReq
 	link := &domain.ParentLink{
 		ID:        uuid.New(),
 		ParentID:  parentID,
-		StudentID: req.StudentID,
+		StudentID: studentID,
 		CreatedAt: time.Now(),
 	}
 	if err := s.repo.Link(ctx, link); err != nil {

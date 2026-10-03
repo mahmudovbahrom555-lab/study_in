@@ -72,3 +72,28 @@ func (r *ParentRepository) ListParents(ctx context.Context, studentID uuid.UUID)
 	}
 	return links, nil
 }
+
+func (r *ParentRepository) CreateLinkCode(ctx context.Context, c *domain.ParentLinkCode) error {
+	_, err := r.db.NamedExecContext(ctx, `
+		INSERT INTO parent_link_codes (code, student_id, expires_at, created_at)
+		VALUES (:code, :student_id, :expires_at, :created_at)`, c)
+	if err != nil {
+		return fmt.Errorf("ParentRepository.CreateLinkCode: %w", err)
+	}
+	return nil
+}
+
+func (r *ParentRepository) GetActiveLinkCode(ctx context.Context, code string) (*domain.ParentLinkCode, error) {
+	var c domain.ParentLinkCode
+	err := r.db.GetContext(ctx, &c, `
+		SELECT code, student_id, expires_at, created_at
+		FROM parent_link_codes
+		WHERE code=$1 AND expires_at > NOW()`, code)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("ParentRepository.GetActiveLinkCode: %w", err)
+	}
+	return &c, nil
+}

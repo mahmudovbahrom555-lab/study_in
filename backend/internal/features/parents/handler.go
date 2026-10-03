@@ -3,6 +3,7 @@ package parents
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -25,16 +26,20 @@ func NewHandler(svc *Service) *Handler {
 
 // RegisterRoutes mounts parent-specific endpoints.
 //
-// POST   /parent/children                          — link a child
 // DELETE /parent/children/{studentID}              — unlink
 // GET    /parent/children                          — list children
 // GET    /parent/children/{studentID}/groups       — child's groups
 // GET    /parent/children/{studentID}/groups/{groupID}/grades     — child's grades
 // GET    /parent/children/{studentID}/groups/{groupID}/attendance — child's attendance
+//
+// POST   /parent/children/by-code                  — link a child by the code the child shared
+// POST   /student/parent-link-code                 — student issues a code for their parent
 func (h *Handler) RegisterRoutes(r chi.Router) {
+	r.Post("/student/parent-link-code", h.createLinkCode)
+
 	r.Route("/parent/children", func(r chi.Router) {
 		r.Get("/", h.listChildren)
-		r.Post("/", h.linkChild)
+		r.Post("/by-code", h.linkByCode)
 
 		r.Route("/{studentID}", func(r chi.Router) {
 			r.Delete("/", h.unlinkChild)
@@ -45,15 +50,25 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	})
 }
 
-func (h *Handler) linkChild(w http.ResponseWriter, r *http.Request) {
-	callerID := apimw.UserIDFromCtx(r.Context())
-	role := apimw.RoleFromCtx(r.Context())
-	if role != domain.RoleParent {
+func (h *Handler) createLinkCode(w http.ResponseWriter, r *http.Request) {
+	if apimw.RoleFromCtx(r.Context()) != domain.RoleStudent {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "only students can issue a parent link code")
+		return
+	}
+	c, err := h.svc.CreateLinkCode(r.Context(), apimw.UserIDFromCtx(r.Context()))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	response.Created(w, LinkCodeResponse{Code: c.Code, ExpiresAt: c.ExpiresAt})
+}
+
+func (h *Handler) linkByCode(w http.ResponseWriter, r *http.Request) {
+	if apimw.RoleFromCtx(r.Context()) != domain.RoleParent {
 		writeError(w, http.StatusForbidden, "FORBIDDEN", "only parents can link children")
 		return
 	}
-
-	var req LinkRequest
+	var req LinkByCodeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid JSON")
 		return
@@ -62,8 +77,7 @@ func (h *Handler) linkChild(w http.ResponseWriter, r *http.Request) {
 		writeValidationError(w, err)
 		return
 	}
-
-	link, err := h.svc.LinkChild(r.Context(), callerID, req)
+	link, err := h.svc.LinkByCode(r.Context(), apimw.UserIDFromCtx(r.Context()), req.Code)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -207,7 +221,16 @@ func writeServiceError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusForbidden, "FORBIDDEN", "forbidden")
 	case errors.Is(err, domain.ErrConflict):
 		writeError(w, http.StatusConflict, "CONFLICT", err.Error())
+	case errors.Is(err, domain.ErrValidation):
+		var de *domain.Error
+		if errors.As(err, &de) {
+			writeError(w, http.StatusBadRequest, de.Code, de.Message)
+			return
+		}
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
 	default:
+		// Без лога причина 500 теряется (docs/backend-architecture-methodology.md, P2).
+		slog.Error("parents: internal error", slog.String("err", err.Error()))
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "internal server error")
 	}
 }

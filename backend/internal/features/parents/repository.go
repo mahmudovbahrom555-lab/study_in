@@ -14,6 +14,11 @@ type Repository interface {
 	ListChildren(ctx context.Context, parentID uuid.UUID) ([]*domain.ParentLink, error)
 	ListParents(ctx context.Context, studentID uuid.UUID) ([]*domain.ParentLink, error)
 	GetLink(ctx context.Context, parentID, studentID uuid.UUID) (*domain.ParentLink, error)
+
+	// Коды привязки, которые выдаёт ученик.
+	CreateLinkCode(ctx context.Context, c *domain.ParentLinkCode) error
+	// GetActiveLinkCode возвращает nil, если кода нет или он истёк.
+	GetActiveLinkCode(ctx context.Context, code string) (*domain.ParentLinkCode, error)
 }
 
 // GradeReader and AttendanceReader allow parents to read child data without

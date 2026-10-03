@@ -10,12 +10,23 @@ class ParentsApi {
 
   final Dio _dio;
 
-  Future<ParentLinkDto> linkChild(String studentId) async {
+  Future<ParentLinkDto> linkChildByCode(String code) async {
     final resp = await _dio.post<Map<String, dynamic>>(
-      '/parent/children',
-      data: {'student_id': studentId},
+      '/parent/children/by-code',
+      data: {'code': code},
     );
     return ParentLinkDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
+  }
+
+  /// Ученик выдаёт код для привязки родителя.
+  Future<({String code, DateTime expiresAt})> createLinkCode() async {
+    final resp =
+        await _dio.post<Map<String, dynamic>>('/student/parent-link-code');
+    final data = resp.data!['data'] as Map<String, dynamic>;
+    return (
+      code: data['code'] as String,
+      expiresAt: DateTime.parse(data['expires_at'] as String).toLocal(),
+    );
   }
 
   Future<void> unlinkChild(String studentId) =>

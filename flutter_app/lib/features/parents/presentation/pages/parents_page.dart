@@ -67,33 +67,69 @@ class _ParentsPageState extends ConsumerState<ParentsPage> {
 
   void _showLinkDialog(BuildContext context) {
     final ctrl = TextEditingController();
+    final l10n = context.l10n;
+    String? error;
+    var busy = false;
+
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(context.l10n.linkChild),
-        content: TextField(
-          controller: ctrl,
-          decoration: InputDecoration(
-            labelText: context.l10n.studentId,
-            hintText: context.l10n.studentUuidHint,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(context.l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              final id = ctrl.text.trim();
-              if (id.isNotEmpty) {
-                ref.read(childrenProvider.notifier).linkChild(id);
-              }
-              Navigator.pop(ctx);
-            },
-            child: Text(context.l10n.linkAction),
-          ),
-        ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          Future<void> submit() async {
+            final code = ctrl.text.trim();
+            if (code.isEmpty || busy) return;
+            setDialogState(() {
+              busy = true;
+              error = null;
+            });
+            final err =
+                await ref.read(childrenProvider.notifier).linkChildByCode(code);
+            if (!ctx.mounted) return;
+            if (err != null) {
+              setDialogState(() {
+                busy = false;
+                error = err;
+              });
+              return;
+            }
+            Navigator.pop(ctx);
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(l10n.childLinked)));
+          }
+
+          return AlertDialog(
+            title: Text(l10n.linkChild),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.childCodeHelp),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    labelText: l10n.childCodeLabel,
+                    hintText: l10n.childCodeHint,
+                    errorText: error,
+                  ),
+                  onSubmitted: (_) => submit(),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: busy ? null : submit,
+                child: Text(l10n.linkAction),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
