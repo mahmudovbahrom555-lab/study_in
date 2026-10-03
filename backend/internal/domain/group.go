@@ -25,6 +25,10 @@ type Group struct {
 	CreatedAt   time.Time  `db:"created_at"`
 	UpdatedAt   time.Time  `db:"updated_at"`
 	DeletedAt   *time.Time `db:"deleted_at"`
+	// Добавлены миграцией 000016. Нужны здесь, т.к. репозиторий делает SELECT *,
+	// а sqlx падает на колонках без соответствующего поля.
+	IsDemo    bool    `db:"is_demo"`
+	CEFRLevel *string `db:"cefr_level"`
 }
 
 type GroupMember struct {
