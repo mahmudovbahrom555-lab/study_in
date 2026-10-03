@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../localization/l10n.dart';
-import 'api_exception.dart';
 
 /// Переводит любую ошибку в понятный пользователю текст на языке интерфейса.
 ///
@@ -13,9 +12,6 @@ String userErrorMessage(Object error) {
   if (kDebugMode) debugPrint('userErrorMessage: $error');
   final l10n = currentL10n;
 
-  if (error is ApiException) {
-    return _byStatus(l10n, error.statusCode, error.message);
-  }
   if (error is DioException) {
     switch (error.type) {
       case DioExceptionType.connectionTimeout:

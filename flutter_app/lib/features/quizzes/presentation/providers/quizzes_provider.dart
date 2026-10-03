@@ -105,13 +105,12 @@ final quizzesProvider = StateNotifierProvider.family<QuizzesNotifier,
 // ─── Quiz detail ──────────────────────────────────────────────────────────────
 
 class QuizDetailNotifier extends StateNotifier<AsyncValue<Quiz>> {
-  QuizDetailNotifier(this._repo, this._groupId, this._quizId)
+  QuizDetailNotifier(this._repo, this._quizId)
       : super(const AsyncValue.loading()) {
     load();
   }
 
   final QuizzesRepository _repo;
-  final String _groupId;
   final String _quizId;
 
   Future<void> load() async {
@@ -129,7 +128,6 @@ final quizDetailProvider = StateNotifierProvider.family<QuizDetailNotifier,
     AsyncValue<Quiz>, ({String groupId, String quizId})>(
   (ref, params) => QuizDetailNotifier(
     ref.watch(quizzesRepositoryProvider(params.groupId)),
-    params.groupId,
     params.quizId,
   ),
 );
