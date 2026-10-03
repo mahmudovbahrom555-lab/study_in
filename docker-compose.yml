@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -32,7 +30,7 @@ services:
       retries: 5
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     container_name: repetapp-minio
     ports:
       - "9000:9000"
@@ -51,19 +49,43 @@ services:
 
   # Создаёт bucket автоматически при старте
   minio-init:
-    image: minio/mc:latest
+    image: quay.io/minio/mc:latest
     container_name: repetapp-minio-init
     depends_on:
       minio:
         condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set local http://minio:9000 minioadmin minioadmin_dev;
-      mc mb --ignore-existing local/repetapp-files;
-      exit 0;
-      "
-      # Bucket остаётся приватным — файлы доступны только через signed URLs (TTL 1 час).
-      # Анонимный доступ намеренно не включается. См. DECISIONS.md.
+    # Bucket остаётся приватным — файлы доступны только через signed URLs (TTL 1 час).
+    # Анонимный доступ намеренно не включается. См. DECISIONS.md.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mc alias set local http://minio:9000 minioadmin minioadmin_dev
+        mc mb --ignore-existing local/repetapp-files
+        exit 0
+
+  # Go-бэкенд в Docker (не нужен локальный Go): docker compose --profile api up -d --build
+  api:
+    profiles: ["api"]
+    build: ./backend
+    container_name: repetapp-api
+    env_file: ./backend/.env.example
+    environment:
+      DATABASE_URL: postgres://repetapp:repetapp_dev_password@postgres:5432/repetapp?sslmode=disable
+      REDIS_ADDR: redis:6379
+      S3_ENDPOINT: minio:9000
+      AUTO_MIGRATE: "true"
+      # Фиксированный код входа для любого номера (только dev + SMS_PROVIDER=mock)
+      SMS_DEV_CODE: "111111"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 
 volumes:
   postgres_data:
