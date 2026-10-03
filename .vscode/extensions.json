@@ -5,6 +5,15 @@
     // Flutter & Dart
     "dart-code.flutter",
     "dart-code.dart-code",
+    "robert-brunhage.flutter-riverpod-snippets",
+    "nash.awesome-flutter-snippets",
+    "circlecodesolution.ccs-flutter-color",
+    // ARB локализация (gen_l10n)
+    "google.arb-editor",
+    // Версии зависимостей в pubspec.yaml / go.mod
+    "fill-labs.dependi",
+    // Ошибки анализатора inline
+    "usernamehw.errorlens",
     // Docker & docker-compose
     "ms-azuretools.vscode-docker",
     // PostgreSQL клиент

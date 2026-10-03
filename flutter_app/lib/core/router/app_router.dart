@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -25,11 +26,17 @@ import '../../features/reports/presentation/pages/owner_risk_page.dart';
 import 'routes.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+  // GoRouter создаётся один раз: пересоздание при смене authProvider
+  // сбрасывает навигацию на splash и зацикливает checkAuth().
+  final refresh = ValueNotifier(0);
+  ref.listen(authProvider, (_, __) => refresh.value++);
+  ref.onDispose(refresh.dispose);
 
   return GoRouter(
     initialLocation: Routes.splash,
+    refreshListenable: refresh,
     redirect: (context, state) {
+      final authState = ref.read(authProvider);
       final isAuth = authState.isAuthenticated;
       final isLoading = authState.isLoading;
       final loc = state.matchedLocation;
