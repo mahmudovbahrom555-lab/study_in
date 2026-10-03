@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/groups_provider.dart';
+import '../../../../core/localization/l10n.dart';
 
 class JoinGroupSheet extends ConsumerStatefulWidget {
   const JoinGroupSheet({super.key});
@@ -37,18 +38,20 @@ class _JoinGroupSheetState extends ConsumerState<JoinGroupSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Вступить в группу',
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.l10n.joinGroupTitle,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _codeCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Код приглашения',
-                hintText: 'Например: AB3K9M2P',
+              decoration: InputDecoration(
+                labelText: context.l10n.inviteCodeLabel,
+                hintText: context.l10n.inviteCodeHint,
               ),
               textCapitalization: TextCapitalization.characters,
               validator: (v) =>
-                  (v == null || v.trim().length < 4) ? 'Введите код' : null,
+                  (v == null || v.trim().length < 4) ? context.l10n.enterCode : null,
             ),
             const SizedBox(height: 20),
             ElevatedButton(
@@ -59,7 +62,7 @@ class _JoinGroupSheetState extends ConsumerState<JoinGroupSheet> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Вступить'),
+                  : Text(context.l10n.join),
             ),
           ],
         ),

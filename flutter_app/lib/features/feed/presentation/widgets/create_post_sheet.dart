@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/feed_provider.dart';
+import '../../../../core/localization/l10n.dart';
 
 class CreatePostSheet extends ConsumerStatefulWidget {
   const CreatePostSheet({super.key, required this.groupId});
@@ -37,13 +38,15 @@ class _CreatePostSheetState extends ConsumerState<CreatePostSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Новая публикация',
-              style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            context.l10n.newPublication,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 16),
           TextField(
             controller: _bodyCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Текст сообщения',
+            decoration: InputDecoration(
+              labelText: context.l10n.messageText,
               alignLabelWithHint: true,
             ),
             maxLines: 5,
@@ -51,7 +54,7 @@ class _CreatePostSheetState extends ConsumerState<CreatePostSheet> {
           ),
           const SizedBox(height: 8),
           SwitchListTile(
-            title: const Text('Закрепить'),
+            title: Text(context.l10n.pin),
             value: _pinned,
             onChanged: (v) => setState(() => _pinned = v),
             contentPadding: EdgeInsets.zero,
@@ -65,7 +68,7 @@ class _CreatePostSheetState extends ConsumerState<CreatePostSheet> {
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Опубликовать'),
+                : Text(context.l10n.publish),
           ),
         ],
       ),

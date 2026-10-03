@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/groups_provider.dart';
+import '../../../../core/localization/l10n.dart';
 
 class CreateGroupSheet extends ConsumerStatefulWidget {
   const CreateGroupSheet({super.key});
@@ -41,24 +42,27 @@ class _CreateGroupSheetState extends ConsumerState<CreateGroupSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Новая группа',
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.l10n.newGroup,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _nameCtrl,
-              decoration: const InputDecoration(labelText: 'Название *'),
-              validator: (v) =>
-                  (v == null || v.trim().length < 2) ? 'Минимум 2 символа' : null,
+              decoration: InputDecoration(labelText: context.l10n.titleRequired),
+              validator: (v) => (v == null || v.trim().length < 2)
+                  ? context.l10n.minTwoChars
+                  : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _subjectCtrl,
-              decoration: const InputDecoration(labelText: 'Предмет'),
+              decoration: InputDecoration(labelText: context.l10n.subject),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _descCtrl,
-              decoration: const InputDecoration(labelText: 'Описание'),
+              decoration: InputDecoration(labelText: context.l10n.description),
               maxLines: 2,
             ),
             const SizedBox(height: 20),
@@ -70,7 +74,7 @@ class _CreateGroupSheetState extends ConsumerState<CreateGroupSheet> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Создать'),
+                  : Text(context.l10n.create),
             ),
           ],
         ),

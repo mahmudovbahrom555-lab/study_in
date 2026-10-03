@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/group.dart';
+import '../../../../core/localization/l10n.dart';
 
 class MemberTile extends StatelessWidget {
   const MemberTile({
@@ -39,6 +40,7 @@ class MemberTile extends StatelessWidget {
                 ),
                 if (onRemove != null)
                   IconButton(
+                    tooltip: context.l10n.removeFromGroup,
                     icon: const Icon(Icons.person_remove_outlined),
                     onPressed: onRemove,
                   ),
@@ -58,9 +60,9 @@ class _PaymentChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (status) {
-      PaymentStatus.paid => ('Оплачено', Colors.green),
-      PaymentStatus.pending => ('Ожидает', Colors.orange),
-      PaymentStatus.trial => ('Пробный', Colors.grey),
+      PaymentStatus.paid => (context.l10n.paymentPaid, Colors.green),
+      PaymentStatus.pending => (context.l10n.paymentPending, Colors.orange),
+      PaymentStatus.trial => (context.l10n.paymentTrial, Colors.grey),
     };
 
     final chip = Chip(
@@ -72,9 +74,17 @@ class _PaymentChip extends StatelessWidget {
 
     if (onTap == null) return chip;
 
-    return GestureDetector(
+    // GestureDetector не сообщает экранному диктору, что это кнопка.
+    return Semantics(
+      button: true,
+      label: context.l10n.paymentStatusSemantic(label),
+      hint: context.l10n.changePaymentStatus,
+      excludeSemantics: true,
       onTap: () => _showPicker(context),
-      child: chip,
+      child: GestureDetector(
+        onTap: () => _showPicker(context),
+        child: chip,
+      ),
     );
   }
 
@@ -87,7 +97,7 @@ class _PaymentChip extends StatelessWidget {
           children: [
             for (final s in PaymentStatus.values)
               ListTile(
-                title: Text(_label(s)),
+                title: Text(_label(context.l10n, s)),
                 leading: Icon(
                   s == status ? Icons.radio_button_checked : Icons.radio_button_unchecked,
                 ),
@@ -102,9 +112,9 @@ class _PaymentChip extends StatelessWidget {
     );
   }
 
-  String _label(PaymentStatus s) => switch (s) {
-        PaymentStatus.paid => 'Оплачено',
-        PaymentStatus.pending => 'Ожидает оплаты',
-        PaymentStatus.trial => 'Пробный период',
+  String _label(AppLocalizations l10n, PaymentStatus s) => switch (s) {
+        PaymentStatus.paid => l10n.paymentPaid,
+        PaymentStatus.pending => l10n.paymentPendingLong,
+        PaymentStatus.trial => l10n.paymentTrialLong,
       };
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/routes.dart';
 import '../providers/auth_provider.dart';
+import '../../../../core/localization/l10n.dart';
 
 class RoleSelectPage extends ConsumerWidget {
   const RoleSelectPage({super.key});
@@ -15,6 +16,12 @@ class RoleSelectPage extends ConsumerWidget {
     Future<void> selectRole(String role) async {
       await ref.read(authProvider.notifier).setRole(role);
       if (!context.mounted) return;
+      final error = ref.read(authProvider).error;
+      if (error != null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error)));
+        return;
+      }
       context.go(Routes.profileSetup);
     }
 
@@ -27,14 +34,14 @@ class RoleSelectPage extends ConsumerWidget {
             children: [
               const SizedBox(height: 48),
               Text(
-                'Кто вы?',
+                context.l10n.whoAreYou,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Выберите роль — это нельзя изменить потом',
+                context.l10n.roleWarning,
                 style: Theme.of(context)
                     .textTheme
                     .bodyMedium
@@ -43,22 +50,22 @@ class RoleSelectPage extends ConsumerWidget {
               const SizedBox(height: 48),
               _RoleCard(
                 icon: Icons.school,
-                title: 'Репетитор',
-                subtitle: 'Веду занятия, задаю домашние задания',
+                title: context.l10n.roleTeacher,
+                subtitle: context.l10n.roleTeacherDesc,
                 onTap: isLoading ? null : () => selectRole('teacher'),
               ),
               const SizedBox(height: 16),
               _RoleCard(
                 icon: Icons.person,
-                title: 'Ученик',
-                subtitle: 'Учусь, выполняю задания',
+                title: context.l10n.roleStudent,
+                subtitle: context.l10n.roleStudentDesc,
                 onTap: isLoading ? null : () => selectRole('student'),
               ),
               const SizedBox(height: 16),
               _RoleCard(
                 icon: Icons.family_restroom,
-                title: 'Родитель',
-                subtitle: 'Слежу за успехами ребёнка',
+                title: context.l10n.roleParent,
+                subtitle: context.l10n.roleParentDesc,
                 onTap: isLoading ? null : () => selectRole('parent'),
               ),
               if (isLoading) ...[

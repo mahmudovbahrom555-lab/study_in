@@ -8,7 +8,10 @@ abstract class AssignmentsRepository {
     String? description,
     DateTime? dueDate,
   });
-  Future<void> submitAssignment(String groupId, String assignmentId,
-      {String? comment});
+  Future<void> submitAssignment(
+    String groupId,
+    String assignmentId, {
+    String? comment,
+  });
   Future<void> deleteAssignment(String groupId, String assignmentId);
 }

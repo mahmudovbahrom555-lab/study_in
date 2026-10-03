@@ -8,6 +8,7 @@ import '../../data/parents_api.dart';
 import '../../data/parents_repository_impl.dart';
 import '../../domain/entities/parent_link.dart';
 import '../../domain/repositories/parents_repository.dart';
+import '../../../../core/network/error_message.dart';
 
 final parentsRepositoryProvider = Provider<ParentsRepository>((ref) {
   final dio = ref.watch(dioProvider);
@@ -51,7 +52,7 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
       final children = await _repo.listChildren();
       state = state.copyWith(isLoading: false, children: children);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
   }
 
@@ -64,7 +65,7 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
         children: [link, ...state.children],
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
   }
 
@@ -77,7 +78,7 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
             .toList(),
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: userErrorMessage(e));
     }
   }
 }

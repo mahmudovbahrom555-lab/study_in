@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/localization/locale_provider.dart';
 import '../../../../core/router/routes.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/code_input.dart';
+import '../../../../core/localization/l10n.dart';
 
 class VerifyPage extends ConsumerStatefulWidget {
   const VerifyPage({super.key, required this.phone});
@@ -17,6 +19,17 @@ class VerifyPage extends ConsumerStatefulWidget {
 
 class _VerifyPageState extends ConsumerState<VerifyPage> {
   String _code = '';
+
+  /// Сохраняет язык интерфейса в профиле — по нему сервер будет выбирать язык
+  /// push-уведомлений. Не блокирует вход: при ошибке синхронизируем в следующий раз.
+  void _syncLanguage(String? serverLanguage) {
+    final lang = ref.read(localeProvider).languageCode;
+    if (serverLanguage == lang) return;
+    ref
+        .read(authRepositoryProvider)
+        .updateMe(language: lang)
+        .then((_) {}, onError: (Object e) => debugPrint('language sync: $e'));
+  }
 
   Future<void> _verify() async {
     if (_code.length != 6) return;
@@ -32,10 +45,12 @@ class _VerifyPageState extends ConsumerState<VerifyPage> {
       return;
     }
 
-    if (isNewUser) {
+    final user = ref.read(authProvider).user;
+    _syncLanguage(user?.language);
+    // Роль могла не сохраниться при прошлом входе — без неё API отвечает 403.
+    if (isNewUser || (user != null && !user.hasRole)) {
       context.go(Routes.roleSelect);
     } else {
-      final user = ref.read(authProvider).user;
       if (user != null && user.name.isEmpty) {
         context.go(Routes.profileSetup);
       } else {
@@ -58,14 +73,14 @@ class _VerifyPageState extends ConsumerState<VerifyPage> {
             children: [
               const SizedBox(height: 16),
               Text(
-                'Введите код',
+                context.l10n.enterCodeTitle,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Отправили SMS на ${widget.phone}',
+                context.l10n.smsSentTo(widget.phone),
                 style: Theme.of(context)
                     .textTheme
                     .bodyMedium
@@ -85,10 +100,10 @@ class _VerifyPageState extends ConsumerState<VerifyPage> {
                 onPressed: () {
                   ref.read(authProvider.notifier).sendCode(widget.phone);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Код отправлен повторно')),
+                    SnackBar(content: Text(context.l10n.codeResent)),
                   );
                 },
-                child: const Text('Отправить код повторно'),
+                child: Text(context.l10n.resendCode),
               ),
             ],
           ),

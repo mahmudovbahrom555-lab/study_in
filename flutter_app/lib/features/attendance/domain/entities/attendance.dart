@@ -14,13 +14,6 @@ enum AttendanceStatus {
       };
 
   String toJson() => name;
-
-  String get label => switch (this) {
-        present => 'Присутствует',
-        absent => 'Отсутствует',
-        late => 'Опоздал',
-        excused => 'Уважительная',
-      };
 }
 
 @immutable

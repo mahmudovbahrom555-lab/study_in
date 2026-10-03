@@ -13,25 +13,35 @@ class SecureStorage {
     required String accessToken,
     required String refreshToken,
   }) async {
-    await Future.wait([
-      _storage.write(key: _kAccessToken, value: accessToken),
-      _storage.write(key: _kRefreshToken, value: refreshToken),
-    ]);
+    // Последовательно, не через Future.wait: на web первая запись генерирует
+    // ключ шифрования, и параллельные записи создают разные ключи —
+    // одно из значений потом не расшифровывается (OperationError).
+    await _storage.write(key: _kAccessToken, value: accessToken);
+    await _storage.write(key: _kRefreshToken, value: refreshToken);
   }
 
-  Future<String?> getAccessToken() => _storage.read(key: _kAccessToken);
-  Future<String?> getRefreshToken() => _storage.read(key: _kRefreshToken);
+  Future<String?> getAccessToken() => _read(_kAccessToken);
+  Future<String?> getRefreshToken() => _read(_kRefreshToken);
 
   Future<void> clearTokens() async {
-    await Future.wait([
-      _storage.delete(key: _kAccessToken),
-      _storage.delete(key: _kRefreshToken),
-    ]);
+    await _storage.delete(key: _kAccessToken);
+    await _storage.delete(key: _kRefreshToken);
   }
 
   Future<bool> hasTokens() async {
-    final token = await _storage.read(key: _kAccessToken);
+    final token = await _read(_kAccessToken);
     return token != null && token.isNotEmpty;
+  }
+
+  /// Повреждённое хранилище (не расшифровывается) — сбрасываем его,
+  /// пользователь просто залогинится заново.
+  Future<String?> _read(String key) async {
+    try {
+      return await _storage.read(key: key);
+    } catch (_) {
+      await _storage.deleteAll();
+      return null;
+    }
   }
 }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/localization/l10n.dart';
 
 class AddGradeSheet extends StatefulWidget {
   const AddGradeSheet({super.key, required this.onSubmit});
@@ -40,9 +41,8 @@ class _AddGradeSheetState extends State<AddGradeSheet> {
       subject: _subjectCtrl.text.trim(),
       value: double.parse(_valueCtrl.text.trim()),
       maxValue: double.tryParse(_maxValueCtrl.text.trim()) ?? 100,
-      comment: _commentCtrl.text.trim().isEmpty
-          ? null
-          : _commentCtrl.text.trim(),
+      comment:
+          _commentCtrl.text.trim().isEmpty ? null : _commentCtrl.text.trim(),
     );
     Navigator.of(context).pop();
   }
@@ -58,22 +58,24 @@ class _AddGradeSheetState extends State<AddGradeSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Добавить оценку',
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.l10n.addGrade,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _studentCtrl,
-              decoration: const InputDecoration(labelText: 'ID студента *'),
+              decoration: InputDecoration(labelText: context.l10n.studentIdRequired),
               validator: (v) =>
-                  v == null || v.trim().isEmpty ? 'Обязательное поле' : null,
+                  v == null || v.trim().isEmpty ? context.l10n.requiredField : null,
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _subjectCtrl,
-              decoration: const InputDecoration(labelText: 'Предмет *'),
+              decoration: InputDecoration(labelText: context.l10n.subjectRequired),
               validator: (v) =>
-                  v == null || v.trim().isEmpty ? 'Обязательное поле' : null,
+                  v == null || v.trim().isEmpty ? context.l10n.requiredField : null,
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
@@ -82,12 +84,13 @@ class _AddGradeSheetState extends State<AddGradeSheet> {
                 Expanded(
                   child: TextFormField(
                     controller: _valueCtrl,
-                    decoration: const InputDecoration(labelText: 'Оценка *'),
+                    decoration: InputDecoration(labelText: context.l10n.gradeRequired),
                     keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
+                      decimal: true,
+                    ),
                     validator: (v) {
                       final n = double.tryParse(v ?? '');
-                      if (n == null) return 'Число';
+                      if (n == null) return context.l10n.mustBeNumber;
                       if (n < 0) return '≥ 0';
                       return null;
                     },
@@ -98,9 +101,10 @@ class _AddGradeSheetState extends State<AddGradeSheet> {
                 Expanded(
                   child: TextFormField(
                     controller: _maxValueCtrl,
-                    decoration: const InputDecoration(labelText: 'Макс.'),
+                    decoration: InputDecoration(labelText: context.l10n.maxShort),
                     keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
+                      decimal: true,
+                    ),
                   ),
                 ),
               ],
@@ -109,11 +113,11 @@ class _AddGradeSheetState extends State<AddGradeSheet> {
             TextFormField(
               controller: _commentCtrl,
               decoration:
-                  const InputDecoration(labelText: 'Комментарий (необяз.)'),
+                  InputDecoration(labelText: context.l10n.commentOptional),
               maxLines: 2,
             ),
             const SizedBox(height: 20),
-            FilledButton(onPressed: _submit, child: const Text('Сохранить')),
+            FilledButton(onPressed: _submit, child: Text(context.l10n.save)),
           ],
         ),
       ),

@@ -5,6 +5,7 @@ import '../../data/quizzes_api.dart';
 import '../../data/quizzes_repository_impl.dart';
 import '../../domain/entities/quiz.dart';
 import '../../domain/repositories/quizzes_repository.dart';
+import '../../../../core/network/error_message.dart';
 
 final quizzesRepositoryProvider =
     Provider.family<QuizzesRepository, String>((ref, groupId) {
@@ -52,7 +53,7 @@ class QuizzesNotifier extends StateNotifier<QuizzesState> {
       final qs = await _repo.listGroupQuizzes(_groupId);
       state = state.copyWith(isLoading: false, quizzes: qs);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
   }
 
@@ -76,7 +77,7 @@ class QuizzesNotifier extends StateNotifier<QuizzesState> {
         quizzes: [q, ...state.quizzes],
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
   }
 
@@ -91,7 +92,7 @@ class QuizzesNotifier extends StateNotifier<QuizzesState> {
             .toList(),
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: userErrorMessage(e));
     }
   }
 }
@@ -173,7 +174,7 @@ class AttemptNotifier extends StateNotifier<AttemptState> {
       final attempt = await _repo.startAttempt(quizId);
       state = state.copyWith(attempt: attempt, answers: {});
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: userErrorMessage(e));
     }
   }
 
@@ -196,7 +197,7 @@ class AttemptNotifier extends StateNotifier<AttemptState> {
       state = state.copyWith(isSubmitting: false, attempt: result.attempt);
       return result;
     } catch (e) {
-      state = state.copyWith(isSubmitting: false, error: e.toString());
+      state = state.copyWith(isSubmitting: false, error: userErrorMessage(e));
       return null;
     }
   }

@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/attendance.dart';
 import '../providers/attendance_provider.dart';
+import '../../../../core/widgets/error_view.dart';
+import '../../../../core/localization/l10n.dart';
+import '../attendance_status_l10n.dart';
 
 class AttendancePage extends ConsumerWidget {
   const AttendancePage({
@@ -41,9 +44,10 @@ class _TeacherAttendancePage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Посещаемость'),
+        title: Text(context.l10n.attendance),
         actions: [
           IconButton(
+            tooltip: context.l10n.pickDate,
             icon: const Icon(Icons.calendar_today),
             onPressed: () => _pickDate(context, ref, state.selectedDate),
           ),
@@ -55,7 +59,8 @@ class _TeacherAttendancePage extends ConsumerWidget {
           if (state.isLoading)
             const Expanded(child: Center(child: CircularProgressIndicator()))
           else if (state.records.isEmpty)
-            const Expanded(child: Center(child: Text('Нет записей на этот день')))
+            Expanded(
+                child: Center(child: Text(context.l10n.noRecordsForDay)))
           else
             Expanded(
               child: ListView.builder(
@@ -64,7 +69,9 @@ class _TeacherAttendancePage extends ConsumerWidget {
                   record: state.records[i],
                   onChangeStatus: (status) => ref
                       .read(attendanceDateProvider(groupId).notifier)
-                      .mark(studentId: state.records[i].studentId, status: status),
+                      .mark(
+                          studentId: state.records[i].studentId,
+                          status: status),
                   onDelete: () => ref
                       .read(attendanceDateProvider(groupId).notifier)
                       .delete(state.records[i].id),
@@ -76,13 +83,16 @@ class _TeacherAttendancePage extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _markSheet(context, ref),
         icon: const Icon(Icons.add),
-        label: const Text('Отметить'),
+        label: Text(context.l10n.mark),
       ),
     );
   }
 
   Future<void> _pickDate(
-      BuildContext context, WidgetRef ref, DateTime? current) async {
+    BuildContext context,
+    WidgetRef ref,
+    DateTime? current,
+  ) async {
     final picked = await showDatePicker(
       context: context,
       initialDate: current ?? DateTime.now(),
@@ -110,34 +120,37 @@ class _TeacherAttendancePage extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Отметить посещаемость',
-                    style: Theme.of(ctx).textTheme.titleLarge),
+                Text(
+                  context.l10n.markAttendance,
+                  style: Theme.of(ctx).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: studentIdCtrl,
-                  decoration: const InputDecoration(labelText: 'ID студента'),
+                  decoration: InputDecoration(labelText: context.l10n.studentId),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<AttendanceStatus>(
-                  value: selected,
-                  decoration: const InputDecoration(labelText: 'Статус'),
+                  initialValue: selected,
+                  decoration: InputDecoration(labelText: context.l10n.status),
                   items: AttendanceStatus.values
-                      .map((s) => DropdownMenuItem(
-                            value: s,
-                            child: Text(s.label),
-                          ))
+                      .map(
+                        (s) => DropdownMenuItem(
+                          value: s,
+                          child: Text(s.label(context.l10n)),
+                        ),
+                      )
                       .toList(),
                   onChanged: (v) => setState(() => selected = v!),
                 ),
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: () {
-                    ref
-                        .read(attendanceDateProvider(groupId).notifier)
-                        .mark(studentId: studentIdCtrl.text.trim(), status: selected);
+                    ref.read(attendanceDateProvider(groupId).notifier).mark(
+                        studentId: studentIdCtrl.text.trim(), status: selected);
                     Navigator.of(ctx).pop();
                   },
-                  child: const Text('Сохранить'),
+                  child: Text(context.l10n.save),
                 ),
               ],
             ),
@@ -151,8 +164,10 @@ class _TeacherAttendancePage extends ConsumerWidget {
 // ─── Student view ─────────────────────────────────────────────────────────────
 
 class _StudentAttendancePage extends ConsumerWidget {
-  const _StudentAttendancePage(
-      {required this.groupId, required this.studentId});
+  const _StudentAttendancePage({
+    required this.groupId,
+    required this.studentId,
+  });
 
   final String groupId;
   final String studentId;
@@ -164,12 +179,17 @@ class _StudentAttendancePage extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Моя посещаемость')),
+      appBar: AppBar(title: Text(context.l10n.myAttendance)),
       body: state.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
+        error: (e, _) => ErrorView(
+          error: e,
+          onRetry: () => ref.invalidate(
+            studentAttendanceProvider((groupId: groupId, studentId: studentId)),
+          ),
+        ),
         data: (list) {
-          if (list.isEmpty) return const Center(child: Text('Нет данных'));
+          if (list.isEmpty) return Center(child: Text(context.l10n.noData));
           final stats = _stats(list);
           return Column(
             children: [
@@ -177,8 +197,7 @@ class _StudentAttendancePage extends ConsumerWidget {
               Expanded(
                 child: ListView.builder(
                   itemCount: list.length,
-                  itemBuilder: (_, i) =>
-                      _AttendanceTile(record: list[i]),
+                  itemBuilder: (_, i) => _AttendanceTile(record: list[i]),
                 ),
               ),
             ],
@@ -234,7 +253,7 @@ class _StatsBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Theme.of(context).colorScheme.surfaceVariant,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -242,10 +261,14 @@ class _StatsBanner extends StatelessWidget {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('${stats[s] ?? 0}',
-                  style: Theme.of(context).textTheme.titleMedium),
-              Text(s.label,
-                  style: Theme.of(context).textTheme.labelSmall),
+              Text(
+                '${stats[s] ?? 0}',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Text(
+                s.label(context.l10n),
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
             ],
           );
         }).toList(),
@@ -283,7 +306,7 @@ class _AttendanceTile extends StatelessWidget {
         child: Icon(_statusIcon(record.status), color: color, size: 20),
       ),
       title: Text(record.studentId),
-      subtitle: Text('${record.lessonDate}  •  ${record.status.label}'),
+      subtitle: Text('${record.lessonDate}  •  ${record.status.label(context.l10n)}'),
       trailing: onDelete != null
           ? Row(
               mainAxisSize: MainAxisSize.min,
@@ -293,13 +316,16 @@ class _AttendanceTile extends StatelessWidget {
                     icon: const Icon(Icons.edit_outlined),
                     onSelected: onChangeStatus,
                     itemBuilder: (_) => AttendanceStatus.values
-                        .map((s) => PopupMenuItem(
-                              value: s,
-                              child: Text(s.label),
-                            ))
+                        .map(
+                          (s) => PopupMenuItem(
+                            value: s,
+                            child: Text(s.label(context.l10n)),
+                          ),
+                        )
                         .toList(),
                   ),
                 IconButton(
+                  tooltip: context.l10n.deleteMark,
                   icon: const Icon(Icons.delete_outline, color: Colors.red),
                   onPressed: onDelete,
                 ),

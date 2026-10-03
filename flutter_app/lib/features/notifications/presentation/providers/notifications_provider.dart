@@ -5,6 +5,7 @@ import '../../data/notifications_api.dart';
 import '../../data/notifications_repository_impl.dart';
 import '../../domain/entities/notification.dart';
 import '../../domain/repositories/notifications_repository.dart';
+import '../../../../core/network/error_message.dart';
 
 final notificationsRepositoryProvider = Provider<NotificationsRepository>((ref) {
   return NotificationsRepositoryImpl(NotificationsApi(ref.watch(dioProvider)));
@@ -47,7 +48,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
       final items = await _repo.listNotifications();
       state = state.copyWith(isLoading: false, notifications: items);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
   }
 

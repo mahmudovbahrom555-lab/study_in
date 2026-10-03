@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../features/ai/domain/entities/class_insights.dart';
 import '../../../../features/ai/presentation/providers/ai_insights_provider.dart';
 import '../../domain/entities/quiz.dart';
+import '../../../../core/localization/l10n.dart';
 
 class QuizResultPage extends ConsumerWidget {
   const QuizResultPage({super.key, required this.result});
@@ -23,7 +24,7 @@ class QuizResultPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Результат'),
+        title: Text(context.l10n.result),
         automaticallyImplyLeading: false,
       ),
       body: ListView(
@@ -38,7 +39,7 @@ class QuizResultPage extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Разбор ответов',
+            context.l10n.answersReview,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
@@ -51,7 +52,7 @@ class QuizResultPage extends ConsumerWidget {
           const SizedBox(height: 20),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Закрыть'),
+            child: Text(context.l10n.close),
           ),
         ],
       ),
@@ -82,21 +83,21 @@ class _GamificationBanner extends StatelessWidget {
               icon: Icons.bolt,
               iconColor: Colors.amber,
               value: '${gamification.xpTotal} XP',
-              label: 'Всего опыта',
+              label: context.l10n.totalXp,
             ),
             Container(width: 1, height: 36, color: Colors.deepPurple.withValues(alpha: 0.15)),
             _Stat(
               icon: Icons.local_fire_department,
               iconColor: Colors.orange,
-              value: '${gamification.streakDays} дн.',
-              label: 'Серия',
+              value: context.l10n.daysShort(gamification.streakDays),
+              label: context.l10n.streak,
             ),
             Container(width: 1, height: 36, color: Colors.deepPurple.withValues(alpha: 0.15)),
             _Stat(
               icon: Icons.emoji_events,
               iconColor: Colors.deepPurple,
-              value: '${gamification.longestStreak} дн.',
-              label: 'Рекорд',
+              value: context.l10n.daysShort(gamification.longestStreak),
+              label: context.l10n.record,
             ),
           ],
         ),
@@ -164,7 +165,7 @@ class _ScoreHeader extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Правильных: $score / $max',
+              context.l10n.correctCount('$score', '$max'),
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
@@ -228,6 +229,12 @@ class _QuestionResultCardState extends State<_QuestionResultCard> {
         : item.isCorrect
             ? Icons.check_circle
             : Icons.cancel;
+    // Результат передаётся только цветом и иконкой — диктору нужен текст.
+    final resultLabel = unanswered
+        ? context.l10n.noAnswer
+        : item.isCorrect
+            ? context.l10n.correct
+            : context.l10n.incorrect;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -246,7 +253,7 @@ class _QuestionResultCardState extends State<_QuestionResultCard> {
             children: [
               Row(
                 children: [
-                  Icon(icon, color: color, size: 22),
+                  Icon(icon, color: color, size: 22, semanticLabel: resultLabel),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -260,6 +267,7 @@ class _QuestionResultCardState extends State<_QuestionResultCard> {
                         : Icons.expand_more,
                     color: Colors.grey,
                     size: 20,
+                    semanticLabel: _expanded ? context.l10n.collapse : context.l10n.showExplanation,
                   ),
                 ],
               ),
@@ -269,7 +277,7 @@ class _QuestionResultCardState extends State<_QuestionResultCard> {
                 const SizedBox(height: 10),
                 if (!unanswered && !item.isCorrect) ...[
                   _AnswerRow(
-                    label: 'Ваш ответ',
+                    label: context.l10n.yourAnswer,
                     text: item.selectedBody ?? '',
                     color: Colors.red,
                     icon: Icons.close,
@@ -277,7 +285,7 @@ class _QuestionResultCardState extends State<_QuestionResultCard> {
                   const SizedBox(height: 6),
                 ],
                 _AnswerRow(
-                  label: unanswered ? 'Правильный ответ' : 'Верный ответ',
+                  label: context.l10n.correctAnswer,
                   text: item.correctBody,
                   color: Colors.green,
                   icon: Icons.check,
@@ -285,7 +293,7 @@ class _QuestionResultCardState extends State<_QuestionResultCard> {
                 if (unanswered) ...[
                   const SizedBox(height: 6),
                   Text(
-                    'Вы не ответили на этот вопрос',
+                    context.l10n.notAnswered,
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey.shade600,

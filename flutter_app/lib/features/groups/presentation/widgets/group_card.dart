@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/group.dart';
+import '../../../../core/localization/l10n.dart';
 
 class GroupCard extends StatelessWidget {
   const GroupCard({super.key, required this.group, required this.onTap});
@@ -21,10 +22,9 @@ class GroupCard extends StatelessWidget {
         subtitle: group.subject != null ? Text(group.subject!) : null,
         trailing: group.isArchived
             ? Chip(
-                label: const Text('Архив'),
+                label: Text(context.l10n.archivedChip),
                 visualDensity: VisualDensity.compact,
-                backgroundColor:
-                    theme.colorScheme.surfaceVariant,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
               )
             : null,
         leading: CircleAvatar(

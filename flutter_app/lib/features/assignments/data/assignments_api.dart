@@ -8,8 +8,8 @@ class AssignmentsApi {
   final Dio _dio;
 
   Future<List<AssignmentDto>> listAssignments(String groupId) async {
-    final resp = await _dio
-        .get<Map<String, dynamic>>('/groups/$groupId/assignments');
+    final resp =
+        await _dio.get<Map<String, dynamic>>('/groups/$groupId/assignments');
     final list = resp.data!['data'] as List<dynamic>;
     return list
         .map((e) => AssignmentDto.fromJson(e as Map<String, dynamic>))
@@ -31,11 +31,15 @@ class AssignmentsApi {
       },
     );
     return AssignmentDto.fromJson(
-        resp.data!['data'] as Map<String, dynamic>);
+      resp.data!['data'] as Map<String, dynamic>,
+    );
   }
 
-  Future<void> submitAssignment(String groupId, String assignmentId,
-      {String? comment}) async {
+  Future<void> submitAssignment(
+    String groupId,
+    String assignmentId, {
+    String? comment,
+  }) async {
     await _dio.post<void>(
       '/groups/$groupId/assignments/$assignmentId/submit',
       data: {if (comment != null) 'comment': comment},

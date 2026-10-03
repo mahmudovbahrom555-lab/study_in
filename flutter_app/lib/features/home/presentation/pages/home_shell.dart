@@ -7,6 +7,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../groups/presentation/pages/groups_page.dart';
 import '../../../notifications/presentation/providers/notifications_provider.dart';
 import '../../../parents/presentation/pages/parents_page.dart';
+import '../../../../core/localization/l10n.dart';
 
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
@@ -39,6 +40,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         title: const Text('repetapp'),
         actions: [
           IconButton(
+            tooltip: unread > 0 ? context.l10n.notificationsUnread(unread) : context.l10n.notifications,
             icon: Badge(
               isLabelVisible: unread > 0,
               label: Text('$unread'),
@@ -56,16 +58,16 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           ? NavigationBar(
               selectedIndex: _tab,
               onDestinationSelected: (i) => setState(() => _tab = i),
-              destinations: const [
+              destinations: [
                 NavigationDestination(
-                  icon: Icon(Icons.groups_outlined),
-                  selectedIcon: Icon(Icons.groups),
-                  label: 'Группы',
+                  icon: const Icon(Icons.groups_outlined),
+                  selectedIcon: const Icon(Icons.groups),
+                  label: context.l10n.navGroups,
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.child_care_outlined),
-                  selectedIcon: Icon(Icons.child_care),
-                  label: 'Дети',
+                  icon: const Icon(Icons.child_care_outlined),
+                  selectedIcon: const Icon(Icons.child_care),
+                  label: context.l10n.navChildren,
                 ),
               ],
             )

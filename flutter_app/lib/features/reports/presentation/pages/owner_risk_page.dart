@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/report.dart';
 import '../providers/reports_provider.dart';
+import '../../../../core/widgets/error_view.dart';
+import '../../../../core/localization/l10n.dart';
 
 class OwnerRiskPage extends ConsumerWidget {
   const OwnerRiskPage({super.key});
@@ -13,18 +15,21 @@ class OwnerRiskPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Риски оттока'),
+        title: Text(context.l10n.churnRisks),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Пересчитать',
+            tooltip: context.l10n.recalculate,
             onPressed: () => ref.read(riskAlertsProvider.notifier).refresh(),
           ),
         ],
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
+        error: (e, _) => ErrorView(
+          error: e,
+          onRetry: () => ref.read(riskAlertsProvider.notifier).refresh(),
+        ),
         data: (alerts) {
           final active = alerts.where((a) => !a.isResolved).toList();
           if (active.isEmpty) {
@@ -60,12 +65,12 @@ class _EmptyState extends StatelessWidget {
           Icon(Icons.check_circle_outline, size: 64, color: Colors.green.shade300),
           const SizedBox(height: 16),
           Text(
-            'Всё хорошо!',
+            context.l10n.allGood,
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
           Text(
-            'Учеников в зоне риска не обнаружено.',
+            context.l10n.noStudentsAtRisk,
             style: TextStyle(color: Colors.grey.shade600),
           ),
         ],
@@ -150,7 +155,7 @@ class _AlertCard extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: TextButton.icon(
                 icon: const Icon(Icons.check, size: 16),
-                label: const Text('Обработано'),
+                label: Text(context.l10n.resolved),
                 onPressed: onResolve,
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.green,
@@ -173,7 +178,7 @@ class _RiskChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = level == 'high' ? 'Высокий' : 'Средний';
+    final label = level == 'high' ? context.l10n.riskHigh : context.l10n.riskMedium;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(

@@ -5,6 +5,7 @@ import '../../data/grades_api.dart';
 import '../../data/grades_repository_impl.dart';
 import '../../domain/entities/grade.dart';
 import '../../domain/repositories/grades_repository.dart';
+import '../../../../core/network/error_message.dart';
 
 final gradesRepositoryProvider =
     Provider.family<GradesRepository, String>((ref, groupId) {
@@ -52,7 +53,7 @@ class GroupGradesNotifier extends StateNotifier<GradesState> {
       final gs = await _repo.listGroupGrades(_groupId);
       state = state.copyWith(isLoading: false, grades: gs);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
   }
 
@@ -78,7 +79,7 @@ class GroupGradesNotifier extends StateNotifier<GradesState> {
         grades: [g, ...state.grades],
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
   }
 
@@ -89,7 +90,7 @@ class GroupGradesNotifier extends StateNotifier<GradesState> {
         grades: state.grades.where((g) => g.id != gradeId).toList(),
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: userErrorMessage(e));
     }
   }
 }

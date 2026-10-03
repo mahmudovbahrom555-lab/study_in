@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/routes.dart';
 import '../../domain/entities/class_insights.dart';
 import '../providers/ai_insights_provider.dart';
+import '../../../../core/widgets/error_view.dart';
+import '../../../../core/localization/l10n.dart';
 
 class AiInsightsPage extends ConsumerWidget {
   const AiInsightsPage({super.key, required this.groupId});
@@ -19,7 +21,10 @@ class AiInsightsPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('AI Insights')),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
+        error: (e, _) => ErrorView(
+          error: e,
+          onRetry: () => ref.invalidate(classInsightsProvider(groupId)),
+        ),
         data: (insights) => _InsightsBody(groupId: groupId, insights: insights),
       ),
     );
@@ -44,17 +49,17 @@ class _InsightsBody extends StatelessWidget {
           _NextBestActionPanel(recommendations: insights.recommendations, groupId: groupId),
         ],
         const SizedBox(height: 20),
-        Text('Слабые темы класса', style: theme.textTheme.titleMedium),
+        Text(context.l10n.weakTopicsClass, style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         if (insights.classWeakness.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Text('Нет данных — тесты ещё не проходились'),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(context.l10n.noDataNoQuizzes),
           )
         else
           ...insights.classWeakness.map((t) => _WeakTopicTile(topic: t)),
         const SizedBox(height: 20),
-        Text('Таблица лидеров', style: theme.textTheme.titleMedium),
+        Text(context.l10n.leaderboard, style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         ...insights.students.asMap().entries.map(
               (e) => _StudentTile(
@@ -82,7 +87,7 @@ class _NextBestActionPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Рекомендации', style: theme.textTheme.titleMedium),
+        Text(context.l10n.recommendations, style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         ...recommendations.map((r) => _RecommendationCard(rec: r, groupId: groupId)),
       ],
@@ -126,7 +131,7 @@ class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Объяснение AI', style: Theme.of(context).textTheme.titleMedium),
+            Text(context.l10n.aiExplanation, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 12),
             Text(text),
             const SizedBox(height: 16),
@@ -161,8 +166,8 @@ class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
             ),
             title: Text(
               widget.rec.topic != null
-                  ? '${_labelFor(widget.rec.action)}: ${widget.rec.topic}'
-                  : _labelFor(widget.rec.action),
+                  ? '${_labelFor(context.l10n, widget.rec.action)}: ${widget.rec.topic}'
+                  : _labelFor(context.l10n, widget.rec.action),
               style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             subtitle: Text(widget.rec.reason, style: theme.textTheme.bodySmall),
@@ -176,20 +181,20 @@ class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
                   TextButton.icon(
                     onPressed: () => _act('accepted'),
                     icon: const Icon(Icons.check, size: 16),
-                    label: const Text('Принять'),
+                    label: Text(context.l10n.accept),
                     style: TextButton.styleFrom(foregroundColor: Colors.green),
                   ),
                   TextButton.icon(
                     onPressed: () => _act('dismissed'),
                     icon: const Icon(Icons.close, size: 16),
-                    label: const Text('Отклонить'),
+                    label: Text(context.l10n.dismiss),
                     style: TextButton.styleFrom(foregroundColor: Colors.grey),
                   ),
                   const Spacer(),
                   TextButton.icon(
                     onPressed: _explain,
                     icon: const Icon(Icons.auto_awesome, size: 16),
-                    label: const Text('Почему?'),
+                    label: Text(context.l10n.why),
                     style: TextButton.styleFrom(foregroundColor: Colors.indigo),
                   ),
                 ],
@@ -202,7 +207,7 @@ class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
                 children: [
                   const Icon(Icons.check_circle, color: Colors.green, size: 16),
                   const SizedBox(width: 4),
-                  Text('Принято', style: theme.textTheme.bodySmall?.copyWith(color: Colors.green)),
+                  Text(context.l10n.accepted, style: theme.textTheme.bodySmall?.copyWith(color: Colors.green)),
                 ],
               ),
             ),
@@ -220,13 +225,13 @@ class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
         _ => (Icons.lightbulb_outline, Colors.grey),
       };
 
-  String _labelFor(String action) => switch (action) {
-        'create_quiz' => 'Создать тест',
-        'schedule_review' => 'Назначить повторение',
-        'check_students' => 'Написать ученикам',
-        'rate_questions' => 'Оценить вопросы',
-        'celebrate' => 'Отличный результат',
-        _ => 'Рекомендация',
+  String _labelFor(AppLocalizations l10n, String action) => switch (action) {
+        'create_quiz' => l10n.recCreateQuiz,
+        'schedule_review' => l10n.recScheduleReview,
+        'check_students' => l10n.recCheckStudents,
+        'rate_questions' => l10n.recRateQuestions,
+        'celebrate' => l10n.recCelebrate,
+        _ => l10n.recDefault,
       };
 }
 
@@ -237,10 +242,11 @@ class _PriorityBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final (label, color) = switch (priority) {
-      1 => ('Важно', Colors.red),
-      2 => ('Средне', Colors.orange),
-      _ => ('Инфо', Colors.grey),
+      1 => (l10n.priorityHigh, Colors.red),
+      2 => (l10n.priorityMedium, Colors.orange),
+      _ => (l10n.priorityInfo, Colors.grey),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -264,7 +270,7 @@ class _StatRow extends StatelessWidget {
     return Row(
       children: [
         _StatCard(
-          label: 'Учеников',
+          label: context.l10n.studentsLabel,
           value: '${insights.studentCount}',
           icon: Icons.group,
         ),
@@ -277,7 +283,7 @@ class _StatRow extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         _StatCard(
-          label: 'Средний балл',
+          label: context.l10n.avgScore,
           value: '${insights.quizStats.avgScore.toStringAsFixed(1)}%',
           icon: Icons.bar_chart,
         ),
@@ -341,7 +347,7 @@ class _WeakTopicTile extends StatelessWidget {
         child: Text('$pct%', style: const TextStyle(fontSize: 12, color: Colors.red)),
       ),
       title: Text(topic.topic),
-      subtitle: Text('${topic.studentsStruggling}/${topic.totalStudents} учеников'),
+      subtitle: Text(context.l10n.studentsStruggling(topic.studentsStruggling, topic.totalStudents)),
       trailing: SizedBox(
         width: 60,
         child: LinearProgressIndicator(
@@ -374,8 +380,10 @@ class _StudentTile extends StatelessWidget {
         ],
       ),
       subtitle: Text(
-        '${student.xpTotal} XP · 🔥${student.streakDays} дней'
-        '${student.topWeakness.isNotEmpty ? ' · слабо: ${student.topWeakness}' : ''}',
+        context.l10n.leaderboardLine(student.xpTotal, student.streakDays) +
+            (student.topWeakness.isNotEmpty
+                ? context.l10n.weakSuffix(student.topWeakness)
+                : ''),
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => context.push(Routes.studentProgress(groupId, student.studentId)),

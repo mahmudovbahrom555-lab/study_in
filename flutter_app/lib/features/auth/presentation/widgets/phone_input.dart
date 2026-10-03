@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/localization/l10n.dart';
 
 class PhoneInput extends StatelessWidget {
   const PhoneInput({
@@ -20,11 +21,11 @@ class PhoneInput extends StatelessWidget {
       keyboardType: TextInputType.phone,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       maxLength: 13,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         prefixText: '+998 ',
-        labelText: 'Номер телефона',
+        labelText: context.l10n.phoneNumber,
         hintText: '90 123 45 67',
-        border: OutlineInputBorder(),
+        border: const OutlineInputBorder(),
         counterText: '',
       ),
       onChanged: (v) => onChanged('+998$v'),

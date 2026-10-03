@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 
 import '../../domain/entities/class_insights.dart';
 import '../providers/ai_insights_provider.dart';
+import '../../../../core/widgets/error_view.dart';
+import '../../../../core/localization/l10n.dart';
 
 class StudentProgressPage extends ConsumerWidget {
   const StudentProgressPage({
@@ -22,10 +24,15 @@ class StudentProgressPage extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Прогресс студента')),
+      appBar: AppBar(title: Text(context.l10n.studentProgress)),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
+        error: (e, _) => ErrorView(
+          error: e,
+          onRetry: () => ref.invalidate(
+            studentProgressProvider((groupId: groupId, studentId: studentId)),
+          ),
+        ),
         data: (progress) => _ProgressBody(progress: progress),
       ),
     );
@@ -46,22 +53,22 @@ class _ProgressBody extends StatelessWidget {
         _GamificationCard(progress: progress),
         const SizedBox(height: 16),
         if (progress.skillLevels.isNotEmpty) ...[
-          Text('Навыки (CEFR)', style: theme.textTheme.titleMedium),
+          Text(context.l10n.skillsCefr, style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           _SkillGrid(skills: progress.skillLevels),
           const SizedBox(height: 16),
         ],
-        Text('Слабые темы', style: theme.textTheme.titleMedium),
+        Text(context.l10n.weakTopics, style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         if (progress.weakTopics.isEmpty)
-          const Text('Нет данных')
+          Text(context.l10n.noData)
         else
           ...progress.weakTopics.map((t) => _TopicRow(topic: t)),
         const SizedBox(height: 16),
-        Text('История тестов', style: theme.textTheme.titleMedium),
+        Text(context.l10n.quizHistory, style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         if (progress.quizHistory.isEmpty)
-          const Text('Тесты ещё не проходились')
+          Text(context.l10n.noQuizzesTaken)
         else
           ...progress.quizHistory.map((a) => _AttemptTile(attempt: a)),
       ],
@@ -94,13 +101,13 @@ class _GamificationCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 _Chip(
-                  label: '🔥 ${g?.streakDays ?? 0} дн.',
+                  label: context.l10n.streakChip(g?.streakDays ?? 0),
                   icon: Icons.local_fire_department,
                   color: Colors.orange,
                 ),
                 const SizedBox(width: 8),
                 _Chip(
-                  label: 'Рекорд: ${g?.longestStreak ?? 0}',
+                  label: context.l10n.recordChip(g?.longestStreak ?? 0),
                   icon: Icons.emoji_events,
                   color: Colors.green,
                 ),
@@ -209,13 +216,13 @@ class _TopicRow extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             _ScoreBar(
-              label: 'Уверенность',
+              label: context.l10n.confidence,
               value: topic.confidenceScore,
               color: Colors.blue,
             ),
             const SizedBox(height: 4),
             _ScoreBar(
-              label: 'Стабильность',
+              label: context.l10n.stability,
               value: topic.consistencyScore,
               color: Colors.purple,
             ),

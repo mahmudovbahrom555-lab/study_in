@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/report.dart';
 import '../providers/reports_provider.dart';
+import '../../../../core/widgets/error_view.dart';
+import '../../../../core/localization/l10n.dart';
 
 class ParentRoiPage extends ConsumerWidget {
   const ParentRoiPage({
@@ -24,11 +26,16 @@ class ParentRoiPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(studentName != null ? 'Прогресс — $studentName' : 'Прогресс'),
+        title: Text(studentName != null ? context.l10n.progressFor(studentName!) : context.l10n.progress),
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
+        error: (e, _) => ErrorView(
+          error: e,
+          onRetry: () => ref.invalidate(
+            parentRoiProvider((studentId: studentId, groupId: groupId)),
+          ),
+        ),
         data: (report) => _ReportBody(report: report),
       ),
     );
@@ -47,7 +54,7 @@ class _ReportBody extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         Text(
-          'Период: ${report.periodStart} — ${report.periodEnd}',
+          context.l10n.period(report.periodStart, report.periodEnd),
           style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
         ),
         const SizedBox(height: 16),
@@ -55,13 +62,13 @@ class _ReportBody extends StatelessWidget {
           _SummaryCard(summary: report.aiSummary!),
           const SizedBox(height: 20),
         ],
-        Text('Ключевые показатели', style: theme.textTheme.titleMedium),
+        Text(context.l10n.keyMetrics, style: theme.textTheme.titleMedium),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: _MetricCard(
-                title: 'Посещаемость',
+                title: context.l10n.attendance,
                 value: '${report.attendancePct.toStringAsFixed(0)}%',
                 color: _attendanceColor(report.attendancePct),
                 icon: Icons.calendar_today_outlined,
@@ -70,7 +77,7 @@ class _ReportBody extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _MetricCard(
-                title: 'Тесты',
+                title: context.l10n.tabQuizzes,
                 value: '${report.quizScoreAvg.toStringAsFixed(0)}%',
                 delta: report.quizScoreDelta,
                 icon: Icons.quiz_outlined,
@@ -83,7 +90,7 @@ class _ReportBody extends StatelessWidget {
           children: [
             Expanded(
               child: _MetricCard(
-                title: 'Освоение',
+                title: context.l10n.mastery,
                 value: '${(report.masteryAvg * 100).toStringAsFixed(0)}%',
                 delta: report.masteryDelta,
                 icon: Icons.auto_graph_outlined,
@@ -92,7 +99,7 @@ class _ReportBody extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _MetricCard(
-                title: 'Домашние задания',
+                title: context.l10n.homework,
                 value: '${report.homeworkCompletionPct.toStringAsFixed(0)}%',
                 icon: Icons.assignment_turned_in_outlined,
                 color: Colors.teal,
@@ -135,7 +142,7 @@ class _SummaryCard extends StatelessWidget {
               Icon(Icons.auto_awesome, color: Colors.blue.shade700, size: 18),
               const SizedBox(width: 8),
               Text(
-                'Резюме',
+                context.l10n.summary,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.blue.shade700,
@@ -210,7 +217,7 @@ class _MetricCard extends StatelessWidget {
           if (delta != null) ...[
             const SizedBox(height: 4),
             Text(
-              '${delta! >= 0 ? '+' : ''}${delta!.toStringAsFixed(1)}% vs пр. мес.',
+              context.l10n.vsPrevMonth('${delta! >= 0 ? '+' : ''}${delta!.toStringAsFixed(1)}'),
               style: TextStyle(
                 fontSize: 11,
                 color: delta! >= 0 ? Colors.green : Colors.red,
@@ -240,17 +247,17 @@ class _StatsRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _Mini(
-            label: 'Попыток\nтестов',
+            label: context.l10n.quizAttemptsLabel,
             value: '${report.quizAttemptsCount}',
           ),
           Container(width: 1, height: 32, color: Colors.grey.shade300),
           _Mini(
-            label: 'Балл\n(тесты)',
+            label: context.l10n.quizScoreLabel,
             value: '${report.quizScoreAvg.toStringAsFixed(0)}%',
           ),
           Container(width: 1, height: 32, color: Colors.grey.shade300),
           _Mini(
-            label: 'ДЗ\nсдано',
+            label: context.l10n.homeworkSubmittedLabel,
             value: '${report.homeworkCompletionPct.toStringAsFixed(0)}%',
           ),
         ],

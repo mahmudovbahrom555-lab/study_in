@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/quiz.dart';
+import '../../../../core/localization/l10n.dart';
 
 class QuizCard extends StatelessWidget {
   const QuizCard({
@@ -48,26 +49,26 @@ class QuizCard extends StatelessWidget {
                       children: [
                         _Chip(
                           icon: Icons.repeat,
-                          label: '${quiz.maxAttempts} поп.',
+                          label: context.l10n.attemptsShortChip(quiz.maxAttempts),
                         ),
                         if (quiz.timeLimit != null) ...[
                           const SizedBox(width: 8),
                           _Chip(
                             icon: Icons.timer_outlined,
-                            label: '${quiz.timeLimit} мин',
+                            label: context.l10n.minutesShort(quiz.timeLimit!),
                           ),
                         ],
                         const SizedBox(width: 8),
                         if (quiz.isClosed)
-                          const _Chip(
+                          _Chip(
                             icon: Icons.lock_outline,
-                            label: 'Закрыт',
+                            label: context.l10n.closed,
                             color: Colors.grey,
                           )
                         else if (quiz.isNotYetOpen)
-                          const _Chip(
+                          _Chip(
                             icon: Icons.schedule_outlined,
-                            label: 'Не начался',
+                            label: context.l10n.notStarted,
                             color: Colors.blue,
                           )
                         else
@@ -75,7 +76,7 @@ class QuizCard extends StatelessWidget {
                             icon: quiz.isPublished
                                 ? Icons.visibility
                                 : Icons.visibility_off,
-                            label: quiz.isPublished ? 'Опубл.' : 'Черновик',
+                            label: quiz.isPublished ? context.l10n.publishedShort : context.l10n.draft,
                             color: quiz.isPublished
                                 ? Colors.green
                                 : Colors.orange,
@@ -91,7 +92,7 @@ class QuizCard extends StatelessWidget {
                     quiz.isPublished ? Icons.unpublished : Icons.publish,
                     color: quiz.isPublished ? Colors.orange : Colors.green,
                   ),
-                  tooltip: quiz.isPublished ? 'Снять' : 'Опубликовать',
+                  tooltip: quiz.isPublished ? context.l10n.unpublish : context.l10n.publish,
                   onPressed: onTogglePublish,
                 ),
             ],

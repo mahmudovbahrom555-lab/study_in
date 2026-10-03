@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../feed/domain/entities/post.dart';
+import '../../../../core/localization/l10n.dart';
 
 class PostCard extends StatelessWidget {
   const PostCard({
@@ -33,8 +34,11 @@ class PostCard extends StatelessWidget {
             Row(
               children: [
                 if (post.pinned) ...[
-                  Icon(Icons.push_pin,
-                      size: 14, color: theme.colorScheme.primary),
+                  Icon(
+                    Icons.push_pin,
+                    size: 14,
+                    color: theme.colorScheme.primary,
+                  ),
                   const SizedBox(width: 4),
                 ],
                 Text(
@@ -44,7 +48,7 @@ class PostCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  _formatDate(post.createdAt),
+                  _formatDate(context.l10n, post.createdAt),
                   style: theme.textTheme.labelSmall,
                 ),
                 if (isTeacher || isAuthor)
@@ -58,14 +62,15 @@ class PostCard extends StatelessWidget {
                       if (isTeacher)
                         PopupMenuItem(
                           value: 'pin',
-                          child:
-                              Text(post.pinned ? 'Открепить' : 'Закрепить'),
+                          child: Text(post.pinned ? context.l10n.unpin : context.l10n.pin),
                         ),
                       if (isTeacher || isAuthor)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'delete',
-                          child: Text('Удалить',
-                              style: TextStyle(color: Colors.red)),
+                          child: Text(
+                            context.l10n.delete,
+                            style: const TextStyle(color: Colors.red),
+                          ),
                         ),
                     ],
                   ),
@@ -88,12 +93,12 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime dt) {
+  String _formatDate(AppLocalizations l10n, DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return 'только что';
-    if (diff.inHours < 1) return '${diff.inMinutes} мин назад';
-    if (diff.inDays < 1) return '${diff.inHours} ч назад';
+    if (diff.inMinutes < 1) return l10n.justNow;
+    if (diff.inHours < 1) return l10n.minutesAgo(diff.inMinutes);
+    if (diff.inDays < 1) return l10n.hoursAgo(diff.inHours);
     return '${dt.day}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
   }
 }

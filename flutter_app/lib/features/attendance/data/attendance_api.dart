@@ -20,7 +20,9 @@ class AttendanceApi {
   }
 
   Future<List<AttendanceDto>> listStudent(
-      String groupId, String studentId) async {
+    String groupId,
+    String studentId,
+  ) async {
     final resp = await _dio.get<Map<String, dynamic>>(
       '/groups/$groupId/students/$studentId/attendance',
     );

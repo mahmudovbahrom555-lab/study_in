@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/notification.dart';
 import '../providers/notifications_provider.dart';
+import '../../../../core/localization/l10n.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
@@ -24,13 +25,13 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Уведомления'),
+        title: Text(context.l10n.notifications),
         actions: [
           if (state.unreadCount > 0)
             TextButton(
               onPressed: () =>
                   ref.read(notificationsProvider.notifier).markAllRead(),
-              child: const Text('Прочитать все'),
+              child: Text(context.l10n.readAll),
             ),
         ],
       ),
@@ -43,13 +44,13 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       return const Center(child: CircularProgressIndicator());
     }
     if (state.notifications.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.notifications_none_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 12),
-            Text('Нет уведомлений', style: TextStyle(color: Colors.grey)),
+            const Icon(Icons.notifications_none_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 12),
+            Text(context.l10n.noNotifications, style: const TextStyle(color: Colors.grey)),
           ],
         ),
       );
@@ -106,7 +107,7 @@ class _NotificationTile extends StatelessWidget {
           Text(notification.body, maxLines: 2, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 2),
           Text(
-            _formatAge(notification.createdAt),
+            _formatAge(context.l10n, notification.createdAt),
             style: const TextStyle(fontSize: 11, color: Colors.grey),
           ),
         ],
@@ -116,12 +117,12 @@ class _NotificationTile extends StatelessWidget {
     );
   }
 
-  String _formatAge(DateTime dt) {
+  String _formatAge(AppLocalizations l10n, DateTime dt) {
     final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'только что';
-    if (diff.inHours < 1) return '${diff.inMinutes} мин назад';
-    if (diff.inDays < 1) return '${diff.inHours} ч назад';
-    if (diff.inDays < 7) return '${diff.inDays} дн назад';
+    if (diff.inMinutes < 1) return l10n.justNow;
+    if (diff.inHours < 1) return l10n.minutesAgo(diff.inMinutes);
+    if (diff.inDays < 1) return l10n.hoursAgo(diff.inHours);
+    if (diff.inDays < 7) return l10n.daysAgo(diff.inDays);
     return '${dt.day}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
   }
 

@@ -6,6 +6,9 @@ import '../../../grades/presentation/pages/grades_page.dart';
 import '../../../reports/presentation/pages/parent_roi_page.dart';
 import '../../domain/entities/parent_link.dart';
 import '../providers/parents_provider.dart';
+import '../../../../core/widgets/error_view.dart';
+import '../../../../core/network/error_message.dart';
+import '../../../../core/localization/l10n.dart';
 
 class ParentsPage extends ConsumerStatefulWidget {
   const ParentsPage({super.key});
@@ -27,10 +30,10 @@ class _ParentsPageState extends ConsumerState<ParentsPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(childrenProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Мои дети')),
+      appBar: AppBar(title: Text(context.l10n.myChildren)),
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.link),
-        label: const Text('Добавить'),
+        label: Text(context.l10n.add),
         onPressed: () => _showLinkDialog(context),
       ),
       body: Builder(
@@ -39,11 +42,14 @@ class _ParentsPageState extends ConsumerState<ParentsPage> {
             return const Center(child: CircularProgressIndicator());
           }
           if (state.error != null && state.children.isEmpty) {
-            return Center(child: Text('Ошибка: ${state.error}'));
+            return ErrorView(
+              message: state.error!,
+              onRetry: () => ref.read(childrenProvider.notifier).load(),
+            );
           }
           if (state.children.isEmpty) {
-            return const Center(
-              child: Text('Нет привязанных детей.\nНажмите + чтобы добавить.'),
+            return Center(
+              child: Text(context.l10n.noChildren),
             );
           }
           return RefreshIndicator(
@@ -64,18 +70,18 @@ class _ParentsPageState extends ConsumerState<ParentsPage> {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Привязать ребёнка'),
+        title: Text(context.l10n.linkChild),
         content: TextField(
           controller: ctrl,
-          decoration: const InputDecoration(
-            labelText: 'ID ученика',
-            hintText: 'UUID ученика',
+          decoration: InputDecoration(
+            labelText: context.l10n.studentId,
+            hintText: context.l10n.studentUuidHint,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -85,7 +91,7 @@ class _ParentsPageState extends ConsumerState<ParentsPage> {
               }
               Navigator.pop(ctx);
             },
-            child: const Text('Привязать'),
+            child: Text(context.l10n.linkAction),
           ),
         ],
       ),
@@ -106,14 +112,14 @@ class _ChildCard extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: ExpansionTile(
         leading: const CircleAvatar(child: Icon(Icons.person)),
-        title: Text('Ученик: ${link.studentId.substring(0, 8)}…'),
+        title: Text(context.l10n.studentShort(link.studentId.substring(0, 8))),
         subtitle: Text('ID: ${link.studentId}'),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
               icon: const Icon(Icons.link_off, color: Colors.red),
-              tooltip: 'Отвязать',
+              tooltip: context.l10n.unlink,
               onPressed: () => _confirmUnlink(context, ref),
             ),
             const Icon(Icons.expand_more),
@@ -130,12 +136,12 @@ class _ChildCard extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Отвязать ребёнка?'),
-        content: const Text('Вы больше не будете видеть данные этого ученика.'),
+        title: Text(context.l10n.unlinkChildQ),
+        content: Text(context.l10n.unlinkChildBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -145,7 +151,7 @@ class _ChildCard extends ConsumerWidget {
               ref.read(childrenProvider.notifier).unlinkChild(link.studentId);
               Navigator.pop(ctx);
             },
-            child: const Text('Отвязать'),
+            child: Text(context.l10n.unlink),
           ),
         ],
       ),
@@ -171,13 +177,13 @@ class _ChildGroupsSection extends ConsumerWidget {
       ),
       error: (e, _) => Padding(
         padding: const EdgeInsets.all(16),
-        child: Text('Ошибка загрузки групп: $e'),
+        child: Text(context.l10n.groupsLoadFailed(userErrorMessage(e))),
       ),
       data: (groups) {
         if (groups.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('Нет групп'),
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(context.l10n.noGroups),
           );
         }
         return Column(
@@ -193,7 +199,7 @@ class _ChildGroupsSection extends ConsumerWidget {
                     children: [
                       TextButton.icon(
                         icon: const Icon(Icons.grade, size: 18),
-                        label: const Text('Оценки'),
+                        label: Text(context.l10n.tabGrades),
                         onPressed: () => Navigator.push<void>(
                           context,
                           MaterialPageRoute(
@@ -206,7 +212,7 @@ class _ChildGroupsSection extends ConsumerWidget {
                       ),
                       TextButton.icon(
                         icon: const Icon(Icons.calendar_month, size: 18),
-                        label: const Text('Посещ.'),
+                        label: Text(context.l10n.tabAttendanceShort),
                         onPressed: () => Navigator.push<void>(
                           context,
                           MaterialPageRoute(

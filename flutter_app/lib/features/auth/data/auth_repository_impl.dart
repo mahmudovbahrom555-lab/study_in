@@ -52,6 +52,12 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<User> setRole(String role) async {
     final dto = await _api.setRole(role);
+    // Роль зашита в JWT, а текущий токен выпущен до её выбора —
+    // без перевыпуска API отвечает 403 на эндпоинты с проверкой роли.
+    final refreshToken = await _storage.getRefreshToken();
+    if (refreshToken != null) {
+      await refresh(refreshToken);
+    }
     return dto.toEntity();
   }
 

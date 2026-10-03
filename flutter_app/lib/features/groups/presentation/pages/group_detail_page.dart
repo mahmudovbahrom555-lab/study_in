@@ -7,6 +7,8 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/group.dart';
 import '../providers/groups_provider.dart';
 import '../widgets/member_tile.dart';
+import '../../../../core/widgets/error_view.dart';
+import '../../../../core/localization/l10n.dart';
 
 class GroupDetailPage extends ConsumerStatefulWidget {
   const GroupDetailPage({super.key, required this.groupId});
@@ -41,6 +43,7 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
         actions: [
           if (isOwner) ...[
             IconButton(
+              tooltip: group.isArchived ? context.l10n.unarchive : context.l10n.archive,
               icon: Icon(
                 group.isArchived ? Icons.unarchive : Icons.archive,
               ),
@@ -50,11 +53,13 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
             PopupMenuButton<String>(
               onSelected: (v) => _onMenuSelected(context, v, group),
               itemBuilder: (_) => [
-                const PopupMenuItem(
-                    value: 'edit', child: Text('Редактировать')),
-                const PopupMenuItem(
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Text(context.l10n.edit),
+                ),
+                PopupMenuItem(
                   value: 'delete',
-                  child: Text('Удалить', style: TextStyle(color: Colors.red)),
+                  child: Text(context.l10n.delete, style: const TextStyle(color: Colors.red)),
                 ),
               ],
             ),
@@ -62,7 +67,7 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
           if (!isTeacher)
             TextButton(
               onPressed: () => _confirmLeave(context, group),
-              child: const Text('Покинуть'),
+              child: Text(context.l10n.leave),
             ),
         ],
       ),
@@ -76,16 +81,19 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Text(
-              'Участники',
+              context.l10n.members,
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
           Expanded(
             child: membersAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text(e.toString())),
+              error: (e, _) => ErrorView(
+                error: e,
+                onRetry: () => ref.invalidate(membersProvider(widget.groupId)),
+              ),
               data: (members) => members.isEmpty
-                  ? const Center(child: Text('Нет участников'))
+                  ? Center(child: Text(context.l10n.noMembers))
                   : ListView.builder(
                       itemCount: members.length,
                       itemBuilder: (context, i) => MemberTile(
@@ -119,18 +127,18 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Удалить группу?'),
-        content: Text('«${group.name}» будет удалена безвозвратно.'),
+        title: Text(context.l10n.deleteGroupQ),
+        content: Text(context.l10n.groupWillBeDeleted(group.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Отмена'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Удалить',
-              style: TextStyle(color: Colors.red),
+            child: Text(
+              context.l10n.delete,
+              style: const TextStyle(color: Colors.red),
             ),
           ),
         ],
@@ -146,16 +154,16 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Покинуть группу?'),
-        content: Text('Вы покинете «${group.name}».'),
+        title: Text(context.l10n.leaveGroupQ),
+        content: Text(context.l10n.youWillLeave(group.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Отмена'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Покинуть'),
+            child: Text(context.l10n.leave),
           ),
         ],
       ),
@@ -171,18 +179,18 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Удалить участника?'),
-        content: Text('${member.name} будет удалён из группы.'),
+        title: Text(context.l10n.removeMemberQ),
+        content: Text(context.l10n.memberWillBeRemoved(member.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Отмена'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Удалить',
-              style: TextStyle(color: Colors.red),
+            child: Text(
+              context.l10n.delete,
+              style: const TextStyle(color: Colors.red),
             ),
           ),
         ],
@@ -214,29 +222,29 @@ class _QuickActions extends StatelessWidget {
         children: [
           _ActionChip(
             icon: Icons.dynamic_feed,
-            label: 'Лента',
+            label: context.l10n.tabFeed,
             onTap: () => context.push(Routes.groupFeed(groupId)),
           ),
           _ActionChip(
             icon: Icons.assignment_outlined,
-            label: 'Задания',
+            label: context.l10n.tabAssignments,
             onTap: () => context.push(Routes.groupAssignments(groupId)),
           ),
           _ActionChip(
             icon: Icons.quiz,
-            label: 'Тесты',
+            label: context.l10n.tabQuizzes,
             onTap: () => context.push(Routes.groupQuizzes(groupId)),
           ),
           _ActionChip(
             icon: Icons.grade,
-            label: 'Оценки',
+            label: context.l10n.tabGrades,
             onTap: () => context.push(
               '${Routes.groupGrades(groupId)}?role=$role',
             ),
           ),
           _ActionChip(
             icon: Icons.calendar_month,
-            label: 'Посещ.',
+            label: context.l10n.tabAttendanceShort,
             onTap: () => context.push(
               '${Routes.groupAttendance(groupId)}?role=$role',
             ),
@@ -249,7 +257,7 @@ class _QuickActions extends StatelessWidget {
             ),
             _ActionChip(
               icon: Icons.warning_amber_outlined,
-              label: 'Риски',
+              label: context.l10n.tabRisks,
               onTap: () => context.push(Routes.ownerRisk),
             ),
           ],
@@ -314,7 +322,7 @@ class _GroupInfoCard extends StatelessWidget {
                 const Icon(Icons.link, size: 16),
                 const SizedBox(width: 4),
                 Text(
-                  'Код: ${group.inviteCode}',
+                  context.l10n.inviteCode(group.inviteCode),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],

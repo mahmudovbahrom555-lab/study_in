@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/routes.dart';
 import '../../domain/entities/quiz.dart';
 import '../providers/quizzes_provider.dart';
+import '../../../../core/widgets/error_view.dart';
+import '../../../../core/localization/l10n.dart';
 
 class QuizDetailPage extends ConsumerWidget {
   const QuizDetailPage({
@@ -23,10 +25,15 @@ class QuizDetailPage extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Тест')),
+      appBar: AppBar(title: Text(context.l10n.quiz)),
       body: state.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
+        error: (e, _) => ErrorView(
+          error: e,
+          onRetry: () => ref.invalidate(
+            quizDetailProvider((groupId: groupId, quizId: quizId)),
+          ),
+        ),
         data: (quiz) => _QuizBody(quiz: quiz, groupId: groupId),
       ),
     );
@@ -56,12 +63,12 @@ class _QuizBody extends StatelessWidget {
           children: [
             Chip(
               avatar: const Icon(Icons.repeat, size: 16),
-              label: Text('${quiz.maxAttempts} попыток'),
+              label: Text(context.l10n.attemptsChip(quiz.maxAttempts)),
             ),
             if (quiz.timeLimit != null)
               Chip(
                 avatar: const Icon(Icons.timer_outlined, size: 16),
-                label: Text('${quiz.timeLimit} мин'),
+                label: Text(context.l10n.minutesShort(quiz.timeLimit!)),
               ),
             Chip(
               avatar: Icon(
@@ -69,16 +76,16 @@ class _QuizBody extends StatelessWidget {
                 size: 16,
                 color: quiz.isPublished ? Colors.green : Colors.orange,
               ),
-              label: Text(quiz.isPublished ? 'Опубликован' : 'Черновик'),
+              label: Text(quiz.isPublished ? context.l10n.published : context.l10n.draft),
             ),
           ],
         ),
         const Divider(height: 32),
         if (quiz.questions.isEmpty)
-          const Text('Вопросов нет')
+          Text(context.l10n.noQuestions)
         else ...[
           Text(
-            'Вопросы (${quiz.questions.length})',
+            context.l10n.questionsHeader(quiz.questions.length),
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
@@ -93,7 +100,7 @@ class _QuizBody extends StatelessWidget {
         if (quiz.isPublished)
           FilledButton.icon(
             icon: const Icon(Icons.play_arrow),
-            label: const Text('Начать тест'),
+            label: Text(context.l10n.startQuiz),
             onPressed: () => context.push(
               Routes.quizAttempt(groupId, quiz.id),
             ),
@@ -133,7 +140,7 @@ class _QuestionTile extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${question.points} б.',
+                  context.l10n.pointsShort(question.points),
                   style: theme.textTheme.labelSmall,
                 ),
               ],

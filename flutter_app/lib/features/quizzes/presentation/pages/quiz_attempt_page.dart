@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/quiz.dart';
 import '../providers/quizzes_provider.dart';
 import 'quiz_result_page.dart';
+import '../../../../core/localization/l10n.dart';
 
 class QuizAttemptPage extends ConsumerStatefulWidget {
   const QuizAttemptPage({
@@ -68,8 +69,8 @@ class _QuizAttemptPageState extends ConsumerState<QuizAttemptPage> {
     }
     if (_quiz == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Тест')),
-        body: const Center(child: Text('Тест не найден')),
+        appBar: AppBar(title: Text(context.l10n.quiz)),
+        body: Center(child: Text(context.l10n.quizNotFound)),
       );
     }
 
@@ -114,20 +115,20 @@ class _StartScreen extends StatelessWidget {
             if (quiz.timeLimit != null)
               _InfoRow(
                 icon: Icons.timer_outlined,
-                label: 'Ограничение времени: ${quiz.timeLimit} мин',
+                label: context.l10n.timeLimitMinutes(quiz.timeLimit!),
               ),
             _InfoRow(
               icon: Icons.quiz_outlined,
-              label: 'Вопросов: ${quiz.questions.length}',
+              label: context.l10n.questionsCount(quiz.questions.length),
             ),
             _InfoRow(
               icon: Icons.repeat,
-              label: 'Попыток: ${quiz.maxAttempts}',
+              label: context.l10n.attemptsCount(quiz.maxAttempts),
             ),
             const SizedBox(height: 40),
             FilledButton.icon(
               icon: const Icon(Icons.play_arrow),
-              label: const Text('Начать'),
+              label: Text(context.l10n.start),
               onPressed: onStart,
             ),
           ],
@@ -212,7 +213,7 @@ class _AttemptScreen extends ConsumerWidget {
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text('Сдать ($answered / $total)'),
+                : Text(context.l10n.submitProgress(answered, total)),
           ),
         ),
       ),

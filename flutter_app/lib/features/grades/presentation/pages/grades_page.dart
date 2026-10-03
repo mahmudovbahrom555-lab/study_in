@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../domain/entities/grade.dart';
 import '../providers/grades_provider.dart';
 import '../widgets/add_grade_sheet.dart';
+import '../../../../core/widgets/error_view.dart';
+import '../../../../core/localization/l10n.dart';
 
 class GradesPage extends ConsumerStatefulWidget {
   const GradesPage({
@@ -59,33 +61,36 @@ class _TeacherView extends ConsumerWidget {
     final state = ref.watch(groupGradesProvider(groupId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Журнал оценок')),
+      appBar: AppBar(title: Text(context.l10n.gradebook)),
       floatingActionButton: FloatingActionButton(
+        tooltip: context.l10n.addGrade,
         onPressed: () => _showAdd(context, ref),
         child: const Icon(Icons.add),
       ),
-      body: Builder(builder: (_) {
-        if (state.isLoading && state.grades.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (state.grades.isEmpty) {
-          return const Center(child: Text('Оценок пока нет'));
-        }
-        return RefreshIndicator(
-          onRefresh: () =>
-              ref.read(groupGradesProvider(groupId).notifier).load(),
-          child: ListView.builder(
-            itemCount: state.grades.length,
-            itemBuilder: (_, i) => _GradeTile(
-              grade: state.grades[i],
-              showStudent: true,
-              onDelete: () => ref
-                  .read(groupGradesProvider(groupId).notifier)
-                  .deleteGrade(state.grades[i].id),
+      body: Builder(
+        builder: (_) {
+          if (state.isLoading && state.grades.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (state.grades.isEmpty) {
+            return Center(child: Text(context.l10n.noGrades));
+          }
+          return RefreshIndicator(
+            onRefresh: () =>
+                ref.read(groupGradesProvider(groupId).notifier).load(),
+            child: ListView.builder(
+              itemCount: state.grades.length,
+              itemBuilder: (_, i) => _GradeTile(
+                grade: state.grades[i],
+                showStudent: true,
+                onDelete: () => ref
+                    .read(groupGradesProvider(groupId).notifier)
+                    .deleteGrade(state.grades[i].id),
+              ),
             ),
-          ),
-        );
-      }),
+          );
+        },
+      ),
     );
   }
 
@@ -129,13 +134,18 @@ class _StudentView extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Мои оценки')),
+      appBar: AppBar(title: Text(context.l10n.myGrades)),
       body: state.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
+        error: (e, _) => ErrorView(
+          error: e,
+          onRetry: () => ref.invalidate(
+            studentGradesProvider((groupId: groupId, studentId: studentId)),
+          ),
+        ),
         data: (grades) {
           if (grades.isEmpty) {
-            return const Center(child: Text('Оценок пока нет'));
+            return Center(child: Text(context.l10n.noGrades));
           }
           return Column(
             children: [
@@ -165,8 +175,8 @@ class _SummaryBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (grades.isEmpty) return const SizedBox.shrink();
-    final avg = grades.map((g) => g.percentage).reduce((a, b) => a + b) /
-        grades.length;
+    final avg =
+        grades.map((g) => g.percentage).reduce((a, b) => a + b) / grades.length;
     return Container(
       color: Theme.of(context).colorScheme.primaryContainer,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -175,8 +185,7 @@ class _SummaryBar extends StatelessWidget {
           const Icon(Icons.bar_chart),
           const SizedBox(width: 8),
           Text(
-            'Средний балл: ${avg.toStringAsFixed(1)}%  |  '
-            'Всего: ${grades.length}',
+            context.l10n.gradesSummary(avg.toStringAsFixed(1), grades.length),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
@@ -220,10 +229,11 @@ class _GradeTile extends StatelessWidget {
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('${grade.value} / ${grade.maxValue}  •  ${fmt.format(grade.gradedAt)}'),
+          Text(
+              '${grade.value} / ${grade.maxValue}  •  ${fmt.format(grade.gradedAt)}'),
           if (showStudent)
             Text(
-              'Студент: ${grade.studentId}',
+              context.l10n.studentLabel(grade.studentId),
               style: Theme.of(context).textTheme.labelSmall,
             ),
           if (grade.comment != null)
@@ -236,6 +246,7 @@ class _GradeTile extends StatelessWidget {
       isThreeLine: showStudent || grade.comment != null,
       trailing: onDelete != null
           ? IconButton(
+            tooltip: context.l10n.deleteGrade,
               icon: const Icon(Icons.delete_outline, color: Colors.red),
               onPressed: onDelete,
             )

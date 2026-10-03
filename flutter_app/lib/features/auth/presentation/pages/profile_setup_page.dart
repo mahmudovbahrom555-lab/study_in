@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/routes.dart';
 import '../providers/auth_provider.dart';
+import '../../../../core/localization/l10n.dart';
 
 class ProfileSetupPage extends ConsumerStatefulWidget {
   const ProfileSetupPage({super.key});
@@ -52,14 +53,14 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
               children: [
                 const SizedBox(height: 48),
                 Text(
-                  'Как вас зовут?',
+                  context.l10n.profileNameTitle,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Ученики и родители увидят это имя',
+                  context.l10n.profileNameHint,
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium
@@ -69,13 +70,13 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
                 TextFormField(
                   controller: _nameCtrl,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Имя и фамилия',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: context.l10n.fullName,
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Введите имя';
-                    if (v.trim().length < 2) return 'Слишком короткое';
+                    if (v == null || v.trim().isEmpty) return context.l10n.enterName;
+                    if (v.trim().length < 2) return context.l10n.nameTooShort;
                     return null;
                   },
                   onFieldSubmitted: (_) => _save(),
@@ -92,7 +93,7 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Продолжить'),
+                        : Text(context.l10n.continueAction),
                   ),
                 ),
               ],

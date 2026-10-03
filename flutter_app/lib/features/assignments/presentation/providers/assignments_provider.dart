@@ -5,6 +5,7 @@ import '../../data/assignments_api.dart';
 import '../../data/assignments_repository_impl.dart';
 import '../../domain/entities/assignment.dart';
 import '../../domain/repositories/assignments_repository.dart';
+import '../../../../core/network/error_message.dart';
 
 final assignmentsRepositoryProvider =
     Provider.family<AssignmentsRepository, String>((ref, groupId) {
@@ -53,7 +54,7 @@ class AssignmentsNotifier extends StateNotifier<AssignmentsState> {
       final items = await _repo.listAssignments(_groupId);
       state = state.copyWith(isLoading: false, assignments: items);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
   }
 
@@ -73,7 +74,7 @@ class AssignmentsNotifier extends StateNotifier<AssignmentsState> {
         assignments: [item, ...state.assignments],
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: userErrorMessage(e));
     }
   }
 
@@ -82,7 +83,7 @@ class AssignmentsNotifier extends StateNotifier<AssignmentsState> {
       await _repo.submitAssignment(_groupId, assignmentId, comment: comment);
       await load();
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: userErrorMessage(e));
     }
   }
 
@@ -95,7 +96,7 @@ class AssignmentsNotifier extends StateNotifier<AssignmentsState> {
             .toList(),
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: userErrorMessage(e));
     }
   }
 }

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/assignment.dart';
 import '../providers/assignments_provider.dart';
+import '../../../../core/localization/l10n.dart';
 
 class AssignmentsPage extends ConsumerStatefulWidget {
   const AssignmentsPage({super.key, required this.groupId});
@@ -27,39 +28,40 @@ class _AssignmentsPageState extends ConsumerState<AssignmentsPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(assignmentsProvider(widget.groupId));
-    final isTeacher =
-        ref.watch(authProvider).user?.role == 'teacher';
+    final isTeacher = ref.watch(authProvider).user?.role == 'teacher';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Задания')),
+      appBar: AppBar(title: Text(context.l10n.tabAssignments)),
       floatingActionButton: isTeacher
           ? FloatingActionButton(
+            tooltip: context.l10n.createAssignment,
               onPressed: () => _showCreateSheet(context),
               child: const Icon(Icons.add),
             )
           : null,
-      body: Builder(builder: (_) {
-        if (state.isLoading && state.assignments.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (state.assignments.isEmpty) {
-          return const Center(child: Text('Заданий пока нет'));
-        }
-        return RefreshIndicator(
-          onRefresh: () => ref
-              .read(assignmentsProvider(widget.groupId).notifier)
-              .load(),
-          child: ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: state.assignments.length,
-            itemBuilder: (_, i) => _AssignmentCard(
-              assignment: state.assignments[i],
-              isTeacher: isTeacher,
-              groupId: widget.groupId,
+      body: Builder(
+        builder: (_) {
+          if (state.isLoading && state.assignments.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (state.assignments.isEmpty) {
+            return Center(child: Text(context.l10n.noAssignments));
+          }
+          return RefreshIndicator(
+            onRefresh: () =>
+                ref.read(assignmentsProvider(widget.groupId).notifier).load(),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: state.assignments.length,
+              itemBuilder: (_, i) => _AssignmentCard(
+                assignment: state.assignments[i],
+                isTeacher: isTeacher,
+                groupId: widget.groupId,
+              ),
             ),
-          ),
-        );
-      }),
+          );
+        },
+      ),
     );
   }
 
@@ -132,7 +134,7 @@ class _AssignmentCard extends ConsumerWidget {
               ),
             if (assignment.dueDate != null)
               Text(
-                'Срок: ${fmt.format(assignment.dueDate!)}',
+                context.l10n.dueDate(fmt.format(assignment.dueDate!)),
                 style: TextStyle(
                   color: overdue ? Colors.red : null,
                   fontSize: 12,
@@ -140,15 +142,18 @@ class _AssignmentCard extends ConsumerWidget {
               ),
             if (assignment.isSubmitted && assignment.submissionGrade != null)
               Text(
-                'Оценка: ${assignment.submissionGrade}',
+                context.l10n.gradeValue('${assignment.submissionGrade}'),
                 style: const TextStyle(
-                    color: Colors.green, fontWeight: FontWeight.bold),
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
           ],
         ),
         isThreeLine: true,
         trailing: isTeacher
             ? IconButton(
+              tooltip: context.l10n.deleteAssignment,
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                 onPressed: () => ref
                     .read(assignmentsProvider(groupId).notifier)
@@ -157,7 +162,7 @@ class _AssignmentCard extends ConsumerWidget {
             : !assignment.isSubmitted
                 ? TextButton(
                     onPressed: () => _showSubmitDialog(context, ref),
-                    child: const Text('Сдать'),
+                    child: Text(context.l10n.submit),
                   )
                 : null,
       ),
@@ -169,16 +174,16 @@ class _AssignmentCard extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Сдать: ${assignment.title}'),
+        title: Text(context.l10n.submitTitle(assignment.title)),
         content: TextField(
           controller: ctrl,
-          decoration: const InputDecoration(labelText: 'Комментарий (необяз.)'),
+          decoration: InputDecoration(labelText: context.l10n.commentOptional),
           maxLines: 3,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -188,7 +193,7 @@ class _AssignmentCard extends ConsumerWidget {
                   );
               Navigator.pop(ctx);
             },
-            child: const Text('Отправить'),
+            child: Text(context.l10n.send),
           ),
         ],
       ),
@@ -237,31 +242,35 @@ class _CreateAssignmentSheetState extends State<_CreateAssignmentSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Новое задание',
-              style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            context.l10n.newAssignment,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 16),
           TextField(
             controller: _titleCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Название *',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: context.l10n.titleRequired,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _descCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Описание',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: context.l10n.description,
+              border: const OutlineInputBorder(),
             ),
             maxLines: 3,
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
             icon: const Icon(Icons.calendar_today),
-            label: Text(_dueDate == null
-                ? 'Срок сдачи (необязательно)'
-                : fmt.format(_dueDate!)),
+            label: Text(
+              _dueDate == null
+                  ? context.l10n.dueDateOptional
+                  : fmt.format(_dueDate!),
+            ),
             onPressed: () async {
               final date = await showDatePicker(
                 context: context,
@@ -279,13 +288,14 @@ class _CreateAssignmentSheetState extends State<_CreateAssignmentSheet> {
               if (title.isEmpty) return;
               widget.onSubmit(
                 title: title,
-                description:
-                    _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+                description: _descCtrl.text.trim().isEmpty
+                    ? null
+                    : _descCtrl.text.trim(),
                 dueDate: _dueDate,
               );
               Navigator.pop(context);
             },
-            child: const Text('Создать'),
+            child: Text(context.l10n.create),
           ),
         ],
       ),

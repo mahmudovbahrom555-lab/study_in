@@ -1,6 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:repetapp/features/ai/domain/entities/class_insights.dart';
+import 'package:repetapp/features/ai/presentation/providers/ai_insights_provider.dart';
+
+import 'package:repetapp/core/localization/l10n.dart';
 import 'package:repetapp/features/quizzes/domain/entities/quiz.dart';
 import 'package:repetapp/features/quizzes/presentation/pages/quiz_result_page.dart';
 
@@ -40,7 +46,20 @@ QuestionResult _qResult({
   );
 }
 
-Widget _wrap(Widget child) => MaterialApp(home: child);
+// Экраны берут тексты из AppLocalizations — без делегатов context.l10n падает.
+// QuizResultPage читает геймификацию из API: подменяем её на «вечную загрузку»,
+// чтобы тест не ходил в сеть и проверял только результат теста.
+Widget _wrap(Widget child) => ProviderScope(
+      overrides: [
+        gamificationProvider.overrideWith((ref) => Completer<Gamification>().future),
+      ],
+      child: MaterialApp(
+        locale: const Locale('ru'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: child,
+      ),
+    );
 
 // ---------------------------------------------------------------------------
 // Tests

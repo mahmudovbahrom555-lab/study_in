@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/feed_provider.dart';
-import '../widgets/post_card.dart';
 import '../widgets/create_post_sheet.dart';
+import '../widgets/post_card.dart';
+import '../../../../core/widgets/error_view.dart';
+import '../../../../core/localization/l10n.dart';
 
 class FeedPage extends ConsumerStatefulWidget {
   const FeedPage({super.key, required this.groupId});
@@ -44,9 +46,10 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     final isTeacher = authUser?.role == 'teacher';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Лента')),
+      appBar: AppBar(title: Text(context.l10n.tabFeed)),
       floatingActionButton: isTeacher
           ? FloatingActionButton(
+            tooltip: context.l10n.newPostTooltip,
               onPressed: () => _showCreateSheet(context),
               child: const Icon(Icons.edit),
             )
@@ -60,29 +63,17 @@ class _FeedPageState extends ConsumerState<FeedPage> {
       return const Center(child: CircularProgressIndicator());
     }
     if (feedState.error != null && feedState.posts.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(feedState.error.toString(),
-                style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () =>
-                  ref.read(feedProvider(widget.groupId).notifier).load(),
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
+      return ErrorView(
+        message: feedState.error as String,
+        onRetry: () => ref.read(feedProvider(widget.groupId).notifier).load(),
       );
     }
     if (feedState.posts.isEmpty) {
-      return const Center(child: Text('Нет публикаций'));
+      return Center(child: Text(context.l10n.noPosts));
     }
 
     return RefreshIndicator(
-      onRefresh: () =>
-          ref.read(feedProvider(widget.groupId).notifier).load(),
+      onRefresh: () => ref.read(feedProvider(widget.groupId).notifier).load(),
       child: ListView.separated(
         controller: _scrollCtrl,
         padding: const EdgeInsets.all(16),

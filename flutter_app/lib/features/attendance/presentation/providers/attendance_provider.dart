@@ -5,6 +5,7 @@ import '../../data/attendance_api.dart';
 import '../../data/attendance_repository_impl.dart';
 import '../../domain/entities/attendance.dart';
 import '../../domain/repositories/attendance_repository.dart';
+import '../../../../core/network/error_message.dart';
 
 final attendanceRepositoryProvider =
     Provider.family<AttendanceRepository, String>((ref, groupId) {
@@ -58,7 +59,7 @@ class AttendanceDateNotifier extends StateNotifier<AttendanceDateState> {
       final list = await _repo.listByDate(_groupId, dateStr);
       state = state.copyWith(isLoading: false, records: list);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
   }
 
@@ -82,7 +83,7 @@ class AttendanceDateNotifier extends StateNotifier<AttendanceDateState> {
       ];
       state = state.copyWith(records: updated);
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: userErrorMessage(e));
     }
   }
 
@@ -93,7 +94,7 @@ class AttendanceDateNotifier extends StateNotifier<AttendanceDateState> {
         records: state.records.where((r) => r.id != id).toList(),
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: userErrorMessage(e));
     }
   }
 

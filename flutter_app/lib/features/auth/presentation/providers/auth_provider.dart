@@ -1,7 +1,7 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_client.dart';
+import '../../../../core/network/error_message.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../../data/auth_api.dart';
 import '../../data/auth_repository_impl.dart';
@@ -133,16 +133,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState();
   }
 
-  String _message(Object e) {
-    if (e is DioException) {
-      final data = e.response?.data;
-      if (data is Map) {
-        return (data['error']?['message'] as String?) ?? e.message ?? 'Ошибка';
-      }
-      return e.message ?? 'Ошибка сети';
-    }
-    return e.toString();
-  }
+  String _message(Object e) => userErrorMessage(e);
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {

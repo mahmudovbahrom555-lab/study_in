@@ -5,6 +5,7 @@ import '../../data/groups_api.dart';
 import '../../data/groups_repository_impl.dart';
 import '../../domain/entities/group.dart';
 import '../../domain/repositories/groups_repository.dart';
+import '../../../../core/network/error_message.dart';
 
 // ─── Providers ───────────────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ class GroupsNotifier extends StateNotifier<GroupsState> {
       final gs = await _repo.listMyGroups();
       state = state.copyWith(isLoading: false, groups: gs);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
   }
 
@@ -71,7 +72,7 @@ class GroupsNotifier extends StateNotifier<GroupsState> {
         groups: [g, ...state.groups],
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
   }
 
@@ -84,7 +85,7 @@ class GroupsNotifier extends StateNotifier<GroupsState> {
         groups: [g, ...state.groups],
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
   }
 
@@ -95,7 +96,7 @@ class GroupsNotifier extends StateNotifier<GroupsState> {
         groups: state.groups.map((g) => g.id == id ? updated : g).toList(),
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: userErrorMessage(e));
     }
   }
 
@@ -106,7 +107,7 @@ class GroupsNotifier extends StateNotifier<GroupsState> {
         groups: state.groups.where((g) => g.id != id).toList(),
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: userErrorMessage(e));
     }
   }
 }

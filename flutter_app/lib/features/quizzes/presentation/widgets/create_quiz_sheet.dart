@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/localization/l10n.dart';
 
 class CreateQuizSheet extends StatefulWidget {
   const CreateQuizSheet({super.key, required this.onSubmit});
@@ -57,20 +58,20 @@ class _CreateQuizSheetState extends State<CreateQuizSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Новый тест', style: Theme.of(context).textTheme.titleLarge),
+            Text(context.l10n.newQuiz, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
             TextFormField(
               controller: _titleCtrl,
-              decoration: const InputDecoration(labelText: 'Название *'),
+              decoration: InputDecoration(labelText: context.l10n.titleRequired),
               validator: (v) =>
-                  v == null || v.trim().isEmpty ? 'Обязательное поле' : null,
+                  v == null || v.trim().isEmpty ? context.l10n.requiredField : null,
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _descCtrl,
               decoration:
-                  const InputDecoration(labelText: 'Описание (необязательно)'),
+                  InputDecoration(labelText: context.l10n.descriptionOptional),
               maxLines: 2,
               textInputAction: TextInputAction.next,
             ),
@@ -81,7 +82,7 @@ class _CreateQuizSheetState extends State<CreateQuizSheet> {
                   child: TextFormField(
                     controller: _attemptsCtrl,
                     decoration:
-                        const InputDecoration(labelText: 'Попыток'),
+                        InputDecoration(labelText: context.l10n.attempts),
                     keyboardType: TextInputType.number,
                     validator: (v) {
                       final n = int.tryParse(v ?? '');
@@ -95,14 +96,14 @@ class _CreateQuizSheetState extends State<CreateQuizSheet> {
                   child: TextFormField(
                     controller: _timeLimitCtrl,
                     decoration:
-                        const InputDecoration(labelText: 'Лимит (мин)'),
+                        InputDecoration(labelText: context.l10n.limitMinutes),
                     keyboardType: TextInputType.number,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            FilledButton(onPressed: _submit, child: const Text('Создать')),
+            FilledButton(onPressed: _submit, child: Text(context.l10n.create)),
           ],
         ),
       ),

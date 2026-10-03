@@ -9,6 +9,8 @@ import '../providers/groups_provider.dart';
 import '../widgets/group_card.dart';
 import '../widgets/create_group_sheet.dart';
 import '../widgets/join_group_sheet.dart';
+import '../../../../core/widgets/error_view.dart';
+import '../../../../core/localization/l10n.dart';
 
 class GroupsPage extends ConsumerStatefulWidget {
   const GroupsPage({super.key});
@@ -34,18 +36,19 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Мои группы'),
+        title: Text(context.l10n.myGroups),
         actions: [
           if (!isTeacher)
             IconButton(
               icon: const Icon(Icons.add_link),
-              tooltip: 'Вступить по коду',
+              tooltip: context.l10n.joinByCode,
               onPressed: () => _showJoinSheet(context),
             ),
         ],
       ),
       floatingActionButton: isTeacher
           ? FloatingActionButton(
+            tooltip: context.l10n.createGroup,
               onPressed: () => _showCreateSheet(context),
               child: const Icon(Icons.add),
             )
@@ -59,18 +62,9 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
       return const Center(child: CircularProgressIndicator());
     }
     if (state.error != null && state.groups.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(state.error!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () => ref.read(groupsProvider.notifier).load(),
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
+      return ErrorView(
+        message: state.error!,
+        onRetry: () => ref.read(groupsProvider.notifier).load(),
       );
     }
     if (state.groups.isEmpty) {
@@ -105,7 +99,7 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось открыть демо')),
+          SnackBar(content: Text(context.l10n.demoOpenFailed)),
         );
       }
     } finally {
@@ -151,13 +145,13 @@ class _TeacherEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Добро пожаловать!',
+              context.l10n.welcomeTitle,
               style: Theme.of(context).textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'Создайте первую группу или посмотрите как работает платформа на демо-данных.',
+              context.l10n.welcomeTeacherBody,
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium
@@ -167,7 +161,7 @@ class _TeacherEmptyState extends StatelessWidget {
             const SizedBox(height: 32),
             FilledButton.icon(
               icon: const Icon(Icons.add),
-              label: const Text('Создать первую группу'),
+              label: Text(context.l10n.createFirstGroup),
               onPressed: () => showModalBottomSheet<void>(
                 context: context,
                 isScrollControlled: true,
@@ -183,7 +177,7 @@ class _TeacherEmptyState extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.play_circle_outline),
-              label: const Text('Посмотреть демо'),
+              label: Text(context.l10n.viewDemo),
               onPressed: demoLoading ? null : onDemo,
             ),
           ],
@@ -213,13 +207,13 @@ class _StudentEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Вы ещё не в группах',
+              context.l10n.noGroupsStudentTitle,
               style: Theme.of(context).textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'Попросите учителя поделиться кодом группы и вступите по нему.',
+              context.l10n.noGroupsStudentBody,
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium
@@ -229,7 +223,7 @@ class _StudentEmptyState extends StatelessWidget {
             const SizedBox(height: 32),
             FilledButton.icon(
               icon: const Icon(Icons.add_link),
-              label: const Text('Вступить по коду'),
+              label: Text(context.l10n.joinByCode),
               onPressed: onJoin,
             ),
           ],

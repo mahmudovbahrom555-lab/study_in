@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/localization/language_switcher.dart';
 import '../../../../core/router/routes.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/phone_input.dart';
+import '../../../../core/localization/l10n.dart';
 
 class PhonePage extends ConsumerStatefulWidget {
   const PhonePage({super.key});
@@ -51,16 +53,21 @@ class _PhonePageState extends ConsumerState<PhonePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 48),
+              // Язык можно сменить до входа: автоопределение иногда ошибается.
+              const Align(
+                alignment: Alignment.centerRight,
+                child: LanguageSwitcher(),
+              ),
+              const SizedBox(height: 16),
               Text(
-                'Вход',
+                context.l10n.loginTitle,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Введите номер телефона — отправим код',
+                context.l10n.loginSubtitle,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.grey,
                     ),
@@ -83,7 +90,7 @@ class _PhonePageState extends ConsumerState<PhonePage> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Получить код'),
+                      : Text(context.l10n.getCode),
                 ),
               ),
             ],

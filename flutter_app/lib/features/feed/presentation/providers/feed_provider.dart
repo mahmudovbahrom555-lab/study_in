@@ -5,6 +5,7 @@ import '../../data/feed_api.dart';
 import '../../data/feed_repository_impl.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/repositories/feed_repository.dart';
+import '../../../../core/network/error_message.dart';
 
 // Per-group feed provider family.
 final feedRepositoryProvider =
@@ -65,7 +66,7 @@ class FeedNotifier extends StateNotifier<FeedState> {
         hasMore: posts.length == _pageSize,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
   }
 
@@ -84,7 +85,7 @@ class FeedNotifier extends StateNotifier<FeedState> {
         hasMore: more.length == _pageSize,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
   }
 
@@ -93,7 +94,7 @@ class FeedNotifier extends StateNotifier<FeedState> {
       final p = await _repo.createPost(_groupId, body: body, pinned: pinned);
       state = state.copyWith(posts: [p, ...state.posts]);
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: userErrorMessage(e));
     }
   }
 
@@ -104,7 +105,7 @@ class FeedNotifier extends StateNotifier<FeedState> {
         posts: state.posts.where((p) => p.id != postId).toList(),
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: userErrorMessage(e));
     }
   }
 
@@ -115,7 +116,7 @@ class FeedNotifier extends StateNotifier<FeedState> {
         posts: state.posts.map((p) => p.id == postId ? updated : p).toList(),
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: userErrorMessage(e));
     }
   }
 }

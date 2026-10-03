@@ -17,7 +17,7 @@ class User {
   final String language;
   final bool isActive;
 
-  bool get hasRole => role != null;
+  bool get hasRole => role != null && role!.isNotEmpty;
   bool get isTeacher => role == 'teacher';
   bool get isStudent => role == 'student';
   bool get isParent => role == 'parent';
