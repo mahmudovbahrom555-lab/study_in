@@ -30,6 +30,13 @@ type Service struct {
 	sms     sms.Sender
 	jwt     *jwt.Manager
 	limiter Limiter
+	devCode string // если задан — вместо случайного кода (только dev, см. config.validate)
+}
+
+// WithDevCode включает фиксированный код подтверждения для разработки.
+func (s *Service) WithDevCode(code string) *Service {
+	s.devCode = code
+	return s
 }
 
 func NewService(repo Repository, smsSender sms.Sender, jwtManager *jwt.Manager, limiter Limiter) *Service {
@@ -48,9 +55,12 @@ func (s *Service) SendCode(ctx context.Context, req *SendCodeRequest) error {
 		return err
 	}
 
-	code, err := generateCode(codeLength)
-	if err != nil {
-		return fmt.Errorf("generate code: %w", err)
+	code := s.devCode
+	if code == "" {
+		var err error
+		if code, err = generateCode(codeLength); err != nil {
+			return fmt.Errorf("generate code: %w", err)
+		}
 	}
 
 	expiresAt := time.Now().Add(codeTTL)
@@ -58,7 +68,7 @@ func (s *Service) SendCode(ctx context.Context, req *SendCodeRequest) error {
 		return fmt.Errorf("save code: %w", err)
 	}
 
-	message := fmt.Sprintf("RepetApp: %s — ваш код подтверждения. Никому не сообщайте!", code)
+	message := verificationMessage(code)
 	if err := s.sms.Send(ctx, req.Phone, message); err != nil {
 		return fmt.Errorf("send sms: %w", err)
 	}
@@ -272,6 +282,14 @@ func (s *Service) issueTokenPair(ctx context.Context, user *domain.User, deviceI
 	}
 
 	return accessToken, rawToken, nil
+}
+
+// verificationMessage — текст SMS на двух языках: сначала английский, затем русский.
+// Язык пользователя на этапе входа ещё неизвестен. Кириллица переводит SMS в UCS-2,
+// где лимит одного сообщения — 70 символов; текст подобран ровно под него,
+// чтобы не платить за второй сегмент (проверяется в тесте).
+func verificationMessage(code string) string {
+	return fmt.Sprintf("%s — StudyIn code. Do not share.\nКод StudyIn. Никому не сообщайте.", code)
 }
 
 func generateCode(length int) (string, error) {

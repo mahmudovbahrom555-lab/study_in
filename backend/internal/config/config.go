@@ -70,6 +70,7 @@ type S3Config struct {
 
 type SMSConfig struct {
 	Provider      string // mock, eskiz
+	DevCode       string // фиксированный код входа для разработки; пусто = случайный
 	EskizEmail    string
 	EskizPassword string
 	EskizFrom     string
@@ -176,6 +177,7 @@ func Load() (*Config, error) {
 		},
 		SMS: SMSConfig{
 			Provider:      v.GetString("SMS_PROVIDER"),
+			DevCode:       v.GetString("SMS_DEV_CODE"),
 			EskizEmail:    v.GetString("SMS_ESKIZ_EMAIL"),
 			EskizPassword: v.GetString("SMS_ESKIZ_PASSWORD"),
 			EskizFrom:     v.GetString("SMS_ESKIZ_FROM"),
@@ -223,6 +225,10 @@ func (c *Config) validate() error {
 	}
 	if c.JWT.RefreshSecret == "" || len(c.JWT.RefreshSecret) < 32 {
 		return fmt.Errorf("JWT_REFRESH_SECRET must be at least 32 chars")
+	}
+	// Фиксированный код позволяет войти в любой аккаунт — только для разработки.
+	if c.SMS.DevCode != "" && (c.Server.IsProduction() || c.SMS.Provider != "mock") {
+		return fmt.Errorf("SMS_DEV_CODE is allowed only with SMS_PROVIDER=mock outside production")
 	}
 	return nil
 }

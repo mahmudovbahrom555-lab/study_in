@@ -113,7 +113,11 @@ func (s *Server) setupRouter() {
 
 	rateLimiter := redisinfra.NewRateLimiter(s.redis)
 	authRepo := postgres.NewAuthRepository(s.db)
-	authService := auth.NewService(authRepo, smsSender, jwtManager, rateLimiter)
+	authService := auth.NewService(authRepo, smsSender, jwtManager, rateLimiter).
+		WithDevCode(s.cfg.SMS.DevCode)
+	if s.cfg.SMS.DevCode != "" {
+		s.log.Warn("SMS_DEV_CODE enabled: fixed verification code for all phones (dev only)")
+	}
 	authHandler := auth.NewHandler(authService, jwtManager)
 
 	groupRepo := postgres.NewGroupRepository(s.db)
