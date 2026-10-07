@@ -60,7 +60,7 @@ class _TeacherAttendancePage extends ConsumerWidget {
             const Expanded(child: Center(child: CircularProgressIndicator()))
           else if (state.records.isEmpty)
             Expanded(
-                child: Center(child: Text(context.l10n.noRecordsForDay)))
+                child: Center(child: Text(context.l10n.noRecordsForDay)),)
           else
             Expanded(
               child: ListView.builder(
@@ -71,7 +71,7 @@ class _TeacherAttendancePage extends ConsumerWidget {
                       .read(attendanceDateProvider(groupId).notifier)
                       .mark(
                           studentId: state.records[i].studentId,
-                          status: status),
+                          status: status,),
                   onDelete: () => ref
                       .read(attendanceDateProvider(groupId).notifier)
                       .delete(state.records[i].id),
@@ -147,7 +147,7 @@ class _TeacherAttendancePage extends ConsumerWidget {
                 FilledButton(
                   onPressed: () {
                     ref.read(attendanceDateProvider(groupId).notifier).mark(
-                        studentId: studentIdCtrl.text.trim(), status: selected);
+                        studentId: studentIdCtrl.text.trim(), status: selected,);
                     Navigator.of(ctx).pop();
                   },
                   child: Text(context.l10n.save),

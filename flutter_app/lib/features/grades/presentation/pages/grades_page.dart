@@ -230,7 +230,7 @@ class _GradeTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-              '${grade.value} / ${grade.maxValue}  •  ${fmt.format(grade.gradedAt)}'),
+              '${grade.value} / ${grade.maxValue}  •  ${fmt.format(grade.gradedAt)}',),
           if (showStudent)
             Text(
               context.l10n.studentLabel(grade.studentId),
