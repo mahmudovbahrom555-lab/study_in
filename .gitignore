@@ -26,6 +26,7 @@ flutter_app/android/.gradle/
 flutter_app/android/local.properties
 flutter_app/android/key.properties
 flutter_app/*.iml
+flutter_app/android/*.iml
 flutter_app/coverage/
 
 # IDE
