@@ -12,6 +12,7 @@ package response
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/domain"
@@ -72,8 +73,21 @@ func Error(w http.ResponseWriter, err error) {
 	}
 
 	var domainErr *domain.Error
-	if errors.As(err, &domainErr) && len(domainErr.Details) > 0 {
-		body.Error.Details = domainErr.Details
+	if errors.As(err, &domainErr) {
+		// Конкретный код (FILE_TOO_LARGE, CODE_INVALID…) вместо общего класса —
+		// клиент показывает пользователю точную причину.
+		if domainErr.Code != "" && status < http.StatusInternalServerError {
+			body.Error.Code = domainErr.Code
+			body.Error.Message = domainErr.Message
+		}
+		if len(domainErr.Details) > 0 {
+			body.Error.Details = domainErr.Details
+		}
+	}
+
+	if status >= http.StatusInternalServerError {
+		// Клиенту — общий текст, в лог — причина (docs/backend-architecture-methodology.md, P2).
+		slog.Error("internal error", slog.String("err", err.Error()))
 	}
 
 	writeJSON(w, status, body)
