@@ -116,6 +116,9 @@ func run() error {
 	// HTTP server (must be created before worker so AIProcessor is available)
 	srv := server.New(cfg, log, db, redisClient)
 
+	// Удаление загруженных, но не прикреплённых файлов (G10) — раз в час.
+	go srv.RunFileCleanup(ctx)
+
 	// Asynq worker — runs in background goroutine
 	worker := queue.NewWorker(cfg.Redis.Addr, cfg.Redis.Password, 10, log, smsSender, pusher, srv.AIProcessor())
 	go func() {

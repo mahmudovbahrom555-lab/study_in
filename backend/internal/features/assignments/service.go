@@ -14,13 +14,17 @@ import (
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/domain"
 )
 
-const maxFileSize = 50 << 20 // 50 MB
+const maxFileSize = 50 << 20 // 50 MB — вложения учителя к заданию
+
+// MaxSubmissionFiles — сколько файлов можно приложить к сдаче (DECISIONS.md, 2026-10-07).
+const MaxSubmissionFiles = 5
 
 type Service struct {
 	repo   Repository
 	groups GroupChecker
 	signer Signer
 	store  ObjectStore
+	files  FileGetter
 }
 
 // ObjectStore is a write-side interface for MinIO uploads.
@@ -28,8 +32,8 @@ type ObjectStore interface {
 	PutObject(ctx context.Context, key string, r io.Reader, size int64, contentType string) error
 }
 
-func NewService(repo Repository, groups GroupChecker, signer Signer, store ObjectStore) *Service {
-	return &Service{repo: repo, groups: groups, signer: signer, store: store}
+func NewService(repo Repository, groups GroupChecker, signer Signer, store ObjectStore, files FileGetter) *Service {
+	return &Service{repo: repo, groups: groups, signer: signer, store: store, files: files}
 }
 
 // CreateAssignment publishes a homework assignment to a group (teacher only).
@@ -201,17 +205,23 @@ func (s *Service) Submit(ctx context.Context, assignmentID, studentID uuid.UUID,
 		return nil, domain.ErrForbidden
 	}
 
+	hasComment := req.Comment != nil && strings.TrimSpace(*req.Comment) != ""
+	if !hasComment && len(req.FileIDs) == 0 {
+		return nil, domain.NewError("SUBMISSION_EMPTY", "Добавьте комментарий или файл", domain.ErrValidation)
+	}
+	if len(req.FileIDs) > MaxSubmissionFiles {
+		return nil, domain.NewError("TOO_MANY_FILES", "Не больше 5 файлов", domain.ErrValidation)
+	}
+
 	existing, err := s.repo.GetSubmission(ctx, assignmentID, studentID)
 	if err != nil {
 		return nil, fmt.Errorf("assignments.Submit check existing: %w", err)
 	}
-	if existing != nil {
-		// Re-submission: update comment, keep grade.
-		existing.Comment = req.Comment
-		if err := s.repo.CreateSubmission(ctx, existing); err != nil {
-			// Upsert via ON CONFLICT in repo.
-		}
-		return existing, nil
+	if existing != nil && existing.Grade != nil {
+		return nil, domain.NewError("ALREADY_GRADED", "Работа уже оценена — пересдать нельзя", domain.ErrConflict)
+	}
+	if err := s.checkSubmissionFiles(ctx, existing, studentID, req.FileIDs); err != nil {
+		return nil, err
 	}
 
 	sub := &domain.Submission{
@@ -221,51 +231,65 @@ func (s *Service) Submit(ctx context.Context, assignmentID, studentID uuid.UUID,
 		Comment:      req.Comment,
 		SubmittedAt:  time.Now(),
 	}
-	if err := s.repo.CreateSubmission(ctx, sub); err != nil {
+	if existing != nil {
+		sub.ID = existing.ID // пересдача: та же запись, новые комментарий, файлы и время
+	}
+	if err := s.repo.SaveSubmission(ctx, sub, req.FileIDs); err != nil {
 		return nil, fmt.Errorf("assignments.Submit: %w", err)
 	}
 	return sub, nil
 }
 
-// UploadSubmissionFile uploads a file for a student submission.
-func (s *Service) UploadSubmissionFile(ctx context.Context, submissionID, studentID uuid.UUID, filename string, r io.Reader, size int64) (*domain.SubmissionAttachment, error) {
-	sub, err := s.repo.GetSubmissionByID(ctx, submissionID)
+// checkSubmissionFiles: прикрепить можно только свои файлы для сдачи ДЗ, которые
+// ещё не прикреплены — либо уже прикреплены к этой же сдаче (пересдача без замены).
+func (s *Service) checkSubmissionFiles(ctx context.Context, existing *domain.Submission, studentID uuid.UUID, ids []uuid.UUID) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	found, err := s.files.GetByIDs(ctx, ids)
 	if err != nil {
-		return nil, fmt.Errorf("assignments.UploadSubmissionFile fetch: %w", err)
+		return fmt.Errorf("assignments.Submit files: %w", err)
+	}
+	if len(found) != len(ids) {
+		return domain.NewError("FILE_NOT_FOUND", "Файл не найден — загрузите его заново", domain.ErrValidation)
+	}
+
+	current := map[uuid.UUID]bool{}
+	if existing != nil {
+		byID, err := s.repo.ListSubmissionFiles(ctx, []uuid.UUID{existing.ID})
+		if err != nil {
+			return fmt.Errorf("assignments.Submit current files: %w", err)
+		}
+		for _, f := range byID[existing.ID] {
+			current[f.ID] = true
+		}
+	}
+
+	for _, f := range found {
+		if f.OwnerID != studentID || f.Purpose != domain.FilePurposeSubmission {
+			return domain.ErrForbidden
+		}
+		if f.Status == domain.FileStatusAttached && !current[f.ID] {
+			return domain.NewError("FILE_IN_USE", "Файл уже приложен к другой работе", domain.ErrConflict)
+		}
+	}
+	return nil
+}
+
+// MySubmission — сдача ученика по заданию вместе с файлами (nil, если ещё не сдавал).
+func (s *Service) MySubmission(ctx context.Context, assignmentID, studentID uuid.UUID) (*domain.Submission, []*domain.File, error) {
+	sub, err := s.repo.GetSubmission(ctx, assignmentID, studentID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("assignments.MySubmission: %w", err)
 	}
 	if sub == nil {
-		return nil, domain.ErrNotFound
+		return nil, nil, nil
 	}
-	if sub.StudentID != studentID {
-		return nil, domain.ErrForbidden
+	byID, err := s.repo.ListSubmissionFiles(ctx, []uuid.UUID{sub.ID})
+	if err != nil {
+		return nil, nil, fmt.Errorf("assignments.MySubmission files: %w", err)
 	}
-	if size > maxFileSize {
-		return nil, domain.ErrValidation
-	}
-
-	objectKey := fmt.Sprintf("submissions/%s/%s_%s", submissionID, uuid.New().String(), sanitizeFilename(filename))
-	contentType := mime.TypeByExtension(filepath.Ext(filename))
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
-
-	if err := s.store.PutObject(ctx, objectKey, r, size, contentType); err != nil {
-		return nil, fmt.Errorf("assignments.UploadSubmissionFile put: %w", err)
-	}
-
-	att := &domain.SubmissionAttachment{
-		ID:           uuid.New(),
-		SubmissionID: submissionID,
-		ObjectKey:    objectKey,
-		Filename:     filename,
-		MimeType:     contentType,
-		SizeBytes:    size,
-		CreatedAt:    time.Now(),
-	}
-	if err := s.repo.AddSubmissionAttachment(ctx, att); err != nil {
-		return nil, fmt.Errorf("assignments.UploadSubmissionFile save: %w", err)
-	}
-	return att, nil
+	return sub, byID[sub.ID], nil
 }
 
 // Grade sets a grade on a submission (teacher only).
@@ -331,14 +355,9 @@ func (s *Service) AssignmentAttachments(ctx context.Context, assignmentID uuid.U
 	return s.repo.ListAssignmentAttachments(ctx, assignmentID)
 }
 
-// SubmissionAttachments returns attachments for a submission.
-func (s *Service) SubmissionAttachments(ctx context.Context, submissionID uuid.UUID) ([]*domain.SubmissionAttachment, error) {
-	return s.repo.ListSubmissionAttachments(ctx, submissionID)
-}
-
-// GetStudentSubmission returns a student's existing submission for an assignment.
-func (s *Service) GetStudentSubmission(ctx context.Context, assignmentID, studentID uuid.UUID) (*domain.Submission, error) {
-	return s.repo.GetSubmission(ctx, assignmentID, studentID)
+// SubmissionFiles returns files of the given submissions, grouped by submission ID.
+func (s *Service) SubmissionFiles(ctx context.Context, submissionIDs []uuid.UUID) (map[uuid.UUID][]*domain.File, error) {
+	return s.repo.ListSubmissionFiles(ctx, submissionIDs)
 }
 
 func (s *Service) assertVisible(ctx context.Context, groupID, callerID uuid.UUID, role domain.Role) error {

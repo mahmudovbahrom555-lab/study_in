@@ -22,15 +22,22 @@ type Repository interface {
 	ListAssignmentAttachments(ctx context.Context, assignmentID uuid.UUID) ([]*domain.AssignmentAttachment, error)
 
 	// Submissions
-	CreateSubmission(ctx context.Context, s *domain.Submission) error
+	// SaveSubmission атомарно создаёт/обновляет сдачу и заменяет её файлы:
+	// прежние файлы возвращаются в pending (их удалит очистка), новые — attached.
+	// При пересдаче ID существующей записи сохраняется.
+	SaveSubmission(ctx context.Context, s *domain.Submission, fileIDs []uuid.UUID) error
 	GetSubmission(ctx context.Context, assignmentID, studentID uuid.UUID) (*domain.Submission, error)
 	GetSubmissionByID(ctx context.Context, id uuid.UUID) (*domain.Submission, error)
 	ListSubmissions(ctx context.Context, assignmentID uuid.UUID) ([]*domain.Submission, error)
 	GradeSubmission(ctx context.Context, id uuid.UUID, grade int16, note string) error
+	// ListSubmissionFiles — файлы сдач по порядку, сгруппированные по ID сдачи.
+	ListSubmissionFiles(ctx context.Context, submissionIDs []uuid.UUID) (map[uuid.UUID][]*domain.File, error)
+}
 
-	// Submission attachments
-	AddSubmissionAttachment(ctx context.Context, a *domain.SubmissionAttachment) error
-	ListSubmissionAttachments(ctx context.Context, submissionID uuid.UUID) ([]*domain.SubmissionAttachment, error)
+// FileGetter — чтение метаданных загруженных файлов (модуль files) для проверки
+// перед прикреплением к сдаче.
+type FileGetter interface {
+	GetByIDs(ctx context.Context, ids []uuid.UUID) ([]*domain.File, error)
 }
 
 // GroupChecker — минимальный интерфейс для проверки владения группой.

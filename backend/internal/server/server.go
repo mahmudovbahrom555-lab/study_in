@@ -25,6 +25,7 @@ import (
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/attendance"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/auth"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/feed"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/files"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/grades"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/groups"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/notifications"
@@ -50,7 +51,8 @@ type Server struct {
 	redis  *redisclient.Client
 	router *chi.Mux
 	server *http.Server
-	aiSvc  *aifeature.Service
+	aiSvc    *aifeature.Service
+	filesSvc *files.Service
 }
 
 // New создаёт сервер с подключёнными middleware и роутами.
@@ -141,8 +143,17 @@ func (s *Server) setupRouter() {
 		minioSigner = noopSigner{}
 		minioStore = noopStore{}
 	}
+	// Единый модуль файлов (G10): загрузка отдельно, прикрепление — атомарно с сущностью.
+	fileRepo := postgres.NewFileRepository(s.db)
+	var fileStore files.ObjectStore = noopStore{}
+	if minioClient != nil {
+		fileStore = minioClient
+	}
+	s.filesSvc = files.NewService(fileRepo, fileStore, minioSigner)
+	filesHandler := files.NewHandler(s.filesSvc)
+
 	assignRepo := postgres.NewAssignmentRepository(s.db)
-	assignService := assignments.NewService(assignRepo, groupRepo, minioSigner, minioStore)
+	assignService := assignments.NewService(assignRepo, groupRepo, minioSigner, minioStore, fileRepo)
 	assignHandler := assignments.NewHandler(assignService)
 
 	quizRepo := postgres.NewQuizRepository(s.db)
@@ -233,6 +244,7 @@ func (s *Server) setupRouter() {
 			r.Use(middleware.Metrics)
 			groupHandler.RegisterRoutes(r)
 			feedHandler.RegisterRoutes(r)
+			filesHandler.RegisterRoutes(r)
 			assignHandler.RegisterRoutes(r)
 			quizHandler.RegisterRoutes(r)
 			gradeHandler.RegisterRoutes(r)
@@ -263,6 +275,31 @@ type noopStore struct{}
 
 func (noopStore) PutObject(_ context.Context, _ string, _ io.Reader, _ int64, _ string) error {
 	return nil
+}
+
+func (noopStore) RemoveObject(_ context.Context, _ string) error { return nil }
+
+// fileCleanupInterval — как часто удалять загруженные, но не прикреплённые файлы.
+const fileCleanupInterval = time.Hour
+
+// RunFileCleanup раз в час удаляет файлы, не прикреплённые за сутки
+// (прерванная сдача ДЗ, заменённые при пересдаче). Блокирует до отмены ctx.
+func (s *Server) RunFileCleanup(ctx context.Context) {
+	t := time.NewTicker(fileCleanupInterval)
+	defer t.Stop()
+	for {
+		n, err := s.filesSvc.CleanupPending(ctx, time.Now())
+		if err != nil {
+			s.log.Error("file cleanup failed", slog.String("err", err.Error()))
+		} else if n > 0 {
+			s.log.Info("file cleanup", slog.Int("removed", n))
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+	}
 }
 
 // asyncSMSSender satisfies sms.Sender by enqueuing tasks via Asynq.

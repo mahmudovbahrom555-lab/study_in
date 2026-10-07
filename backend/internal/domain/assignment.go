@@ -39,16 +39,6 @@ type Submission struct {
 	GradedAt     *time.Time `db:"graded_at"`
 }
 
-type SubmissionAttachment struct {
-	ID           uuid.UUID `db:"id"`
-	SubmissionID uuid.UUID `db:"submission_id"`
-	ObjectKey    string    `db:"object_key"`
-	Filename     string    `db:"filename"`
-	MimeType     string    `db:"mime_type"`
-	SizeBytes    int64     `db:"size_bytes"`
-	CreatedAt    time.Time `db:"created_at"`
-}
-
 // AssignmentWithMeta — задание с дополнительными полями для ответа API.
 type AssignmentWithMeta struct {
 	Assignment

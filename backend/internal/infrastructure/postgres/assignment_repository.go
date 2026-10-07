@@ -95,14 +95,53 @@ func (r *AssignmentRepository) ListAssignmentAttachments(ctx context.Context, as
 	return atts, nil
 }
 
-func (r *AssignmentRepository) CreateSubmission(ctx context.Context, s *domain.Submission) error {
-	_, err := r.db.NamedExecContext(ctx, `
+// SaveSubmission — одна транзакция: сдача и её файлы сохраняются вместе или не
+// сохраняются вовсе, учитель не увидит работу «наполовину».
+func (r *AssignmentRepository) SaveSubmission(ctx context.Context, s *domain.Submission, fileIDs []uuid.UUID) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("AssignmentRepository.SaveSubmission begin: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }() // после Commit — no-op
+
+	if _, err := tx.NamedExecContext(ctx, `
 		INSERT INTO submissions (id, assignment_id, student_id, comment, submitted_at)
 		VALUES (:id, :assignment_id, :student_id, :comment, :submitted_at)
 		ON CONFLICT (assignment_id, student_id) DO UPDATE
-		SET comment=EXCLUDED.comment, submitted_at=EXCLUDED.submitted_at`, s)
-	if err != nil {
-		return fmt.Errorf("AssignmentRepository.CreateSubmission: %w", err)
+		SET comment = EXCLUDED.comment, submitted_at = EXCLUDED.submitted_at`, s); err != nil {
+		return fmt.Errorf("AssignmentRepository.SaveSubmission upsert: %w", err)
+	}
+
+	// Прежние файлы отвязываем и возвращаем в pending: если ученик их убрал при
+	// пересдаче, их удалит очистка; если оставил — ниже снова станут attached.
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE files SET status = 'pending'
+		WHERE id IN (SELECT file_id FROM submission_files WHERE submission_id = $1)`, s.ID); err != nil {
+		return fmt.Errorf("AssignmentRepository.SaveSubmission release: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM submission_files WHERE submission_id = $1`, s.ID); err != nil {
+		return fmt.Errorf("AssignmentRepository.SaveSubmission unlink: %w", err)
+	}
+
+	for i, fid := range fileIDs {
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO submission_files (submission_id, file_id, position) VALUES ($1, $2, $3)`,
+			s.ID, fid, i+1); err != nil {
+			return fmt.Errorf("AssignmentRepository.SaveSubmission link: %w", err)
+		}
+	}
+	if len(fileIDs) > 0 {
+		q, args, err := sqlx.In(`UPDATE files SET status = 'attached' WHERE id IN (?)`, fileIDs)
+		if err != nil {
+			return fmt.Errorf("AssignmentRepository.SaveSubmission attach build: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, tx.Rebind(q), args...); err != nil {
+			return fmt.Errorf("AssignmentRepository.SaveSubmission attach: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("AssignmentRepository.SaveSubmission commit: %w", err)
 	}
 	return nil
 }
@@ -153,22 +192,32 @@ func (r *AssignmentRepository) GradeSubmission(ctx context.Context, id uuid.UUID
 	return nil
 }
 
-func (r *AssignmentRepository) AddSubmissionAttachment(ctx context.Context, a *domain.SubmissionAttachment) error {
-	_, err := r.db.NamedExecContext(ctx, `
-		INSERT INTO submission_attachments (id, submission_id, object_key, filename, mime_type, size_bytes, created_at)
-		VALUES (:id, :submission_id, :object_key, :filename, :mime_type, :size_bytes, :created_at)`, a)
-	if err != nil {
-		return fmt.Errorf("AssignmentRepository.AddSubmissionAttachment: %w", err)
+// ListSubmissionFiles — файлы нескольких сдач одним запросом, по порядку прикрепления.
+func (r *AssignmentRepository) ListSubmissionFiles(ctx context.Context, submissionIDs []uuid.UUID) (map[uuid.UUID][]*domain.File, error) {
+	out := make(map[uuid.UUID][]*domain.File, len(submissionIDs))
+	if len(submissionIDs) == 0 {
+		return out, nil
 	}
-	return nil
-}
-
-func (r *AssignmentRepository) ListSubmissionAttachments(ctx context.Context, submissionID uuid.UUID) ([]*domain.SubmissionAttachment, error) {
-	var atts []*domain.SubmissionAttachment
-	err := r.db.SelectContext(ctx, &atts,
-		`SELECT * FROM submission_attachments WHERE submission_id=$1 ORDER BY created_at ASC`, submissionID)
+	q, args, err := sqlx.In(`
+		SELECT sf.submission_id, f.id, f.owner_id, f.purpose, f.object_key, f.original_name,
+		       f.mime_type, f.size_bytes, f.sha256, f.width, f.height, f.status, f.created_at
+		FROM submission_files sf
+		JOIN files f ON f.id = sf.file_id
+		WHERE sf.submission_id IN (?)
+		ORDER BY sf.submission_id, sf.position`, submissionIDs)
 	if err != nil {
-		return nil, fmt.Errorf("AssignmentRepository.ListSubmissionAttachments: %w", err)
+		return nil, fmt.Errorf("AssignmentRepository.ListSubmissionFiles build: %w", err)
 	}
-	return atts, nil
+	var rows []struct {
+		SubmissionID uuid.UUID `db:"submission_id"`
+		domain.File
+	}
+	if err := r.db.SelectContext(ctx, &rows, r.db.Rebind(q), args...); err != nil {
+		return nil, fmt.Errorf("AssignmentRepository.ListSubmissionFiles: %w", err)
+	}
+	for i := range rows {
+		f := rows[i].File
+		out[rows[i].SubmissionID] = append(out[rows[i].SubmissionID], &f)
+	}
+	return out, nil
 }

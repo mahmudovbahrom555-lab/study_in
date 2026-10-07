@@ -21,7 +21,8 @@ type memRepo struct {
 	assignments map[uuid.UUID]*domain.Assignment
 	aAtts       map[uuid.UUID][]*domain.AssignmentAttachment
 	submissions map[string]*domain.Submission // "assignmentID:studentID"
-	sAtts       map[uuid.UUID][]*domain.SubmissionAttachment
+	files       map[uuid.UUID]*domain.File     // модуль files (memRepo служит и FileGetter)
+	subFiles    map[uuid.UUID][]uuid.UUID      // submissionID → fileIDs по порядку
 }
 
 func newMemRepo() *memRepo {
@@ -29,8 +30,24 @@ func newMemRepo() *memRepo {
 		assignments: make(map[uuid.UUID]*domain.Assignment),
 		aAtts:       make(map[uuid.UUID][]*domain.AssignmentAttachment),
 		submissions: make(map[string]*domain.Submission),
-		sAtts:       make(map[uuid.UUID][]*domain.SubmissionAttachment),
+		files:       make(map[uuid.UUID]*domain.File),
+		subFiles:    make(map[uuid.UUID][]uuid.UUID),
 	}
+}
+
+// addFile кладёт в «модуль files» загруженный, но не прикреплённый файл.
+func (r *memRepo) addFile(owner uuid.UUID) uuid.UUID {
+	id := uuid.New()
+	r.files[id] = &domain.File{ID: id, OwnerID: owner, Purpose: domain.FilePurposeSubmission, Status: domain.FileStatusPending}
+	return id
+}
+
+func (r *memRepo) GetByIDs(_ context.Context, ids []uuid.UUID) ([]*domain.File, error) {
+	var out []*domain.File
+	for _, id := range ids {
+		if f, ok := r.files[id]; ok { cp := *f; out = append(out, &cp) }
+	}
+	return out, nil
 }
 
 func subKey(aid, sid uuid.UUID) string { return aid.String() + ":" + sid.String() }
@@ -62,8 +79,24 @@ func (r *memRepo) AddAssignmentAttachment(_ context.Context, a *domain.Assignmen
 func (r *memRepo) ListAssignmentAttachments(_ context.Context, id uuid.UUID) ([]*domain.AssignmentAttachment, error) {
 	return r.aAtts[id], nil
 }
-func (r *memRepo) CreateSubmission(_ context.Context, s *domain.Submission) error {
-	cp := *s; r.submissions[subKey(s.AssignmentID, s.StudentID)] = &cp; return nil
+// SaveSubmission повторяет семантику Postgres-реализации: прежние файлы → pending, новые → attached.
+func (r *memRepo) SaveSubmission(_ context.Context, s *domain.Submission, fileIDs []uuid.UUID) error {
+	cp := *s
+	if old, ok := r.submissions[subKey(s.AssignmentID, s.StudentID)]; ok {
+		cp.Grade, cp.TeacherNote, cp.GradedAt = old.Grade, old.TeacherNote, old.GradedAt
+	}
+	r.submissions[subKey(s.AssignmentID, s.StudentID)] = &cp
+	for _, id := range r.subFiles[s.ID] { r.files[id].Status = domain.FileStatusPending }
+	r.subFiles[s.ID] = append([]uuid.UUID(nil), fileIDs...)
+	for _, id := range fileIDs { r.files[id].Status = domain.FileStatusAttached }
+	return nil
+}
+func (r *memRepo) ListSubmissionFiles(_ context.Context, ids []uuid.UUID) (map[uuid.UUID][]*domain.File, error) {
+	out := map[uuid.UUID][]*domain.File{}
+	for _, sid := range ids {
+		for _, fid := range r.subFiles[sid] { cp := *r.files[fid]; out[sid] = append(out[sid], &cp) }
+	}
+	return out, nil
 }
 func (r *memRepo) GetSubmission(_ context.Context, aid, sid uuid.UUID) (*domain.Submission, error) {
 	s, ok := r.submissions[subKey(aid, sid)]
@@ -83,12 +116,6 @@ func (r *memRepo) GradeSubmission(_ context.Context, id uuid.UUID, grade int16, 
 		if s.ID == id { now := time.Now(); s.Grade = &grade; s.TeacherNote = &note; s.GradedAt = &now }
 	}
 	return nil
-}
-func (r *memRepo) AddSubmissionAttachment(_ context.Context, a *domain.SubmissionAttachment) error {
-	cp := *a; r.sAtts[a.SubmissionID] = append(r.sAtts[a.SubmissionID], &cp); return nil
-}
-func (r *memRepo) ListSubmissionAttachments(_ context.Context, id uuid.UUID) ([]*domain.SubmissionAttachment, error) {
-	return r.sAtts[id], nil
 }
 
 // --- group checker ---
@@ -130,10 +157,20 @@ var teacherID = uuid.New()
 var studentID = uuid.New()
 
 func buildSvc() (*assignments.Service, *memGroups, uuid.UUID) {
+	svc, mg, gid, _ := buildSvcWithRepo()
+	return svc, mg, gid
+}
+
+func buildSvcWithRepo() (*assignments.Service, *memGroups, uuid.UUID, *memRepo) {
 	mg, gid := newGroups(teacherID)
 	mg.addMember(gid, studentID)
-	return assignments.NewService(newMemRepo(), mg, noopSigner{}, noopStore{}), mg, gid
+	repo := newMemRepo()
+	return assignments.NewService(repo, mg, noopSigner{}, noopStore{}, repo), mg, gid, repo
 }
+
+var comment = "Сделал"
+
+func withComment() assignments.SubmitRequest { return assignments.SubmitRequest{Comment: &comment} }
 
 // --- tests ---
 
@@ -172,7 +209,7 @@ func TestSubmit_Success(t *testing.T) {
 	svc, _, gid := buildSvc()
 	a, _ := svc.CreateAssignment(context.Background(), teacherID, gid,
 		assignments.CreateAssignmentRequest{Title: "B"})
-	sub, err := svc.Submit(context.Background(), a.ID, studentID, assignments.SubmitRequest{})
+	sub, err := svc.Submit(context.Background(), a.ID, studentID, withComment())
 	require.NoError(t, err)
 	assert.Equal(t, a.ID, sub.AssignmentID)
 }
@@ -181,7 +218,7 @@ func TestSubmit_NonMemberForbidden(t *testing.T) {
 	svc, _, gid := buildSvc()
 	a, _ := svc.CreateAssignment(context.Background(), teacherID, gid,
 		assignments.CreateAssignmentRequest{Title: "C"})
-	_, err := svc.Submit(context.Background(), a.ID, uuid.New(), assignments.SubmitRequest{})
+	_, err := svc.Submit(context.Background(), a.ID, uuid.New(), withComment())
 	assert.ErrorIs(t, err, domain.ErrForbidden)
 }
 
@@ -189,7 +226,7 @@ func TestGrade_Success(t *testing.T) {
 	svc, _, gid := buildSvc()
 	a, _ := svc.CreateAssignment(context.Background(), teacherID, gid,
 		assignments.CreateAssignmentRequest{Title: "D"})
-	sub, _ := svc.Submit(context.Background(), a.ID, studentID, assignments.SubmitRequest{})
+	sub, _ := svc.Submit(context.Background(), a.ID, studentID, withComment())
 
 	note := "Хорошо"
 	graded, err := svc.Grade(context.Background(), sub.ID, teacherID,
@@ -203,7 +240,7 @@ func TestGrade_WrongTeacherForbidden(t *testing.T) {
 	svc, _, gid := buildSvc()
 	a, _ := svc.CreateAssignment(context.Background(), teacherID, gid,
 		assignments.CreateAssignmentRequest{Title: "E"})
-	sub, _ := svc.Submit(context.Background(), a.ID, studentID, assignments.SubmitRequest{})
+	sub, _ := svc.Submit(context.Background(), a.ID, studentID, withComment())
 
 	_, err := svc.Grade(context.Background(), sub.ID, uuid.New(),
 		assignments.GradeRequest{Grade: 50})
@@ -230,4 +267,113 @@ func TestDeleteAssignment_Success(t *testing.T) {
 
 	as, _ := svc.ListAssignments(context.Background(), gid, teacherID, domain.RoleTeacher)
 	assert.Len(t, as, 0)
+}
+
+// --- G10: сдача с файлами ---
+
+func newAssignment(t *testing.T, svc *assignments.Service, gid uuid.UUID) *domain.Assignment {
+	t.Helper()
+	a, err := svc.CreateAssignment(context.Background(), teacherID, gid, assignments.CreateAssignmentRequest{Title: "ДЗ"})
+	require.NoError(t, err)
+	return a
+}
+
+func TestSubmit_EmptyRejected(t *testing.T) {
+	svc, _, gid := buildSvc()
+	a := newAssignment(t, svc, gid)
+	_, err := svc.Submit(context.Background(), a.ID, studentID, assignments.SubmitRequest{})
+	assert.ErrorIs(t, err, domain.ErrValidation)
+}
+
+func TestSubmit_WithFiles_AttachesThem(t *testing.T) {
+	svc, _, gid, repo := buildSvcWithRepo()
+	a := newAssignment(t, svc, gid)
+	f1, f2 := repo.addFile(studentID), repo.addFile(studentID)
+
+	sub, err := svc.Submit(context.Background(), a.ID, studentID, assignments.SubmitRequest{FileIDs: []uuid.UUID{f1, f2}})
+	require.NoError(t, err)
+
+	files, _ := svc.SubmissionFiles(context.Background(), []uuid.UUID{sub.ID})
+	require.Len(t, files[sub.ID], 2)
+	assert.Equal(t, f1, files[sub.ID][0].ID, "порядок файлов сохраняется")
+	assert.Equal(t, domain.FileStatusAttached, repo.files[f1].Status)
+}
+
+func TestSubmit_TooManyFiles(t *testing.T) {
+	svc, _, gid, repo := buildSvcWithRepo()
+	a := newAssignment(t, svc, gid)
+	ids := make([]uuid.UUID, assignments.MaxSubmissionFiles+1)
+	for i := range ids {
+		ids[i] = repo.addFile(studentID)
+	}
+	_, err := svc.Submit(context.Background(), a.ID, studentID, assignments.SubmitRequest{FileIDs: ids})
+	assert.ErrorIs(t, err, domain.ErrValidation)
+}
+
+func TestSubmit_ForeignFileForbidden(t *testing.T) {
+	svc, _, gid, repo := buildSvcWithRepo()
+	a := newAssignment(t, svc, gid)
+	someoneElses := repo.addFile(uuid.New())
+	_, err := svc.Submit(context.Background(), a.ID, studentID, assignments.SubmitRequest{FileIDs: []uuid.UUID{someoneElses}})
+	assert.ErrorIs(t, err, domain.ErrForbidden)
+}
+
+func TestSubmit_UnknownFile(t *testing.T) {
+	svc, _, gid := buildSvc()
+	a := newAssignment(t, svc, gid)
+	_, err := svc.Submit(context.Background(), a.ID, studentID, assignments.SubmitRequest{FileIDs: []uuid.UUID{uuid.New()}})
+	assert.ErrorIs(t, err, domain.ErrValidation)
+}
+
+func TestSubmit_FileOfAnotherSubmissionInUse(t *testing.T) {
+	svc, _, gid, repo := buildSvcWithRepo()
+	a1, a2 := newAssignment(t, svc, gid), newAssignment(t, svc, gid)
+	f := repo.addFile(studentID)
+	_, err := svc.Submit(context.Background(), a1.ID, studentID, assignments.SubmitRequest{FileIDs: []uuid.UUID{f}})
+	require.NoError(t, err)
+
+	_, err = svc.Submit(context.Background(), a2.ID, studentID, assignments.SubmitRequest{FileIDs: []uuid.UUID{f}})
+	assert.ErrorIs(t, err, domain.ErrConflict)
+}
+
+func TestResubmit_ReplacesFilesAndKeepsID(t *testing.T) {
+	svc, _, gid, repo := buildSvcWithRepo()
+	a := newAssignment(t, svc, gid)
+	keep, drop, added := repo.addFile(studentID), repo.addFile(studentID), repo.addFile(studentID)
+
+	first, err := svc.Submit(context.Background(), a.ID, studentID, assignments.SubmitRequest{FileIDs: []uuid.UUID{keep, drop}})
+	require.NoError(t, err)
+	second, err := svc.Submit(context.Background(), a.ID, studentID, assignments.SubmitRequest{FileIDs: []uuid.UUID{keep, added}})
+	require.NoError(t, err)
+
+	assert.Equal(t, first.ID, second.ID, "пересдача обновляет ту же запись")
+	assert.Equal(t, domain.FileStatusAttached, repo.files[keep].Status)
+	assert.Equal(t, domain.FileStatusPending, repo.files[drop].Status, "убранный файл уйдёт в очистку")
+	assert.Equal(t, domain.FileStatusAttached, repo.files[added].Status)
+}
+
+func TestResubmit_AfterGradeRejected(t *testing.T) {
+	svc, _, gid := buildSvc()
+	a := newAssignment(t, svc, gid)
+	sub, err := svc.Submit(context.Background(), a.ID, studentID, withComment())
+	require.NoError(t, err)
+	_, err = svc.Grade(context.Background(), sub.ID, teacherID, assignments.GradeRequest{Grade: 80})
+	require.NoError(t, err)
+
+	_, err = svc.Submit(context.Background(), a.ID, studentID, withComment())
+	assert.ErrorIs(t, err, domain.ErrConflict)
+}
+
+func TestMySubmission_ReturnsFiles(t *testing.T) {
+	svc, _, gid, repo := buildSvcWithRepo()
+	a := newAssignment(t, svc, gid)
+	f := repo.addFile(studentID)
+	_, err := svc.Submit(context.Background(), a.ID, studentID, assignments.SubmitRequest{FileIDs: []uuid.UUID{f}})
+	require.NoError(t, err)
+
+	sub, files, err := svc.MySubmission(context.Background(), a.ID, studentID)
+	require.NoError(t, err)
+	require.NotNil(t, sub)
+	require.Len(t, files, 1)
+	assert.Equal(t, f, files[0].ID)
 }

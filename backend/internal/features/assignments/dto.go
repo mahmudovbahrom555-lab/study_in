@@ -22,8 +22,11 @@ type UpdateAssignmentRequest struct {
 	DueDate     *time.Time `json:"due_date"`
 }
 
+// SubmitRequest — сдача ДЗ: комментарий и/или файлы, заранее загруженные через POST /files.
+// При пересдаче передаётся полный список файлов — он заменяет прежний.
 type SubmitRequest struct {
-	Comment *string `json:"comment"`
+	Comment *string     `json:"comment"`
+	FileIDs []uuid.UUID `json:"file_ids" validate:"max=5,unique"`
 }
 
 type GradeRequest struct {
