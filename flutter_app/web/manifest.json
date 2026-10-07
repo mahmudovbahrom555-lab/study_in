@@ -1,6 +1,6 @@
 {
-    "name": "repetapp",
-    "short_name": "repetapp",
+    "name": "MaMu Learn",
+    "short_name": "MaMu Learn",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

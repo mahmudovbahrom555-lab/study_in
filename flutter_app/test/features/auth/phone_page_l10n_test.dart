@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:repetapp/core/localization/l10n.dart';
-import 'package:repetapp/core/localization/locale_provider.dart';
-import 'package:repetapp/core/localization/locale_resolver.dart';
-import 'package:repetapp/features/auth/presentation/pages/phone_page.dart';
+import 'package:mamu_learn/core/localization/l10n.dart';
+import 'package:mamu_learn/core/localization/locale_provider.dart';
+import 'package:mamu_learn/core/localization/locale_resolver.dart';
+import 'package:mamu_learn/features/auth/presentation/pages/phone_page.dart';
 
 class _MemoryLanguageStore implements LanguageStore {
   _MemoryLanguageStore(this.value);

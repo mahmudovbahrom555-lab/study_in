@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:repetapp/features/ai/domain/entities/class_insights.dart';
-import 'package:repetapp/features/ai/presentation/providers/ai_insights_provider.dart';
+import 'package:mamu_learn/features/ai/domain/entities/class_insights.dart';
+import 'package:mamu_learn/features/ai/presentation/providers/ai_insights_provider.dart';
 
-import 'package:repetapp/core/localization/l10n.dart';
-import 'package:repetapp/features/quizzes/domain/entities/quiz.dart';
-import 'package:repetapp/features/quizzes/presentation/pages/quiz_result_page.dart';
+import 'package:mamu_learn/core/localization/l10n.dart';
+import 'package:mamu_learn/features/quizzes/domain/entities/quiz.dart';
+import 'package:mamu_learn/features/quizzes/presentation/pages/quiz_result_page.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers

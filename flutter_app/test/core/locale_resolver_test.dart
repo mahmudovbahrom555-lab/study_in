@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:repetapp/core/localization/locale_resolver.dart';
+import 'package:mamu_learn/core/localization/locale_resolver.dart';
 
 String resolve(List<String> device, {String? saved}) => resolveAppLocale(
       savedLanguageCode: saved,

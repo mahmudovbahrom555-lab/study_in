@@ -1,4 +1,4 @@
-# Flutter App (RepetApp)
+# Flutter App (MaMu Learn)
 
 ## Структура
 

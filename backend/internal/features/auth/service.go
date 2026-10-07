@@ -289,7 +289,7 @@ func (s *Service) issueTokenPair(ctx context.Context, user *domain.User, deviceI
 // где лимит одного сообщения — 70 символов; текст подобран ровно под него,
 // чтобы не платить за второй сегмент (проверяется в тесте).
 func verificationMessage(code string) string {
-	return fmt.Sprintf("%s — StudyIn code. Do not share.\nКод StudyIn. Никому не сообщайте.", code)
+	return fmt.Sprintf("%s — MaMu Learn code. Don't share it.\nНикому не сообщайте код.", code)
 }
 
 func generateCode(length int) (string, error) {

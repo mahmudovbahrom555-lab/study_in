@@ -18,7 +18,7 @@ func TestVerificationMessage_FitsSingleSMS(t *testing.T) {
 		t.Errorf("code must come first (iOS/Android autofill): %q", msg)
 	}
 	lines := strings.Split(msg, "\n")
-	if len(lines) != 2 || !strings.Contains(lines[0], "code") || !strings.Contains(lines[1], "Код") {
+	if len(lines) != 2 || !strings.Contains(lines[0], "MaMu Learn code") || !strings.Contains(lines[1], "код") {
 		t.Errorf("expected English line first, Russian second: %q", msg)
 	}
 }
