@@ -74,6 +74,9 @@ services:
       DATABASE_URL: postgres://repetapp:repetapp_dev_password@postgres:5432/repetapp?sslmode=disable
       REDIS_ADDR: redis:6379
       S3_ENDPOINT: minio:9000
+      # Адрес MinIO в подписанных ссылках для приложения: эмулятор Android видит
+      # компьютер как 10.0.2.2. Для реального телефона — IP компьютера в Wi-Fi.
+      S3_PUBLIC_ENDPOINT: 10.0.2.2:9000
       AUTO_MIGRATE: "true"
       # Фиксированный код входа для любого номера (только dev + SMS_PROVIDER=mock)
       SMS_DEV_CODE: "111111"

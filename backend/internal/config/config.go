@@ -60,7 +60,11 @@ type JWTConfig struct {
 }
 
 type S3Config struct {
-	Endpoint  string
+	Endpoint string
+	// PublicEndpoint — адрес MinIO, которым подписываются ссылки для клиентов.
+	// Сервер ходит в MinIO по Endpoint (в Docker — «minio:9000»), а телефон
+	// такой адрес не видит. Пусто = Endpoint.
+	PublicEndpoint string
 	AccessKey string
 	SecretKey string
 	Bucket    string
@@ -168,7 +172,8 @@ func Load() (*Config, error) {
 			RefreshTTL:    time.Duration(v.GetInt("JWT_REFRESH_TTL_DAYS")) * 24 * time.Hour,
 		},
 		S3: S3Config{
-			Endpoint:  v.GetString("S3_ENDPOINT"),
+			Endpoint:       v.GetString("S3_ENDPOINT"),
+			PublicEndpoint: v.GetString("S3_PUBLIC_ENDPOINT"),
 			AccessKey: v.GetString("S3_ACCESS_KEY"),
 			SecretKey: v.GetString("S3_SECRET_KEY"),
 			Bucket:    v.GetString("S3_BUCKET"),

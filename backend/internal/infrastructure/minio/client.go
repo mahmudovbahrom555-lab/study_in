@@ -19,6 +19,7 @@ const signedURLTTL = 1 * time.Hour
 // Client wraps MinIO operations needed by the application.
 type Client struct {
 	mc     *minio.Client
+	signer *minio.Client // подписывает ссылки публичным адресом (см. S3Config.PublicEndpoint)
 	bucket string
 }
 
@@ -44,12 +45,27 @@ func New(cfg config.S3Config) (*Client, error) {
 	}
 	// Bucket remains private — no anonymous policy set.
 
-	return &Client{mc: mc, bucket: cfg.Bucket}, nil
+	// Хост входит в подпись ссылки, поэтому подменить его после подписи нельзя —
+	// подписываем отдельным клиентом с публичным адресом. Регион задан явно,
+	// чтобы подпись не требовала сетевого запроса к публичному адресу.
+	signer := mc
+	if cfg.PublicEndpoint != "" && cfg.PublicEndpoint != cfg.Endpoint {
+		signer, err = minio.New(cfg.PublicEndpoint, &minio.Options{
+			Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
+			Secure: cfg.UseSSL,
+			Region: cfg.Region,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("minio.New public signer: %w", err)
+		}
+	}
+
+	return &Client{mc: mc, signer: signer, bucket: cfg.Bucket}, nil
 }
 
 // PresignedGetURL returns a signed GET URL valid for signedURLTTL.
 func (c *Client) PresignedGetURL(ctx context.Context, objectKey string) (string, error) {
-	u, err := c.mc.PresignedGetObject(ctx, c.bucket, objectKey, signedURLTTL, nil)
+	u, err := c.signer.PresignedGetObject(ctx, c.bucket, objectKey, signedURLTTL, nil)
 	if err != nil {
 		return "", fmt.Errorf("minio PresignedGetObject: %w", err)
 	}
