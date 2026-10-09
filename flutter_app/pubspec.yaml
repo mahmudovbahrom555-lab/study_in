@@ -53,6 +53,24 @@ dev_dependencies:
   # Testing
   mocktail: ^1.0.4
 
+  # Иконки приложения из brand/app-icon: dart run flutter_launcher_icons
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  image_path: "../brand/app-icon/app-icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  adaptive_icon_background: "#2563EB"
+  adaptive_icon_foreground: "../brand/app-icon/app-icon-foreground.png"
+  adaptive_icon_monochrome: "../brand/app-icon/app-icon-foreground.png"
+  adaptive_icon_foreground_inset: 0 # отступы уже заложены в app-icon-foreground
+  web:
+    generate: true
+    image_path: "../brand/app-icon/app-icon.png"
+    background_color: "#2563EB"
+    theme_color: "#2563EB"
+
 flutter:
   uses-material-design: true
   generate: true
