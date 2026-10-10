@@ -171,14 +171,72 @@ func (r *AssignmentRepository) GetSubmissionByID(ctx context.Context, id uuid.UU
 	return &s, nil
 }
 
-func (r *AssignmentRepository) ListSubmissions(ctx context.Context, assignmentID uuid.UUID) ([]*domain.Submission, error) {
-	var subs []*domain.Submission
-	err := r.db.SelectContext(ctx, &subs,
-		`SELECT * FROM submissions WHERE assignment_id=$1 ORDER BY submitted_at ASC`, assignmentID)
+const submissionColumns = `s.id, s.assignment_id, s.student_id, s.comment, s.grade,
+	s.teacher_note, s.submitted_at, s.graded_at`
+
+// ListSubmissions — сначала непроверенные, внутри — по времени сдачи.
+func (r *AssignmentRepository) ListSubmissions(ctx context.Context, assignmentID uuid.UUID) ([]*domain.SubmissionWithStudent, error) {
+	var subs []*domain.SubmissionWithStudent
+	err := r.db.SelectContext(ctx, &subs, `
+		SELECT `+submissionColumns+`, u.name AS student_name
+		FROM submissions s
+		JOIN users u ON u.id = s.student_id
+		WHERE s.assignment_id = $1
+		ORDER BY (s.grade IS NOT NULL), s.submitted_at`, assignmentID)
 	if err != nil {
 		return nil, fmt.Errorf("AssignmentRepository.ListSubmissions: %w", err)
 	}
 	return subs, nil
+}
+
+func (r *AssignmentRepository) ListStudentSubmissions(ctx context.Context, studentID uuid.UUID, assignmentIDs []uuid.UUID) (map[uuid.UUID]*domain.Submission, error) {
+	out := make(map[uuid.UUID]*domain.Submission, len(assignmentIDs))
+	if len(assignmentIDs) == 0 {
+		return out, nil
+	}
+	q, args, err := sqlx.In(`
+		SELECT `+submissionColumns+`
+		FROM submissions s
+		WHERE s.student_id = ? AND s.assignment_id IN (?)`, studentID, assignmentIDs)
+	if err != nil {
+		return nil, fmt.Errorf("AssignmentRepository.ListStudentSubmissions build: %w", err)
+	}
+	var subs []*domain.Submission
+	if err := r.db.SelectContext(ctx, &subs, r.db.Rebind(q), args...); err != nil {
+		return nil, fmt.Errorf("AssignmentRepository.ListStudentSubmissions: %w", err)
+	}
+	for _, s := range subs {
+		out[s.AssignmentID] = s
+	}
+	return out, nil
+}
+
+func (r *AssignmentRepository) SubmissionStats(ctx context.Context, assignmentIDs []uuid.UUID) (map[uuid.UUID]domain.SubmissionStats, error) {
+	out := make(map[uuid.UUID]domain.SubmissionStats, len(assignmentIDs))
+	if len(assignmentIDs) == 0 {
+		return out, nil
+	}
+	q, args, err := sqlx.In(`
+		SELECT assignment_id,
+		       COUNT(*)                                AS submitted,
+		       COUNT(*) FILTER (WHERE grade IS NULL)   AS ungraded
+		FROM submissions
+		WHERE assignment_id IN (?)
+		GROUP BY assignment_id`, assignmentIDs)
+	if err != nil {
+		return nil, fmt.Errorf("AssignmentRepository.SubmissionStats build: %w", err)
+	}
+	var rows []struct {
+		AssignmentID uuid.UUID `db:"assignment_id"`
+		domain.SubmissionStats
+	}
+	if err := r.db.SelectContext(ctx, &rows, r.db.Rebind(q), args...); err != nil {
+		return nil, fmt.Errorf("AssignmentRepository.SubmissionStats: %w", err)
+	}
+	for _, row := range rows {
+		out[row.AssignmentID] = row.SubmissionStats
+	}
+	return out, nil
 }
 
 func (r *AssignmentRepository) GradeSubmission(ctx context.Context, id uuid.UUID, grade int16, note string) error {

@@ -55,16 +55,22 @@ func (h *Handler) listAssignments(w http.ResponseWriter, r *http.Request) {
 	callerID := apimw.UserIDFromCtx(r.Context())
 	role := apimw.RoleFromCtx(r.Context())
 
-	as, err := h.svc.ListAssignments(r.Context(), groupID, callerID, role)
+	items, err := h.svc.ListAssignments(r.Context(), groupID, callerID, role)
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
 
-	out := make([]AssignmentResponse, len(as))
-	for i, a := range as {
-		rawAtts, _ := h.svc.AssignmentAttachments(r.Context(), a.ID)
-		out[i] = assignmentToResponse(a, h.buildAttachments(r, rawAtts))
+	out := make([]AssignmentResponse, len(items))
+	for i, it := range items {
+		rawAtts, _ := h.svc.AssignmentAttachments(r.Context(), it.Assignment.ID)
+		out[i] = assignmentToResponse(it.Assignment, h.buildAttachments(r, rawAtts))
+		if s := it.MySubmission; s != nil {
+			out[i].MySubmission = &SubmissionSummary{Grade: s.Grade, SubmittedAt: s.SubmittedAt}
+		}
+		if st := it.Stats; st != nil {
+			out[i].Stats = &StatsResponse{Submitted: st.Submitted, Ungraded: st.Ungraded}
+		}
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -184,7 +190,7 @@ func (h *Handler) uploadAssignmentFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url, _ := h.svc.SignedURL(r.Context(), att.ObjectKey)
+	url, _ := h.svc.SignedURL(r.Context(), att.ObjectKey, att.Filename)
 	writeJSON(w, http.StatusCreated, AttachmentResponse{
 		ID:        att.ID,
 		Filename:  att.Filename,
@@ -271,7 +277,8 @@ func (h *Handler) listSubmissions(w http.ResponseWriter, r *http.Request) {
 
 	out := make([]SubmissionResponse, len(subs))
 	for i, sub := range subs {
-		out[i] = submissionToResponse(sub, h.buildFiles(r, files[sub.ID]))
+		out[i] = submissionToResponse(&sub.Submission, h.buildFiles(r, files[sub.ID]))
+		out[i].StudentName = sub.StudentName
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -310,7 +317,7 @@ func (h *Handler) buildAttachments(r *http.Request, atts []*domain.AssignmentAtt
 	}
 	out := make([]AttachmentResponse, len(atts))
 	for i, a := range atts {
-		url, _ := h.svc.SignedURL(r.Context(), a.ObjectKey)
+		url, _ := h.svc.SignedURL(r.Context(), a.ObjectKey, a.Filename)
 		out[i] = AttachmentResponse{ID: a.ID, Filename: a.Filename, MimeType: a.MimeType, SizeBytes: a.SizeBytes, URL: url}
 	}
 	return out
@@ -322,7 +329,7 @@ func (h *Handler) buildFiles(r *http.Request, files []*domain.File) []Attachment
 	}
 	out := make([]AttachmentResponse, len(files))
 	for i, f := range files {
-		url, _ := h.svc.SignedURL(r.Context(), f.ObjectKey)
+		url, _ := h.svc.SignedURL(r.Context(), f.ObjectKey, f.OriginalName)
 		out[i] = AttachmentResponse{ID: f.ID, Filename: f.OriginalName, MimeType: f.MimeType, SizeBytes: f.SizeBytes, URL: url}
 	}
 	return out

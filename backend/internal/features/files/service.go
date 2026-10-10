@@ -43,7 +43,7 @@ type ObjectStore interface {
 }
 
 type Signer interface {
-	PresignedGetURL(ctx context.Context, objectKey string) (string, error)
+	PresignedGetURL(ctx context.Context, objectKey, filename string) (string, error)
 }
 
 type Service struct {
@@ -104,7 +104,7 @@ func (s *Service) Upload(ctx context.Context, ownerID uuid.UUID, purpose domain.
 
 // SignedURL — временная ссылка на скачивание (бакет приватный).
 func (s *Service) SignedURL(ctx context.Context, f *domain.File) (string, error) {
-	return s.signer.PresignedGetURL(ctx, f.ObjectKey)
+	return s.signer.PresignedGetURL(ctx, f.ObjectKey, f.OriginalName)
 }
 
 // CleanupPending удаляет файлы, загруженные больше PendingTTL назад и так и не

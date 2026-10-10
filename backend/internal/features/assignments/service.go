@@ -127,8 +127,16 @@ func (s *Service) GetAssignment(ctx context.Context, id, callerID uuid.UUID, rol
 	return a, atts, nil
 }
 
+// AssignmentListItem — задание и то, что о нём важно вызывающему:
+// ученику — своя сдача, репетитору — сколько сдано и ждёт проверки.
+type AssignmentListItem struct {
+	Assignment   *domain.Assignment
+	MySubmission *domain.Submission      // ученик; nil — ещё не сдавал
+	Stats        *domain.SubmissionStats // репетитор
+}
+
 // ListAssignments returns all assignments for a group.
-func (s *Service) ListAssignments(ctx context.Context, groupID, callerID uuid.UUID, role domain.Role) ([]*domain.Assignment, error) {
+func (s *Service) ListAssignments(ctx context.Context, groupID, callerID uuid.UUID, role domain.Role) ([]AssignmentListItem, error) {
 	if err := s.assertVisible(ctx, groupID, callerID, role); err != nil {
 		return nil, err
 	}
@@ -136,7 +144,33 @@ func (s *Service) ListAssignments(ctx context.Context, groupID, callerID uuid.UU
 	if err != nil {
 		return nil, fmt.Errorf("assignments.ListAssignments: %w", err)
 	}
-	return as, nil
+	ids := make([]uuid.UUID, len(as))
+	items := make([]AssignmentListItem, len(as))
+	for i, a := range as {
+		ids[i] = a.ID
+		items[i].Assignment = a
+	}
+
+	switch role {
+	case domain.RoleStudent:
+		mine, err := s.repo.ListStudentSubmissions(ctx, callerID, ids)
+		if err != nil {
+			return nil, fmt.Errorf("assignments.ListAssignments my submissions: %w", err)
+		}
+		for i := range items {
+			items[i].MySubmission = mine[items[i].Assignment.ID]
+		}
+	case domain.RoleTeacher:
+		stats, err := s.repo.SubmissionStats(ctx, ids)
+		if err != nil {
+			return nil, fmt.Errorf("assignments.ListAssignments stats: %w", err)
+		}
+		for i := range items {
+			st := stats[items[i].Assignment.ID]
+			items[i].Stats = &st
+		}
+	}
+	return items, nil
 }
 
 // UpdateAssignment edits title/description/due_date (teacher only).
@@ -326,7 +360,7 @@ func (s *Service) Grade(ctx context.Context, submissionID, teacherID uuid.UUID, 
 }
 
 // ListSubmissions returns all submissions for an assignment (teacher only).
-func (s *Service) ListSubmissions(ctx context.Context, assignmentID, teacherID uuid.UUID) ([]*domain.Submission, error) {
+func (s *Service) ListSubmissions(ctx context.Context, assignmentID, teacherID uuid.UUID) ([]*domain.SubmissionWithStudent, error) {
 	a, err := s.repo.GetAssignmentByID(ctx, assignmentID)
 	if err != nil {
 		return nil, fmt.Errorf("assignments.ListSubmissions fetch: %w", err)
@@ -346,8 +380,8 @@ func (s *Service) ListSubmissions(ctx context.Context, assignmentID, teacherID u
 }
 
 // SignedURL returns a signed URL for an assignment attachment.
-func (s *Service) SignedURL(ctx context.Context, objectKey string) (string, error) {
-	return s.signer.PresignedGetURL(ctx, objectKey)
+func (s *Service) SignedURL(ctx context.Context, objectKey, filename string) (string, error) {
+	return s.signer.PresignedGetURL(ctx, objectKey, filename)
 }
 
 // AssignmentAttachments returns attachments for an assignment.

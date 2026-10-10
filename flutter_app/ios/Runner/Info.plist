@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>The camera is used to photograph homework before you submit it.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photos are used to attach homework pictures to your submission.</string>
 </dict>
 </plist>

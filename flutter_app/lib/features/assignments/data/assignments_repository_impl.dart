@@ -1,4 +1,7 @@
+import 'package:dio/dio.dart';
+
 import '../domain/entities/assignment.dart';
+import '../domain/entities/submission.dart';
 import '../domain/repositories/assignments_repository.dart';
 import 'assignments_api.dart';
 
@@ -8,10 +11,8 @@ class AssignmentsRepositoryImpl implements AssignmentsRepository {
   final AssignmentsApi _api;
 
   @override
-  Future<List<Assignment>> listAssignments(String groupId) async {
-    final dtos = await _api.listAssignments(groupId);
-    return dtos.map((d) => d.toDomain()).toList();
-  }
+  Future<List<Assignment>> listAssignments(String groupId) =>
+      _api.listAssignments(groupId);
 
   @override
   Future<Assignment> createAssignment({
@@ -19,25 +20,59 @@ class AssignmentsRepositoryImpl implements AssignmentsRepository {
     required String title,
     String? description,
     DateTime? dueDate,
-  }) async {
-    final dto = await _api.createAssignment(
-      groupId: groupId,
-      title: title,
-      description: description,
-      dueDate: dueDate,
-    );
-    return dto.toDomain();
-  }
-
-  @override
-  Future<void> submitAssignment(
-    String groupId,
-    String assignmentId, {
-    String? comment,
   }) =>
-      _api.submitAssignment(groupId, assignmentId, comment: comment);
+      _api.createAssignment(
+        groupId: groupId,
+        title: title,
+        description: description,
+        dueDate: dueDate,
+      );
 
   @override
   Future<void> deleteAssignment(String groupId, String assignmentId) =>
       _api.deleteAssignment(groupId, assignmentId);
+
+  @override
+  Future<AttachedFile> uploadFile({
+    required String path,
+    required String name,
+    void Function(int sent, int total)? onProgress,
+    CancelToken? cancelToken,
+  }) =>
+      _api.uploadFile(
+        path: path,
+        name: name,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
+
+  @override
+  Future<Submission> submit(
+    String groupId,
+    String assignmentId, {
+    String? comment,
+    required List<String> fileIds,
+  }) =>
+      _api.submit(groupId, assignmentId, comment: comment, fileIds: fileIds);
+
+  @override
+  Future<Submission?> mySubmission(String groupId, String assignmentId) =>
+      _api.mySubmission(groupId, assignmentId);
+
+  @override
+  Future<List<Submission>> listSubmissions(
+    String groupId,
+    String assignmentId,
+  ) =>
+      _api.listSubmissions(groupId, assignmentId);
+
+  @override
+  Future<void> grade(
+    String groupId,
+    String assignmentId,
+    String submissionId, {
+    required int grade,
+    String? note,
+  }) =>
+      _api.grade(groupId, assignmentId, submissionId, grade: grade, note: note);
 }

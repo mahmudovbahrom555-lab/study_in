@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/router/routes.dart';
+import '../../../../core/theme/colors.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/assignment.dart';
 import '../providers/assignments_provider.dart';
@@ -98,107 +101,100 @@ class _AssignmentCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final fmt = DateFormat('dd.MM.yyyy HH:mm');
-    final overdue = assignment.dueDate != null &&
-        assignment.dueDate!.isBefore(DateTime.now()) &&
-        !assignment.isSubmitted;
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+    final a = assignment;
+    final (statusIcon, statusColor, statusText) = _status(context);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: assignment.isSubmitted
-              ? Colors.green.withOpacity(0.15)
-              : overdue
-                  ? Colors.red.withOpacity(0.15)
-                  : null,
-          child: Icon(
-            assignment.isSubmitted
-                ? LucideIcons.circleCheck
-                : LucideIcons.fileCheck,
-            color: assignment.isSubmitted
-                ? Colors.green
-                : overdue
-                    ? Colors.red
-                    : null,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push(Routes.assignment(groupId, a.id)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Icon(statusIcon, color: statusColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(a.title, style: theme.textTheme.titleMedium),
+                    if (a.description != null)
+                      Text(
+                        a.description!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    if (a.dueDate != null)
+                      Text(
+                        l10n.dueDate(DateFormat('dd.MM.yyyy HH:mm').format(a.dueDate!)),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: a.isOverdue ? theme.colorScheme.error : null,
+                        ),
+                      ),
+                    const SizedBox(height: 4),
+                    Text(
+                      statusText,
+                      style: theme.textTheme.labelLarge?.copyWith(color: statusColor),
+                    ),
+                  ],
+                ),
+              ),
+              if (isTeacher)
+                PopupMenuButton<void>(
+                  icon: const Icon(LucideIcons.ellipsisVertical),
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      onTap: () => ref
+                          .read(assignmentsProvider(groupId).notifier)
+                          .delete(a.id),
+                      child: Text(
+                        l10n.deleteAssignment,
+                        style: TextStyle(color: theme.colorScheme.error),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
           ),
         ),
-        title: Text(assignment.title),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (assignment.description != null)
-              Text(
-                assignment.description!,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            if (assignment.dueDate != null)
-              Text(
-                context.l10n.dueDate(fmt.format(assignment.dueDate!)),
-                style: TextStyle(
-                  color: overdue ? Colors.red : null,
-                  fontSize: 12,
-                ),
-              ),
-            if (assignment.isSubmitted && assignment.submissionGrade != null)
-              Text(
-                context.l10n.gradeValue('${assignment.submissionGrade}'),
-                style: const TextStyle(
-                  color: Colors.green,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-          ],
-        ),
-        isThreeLine: true,
-        trailing: isTeacher
-            ? IconButton(
-              tooltip: context.l10n.deleteAssignment,
-                icon: const Icon(LucideIcons.trash2, color: Colors.red),
-                onPressed: () => ref
-                    .read(assignmentsProvider(groupId).notifier)
-                    .delete(assignment.id),
-              )
-            : !assignment.isSubmitted
-                ? TextButton(
-                    onPressed: () => _showSubmitDialog(context, ref),
-                    child: Text(context.l10n.submit),
-                  )
-                : null,
       ),
     );
   }
 
-  void _showSubmitDialog(BuildContext context, WidgetRef ref) {
-    final ctrl = TextEditingController();
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(context.l10n.submitTitle(assignment.title)),
-        content: TextField(
-          controller: ctrl,
-          decoration: InputDecoration(labelText: context.l10n.commentOptional),
-          maxLines: 3,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(context.l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              ref.read(assignmentsProvider(groupId).notifier).submit(
-                    assignment.id,
-                    comment: ctrl.text.trim().isEmpty ? null : ctrl.text.trim(),
-                  );
-              Navigator.pop(ctx);
-            },
-            child: Text(context.l10n.send),
-          ),
-        ],
-      ),
-    );
+  /// Статус всегда текстом, цвет — только подсказка.
+  (IconData, Color, String) _status(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
+    final a = assignment;
+    if (isTeacher) {
+      final st = a.stats;
+      final toReview = st?.ungraded ?? 0;
+      final text = [
+        l10n.hwSubmittedCount(st?.submitted ?? 0),
+        if (toReview > 0) l10n.hwToReview(toReview),
+      ].join(' · ');
+      return (
+        LucideIcons.fileCheck,
+        toReview > 0 ? scheme.primary : scheme.onSurfaceVariant,
+        text,
+      );
+    }
+    final mine = a.mySubmission;
+    if (mine?.grade != null) {
+      return (LucideIcons.circleCheck, AppColors.success, l10n.gradeValue('${mine!.grade}'));
+    }
+    if (mine != null) return (LucideIcons.clock, scheme.primary, l10n.hwSubmitted);
+    if (a.isOverdue) return (LucideIcons.circleAlert, scheme.error, l10n.hwOverdue);
+    return (LucideIcons.fileCheck, scheme.onSurfaceVariant, l10n.hwNotSubmitted);
   }
 }
 
@@ -279,7 +275,10 @@ class _CreateAssignmentSheetState extends State<_CreateAssignmentSheet> {
                 firstDate: DateTime.now(),
                 lastDate: DateTime.now().add(const Duration(days: 365)),
               );
-              if (date != null) setState(() => _dueDate = date);
+              // Срок — конец выбранного дня, а не полночь в его начале.
+              if (date != null) {
+                setState(() => _dueDate = DateTime(date.year, date.month, date.day, 23, 59));
+              }
             },
           ),
           const SizedBox(height: 16),

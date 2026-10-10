@@ -7,8 +7,8 @@ class Assignment {
     this.description,
     this.dueDate,
     required this.createdAt,
-    this.submissionGrade,
-    this.isSubmitted = false,
+    this.mySubmission,
+    this.stats,
   });
 
   final String id;
@@ -18,6 +18,29 @@ class Assignment {
   final String? description;
   final DateTime? dueDate;
   final DateTime createdAt;
-  final int? submissionGrade;
-  final bool isSubmitted;
+
+  /// Ученику — своя сдача; null — ещё не сдавал.
+  final SubmissionSummary? mySubmission;
+
+  /// Репетитору — сколько работ сдано и сколько ждут проверки.
+  final SubmissionStats? stats;
+
+  bool get isSubmitted => mySubmission != null;
+
+  bool get isOverdue =>
+      dueDate != null && !isSubmitted && dueDate!.isBefore(DateTime.now());
+}
+
+class SubmissionSummary {
+  const SubmissionSummary({this.grade, required this.submittedAt});
+
+  final int? grade;
+  final DateTime submittedAt;
+}
+
+class SubmissionStats {
+  const SubmissionStats({required this.submitted, required this.ungraded});
+
+  final int submitted;
+  final int ungraded;
 }

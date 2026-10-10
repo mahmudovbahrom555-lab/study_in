@@ -25,6 +25,8 @@ String userErrorMessage(Object error) {
       case DioExceptionType.badCertificate:
         return l10n.errBadCertificate;
       case DioExceptionType.badResponse:
+        final byCode = _byCode(l10n, _serverCode(error.response?.data));
+        if (byCode != null) return byCode;
         return _byStatus(
           l10n,
           error.response?.statusCode,
@@ -35,6 +37,26 @@ String userErrorMessage(Object error) {
     }
   }
   return l10n.errGeneric;
+}
+
+/// Коды доменных ошибок, для которых у нас есть точный текст.
+String? _byCode(AppLocalizations l10n, String? code) => switch (code) {
+      'FILE_TOO_LARGE' => l10n.errFileTooLarge,
+      'FILE_TYPE_NOT_ALLOWED' => l10n.errFileType,
+      'FILE_EMPTY' => l10n.errFileEmpty,
+      'TOO_MANY_FILES' => l10n.errTooManyFiles,
+      'ALREADY_GRADED' => l10n.errAlreadyGraded,
+      'SUBMISSION_EMPTY' => l10n.errSubmissionEmpty,
+      'FILE_IN_USE' || 'FILE_NOT_FOUND' || 'FILE_MISSING' => l10n.errFileUnavailable,
+      _ => null,
+    };
+
+String? _serverCode(Object? data) {
+  if (data is Map && data['error'] is Map) {
+    final code = (data['error'] as Map)['code'];
+    if (code is String) return code;
+  }
+  return null;
 }
 
 String _byStatus(AppLocalizations l10n, int? status, String? serverMessage) {

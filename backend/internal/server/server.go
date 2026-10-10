@@ -269,7 +269,7 @@ func (a groupMemberAdapter) ListGroupsByStudent(ctx context.Context, studentID u
 // noopSigner and noopStore are used when MinIO is unavailable (e.g., local dev without S3_ENDPOINT).
 type noopSigner struct{}
 
-func (noopSigner) PresignedGetURL(_ context.Context, key string) (string, error) { return key, nil }
+func (noopSigner) PresignedGetURL(_ context.Context, key, _ string) (string, error) { return key, nil }
 
 type noopStore struct{}
 

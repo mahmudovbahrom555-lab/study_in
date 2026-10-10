@@ -28,7 +28,11 @@ type Repository interface {
 	SaveSubmission(ctx context.Context, s *domain.Submission, fileIDs []uuid.UUID) error
 	GetSubmission(ctx context.Context, assignmentID, studentID uuid.UUID) (*domain.Submission, error)
 	GetSubmissionByID(ctx context.Context, id uuid.UUID) (*domain.Submission, error)
-	ListSubmissions(ctx context.Context, assignmentID uuid.UUID) ([]*domain.Submission, error)
+	ListSubmissions(ctx context.Context, assignmentID uuid.UUID) ([]*domain.SubmissionWithStudent, error)
+	// ListStudentSubmissions — сдачи ученика по списку заданий одним запросом, по ID задания.
+	ListStudentSubmissions(ctx context.Context, studentID uuid.UUID, assignmentIDs []uuid.UUID) (map[uuid.UUID]*domain.Submission, error)
+	// SubmissionStats — счётчики сдач по списку заданий одним запросом, по ID задания.
+	SubmissionStats(ctx context.Context, assignmentIDs []uuid.UUID) (map[uuid.UUID]domain.SubmissionStats, error)
 	GradeSubmission(ctx context.Context, id uuid.UUID, grade int16, note string) error
 	// ListSubmissionFiles — файлы сдач по порядку, сгруппированные по ID сдачи.
 	ListSubmissionFiles(ctx context.Context, submissionIDs []uuid.UUID) (map[uuid.UUID][]*domain.File, error)
@@ -48,5 +52,5 @@ type GroupChecker interface {
 
 // Signer генерирует подписанные URL для MinIO.
 type Signer interface {
-	PresignedGetURL(ctx context.Context, objectKey string) (string, error)
+	PresignedGetURL(ctx context.Context, objectKey, filename string) (string, error)
 }

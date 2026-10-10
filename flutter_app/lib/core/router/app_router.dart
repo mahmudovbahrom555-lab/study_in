@@ -15,6 +15,7 @@ import '../../features/quizzes/presentation/pages/quiz_detail_page.dart';
 import '../../features/quizzes/presentation/pages/quiz_attempt_page.dart';
 import '../../features/grades/presentation/pages/grades_page.dart';
 import '../../features/attendance/presentation/pages/attendance_page.dart';
+import '../../features/assignments/presentation/pages/assignment_page.dart';
 import '../../features/assignments/presentation/pages/assignments_page.dart';
 import '../../features/home/presentation/pages/home_shell.dart';
 import '../../features/parents/presentation/pages/parents_page.dart';
@@ -94,6 +95,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/groups/:id/assignments',
         builder: (_, state) =>
             AssignmentsPage(groupId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/groups/:id/assignments/:assignmentId',
+        builder: (_, state) => AssignmentPage(
+          groupId: state.pathParameters['id']!,
+          assignmentId: state.pathParameters['assignmentId']!,
+        ),
       ),
       GoRoute(
         path: '/groups/:id/quizzes',

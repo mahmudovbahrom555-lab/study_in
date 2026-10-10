@@ -7,10 +7,8 @@ import '../../domain/entities/assignment.dart';
 import '../../domain/repositories/assignments_repository.dart';
 import '../../../../core/network/error_message.dart';
 
-final assignmentsRepositoryProvider =
-    Provider.family<AssignmentsRepository, String>((ref, groupId) {
-  final dio = ref.watch(dioProvider);
-  return AssignmentsRepositoryImpl(AssignmentsApi(dio));
+final assignmentsRepositoryProvider = Provider<AssignmentsRepository>((ref) {
+  return AssignmentsRepositoryImpl(AssignmentsApi(ref.watch(dioProvider)));
 });
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -78,15 +76,6 @@ class AssignmentsNotifier extends StateNotifier<AssignmentsState> {
     }
   }
 
-  Future<void> submit(String assignmentId, {String? comment}) async {
-    try {
-      await _repo.submitAssignment(_groupId, assignmentId, comment: comment);
-      await load();
-    } catch (e) {
-      state = state.copyWith(error: userErrorMessage(e));
-    }
-  }
-
   Future<void> delete(String assignmentId) async {
     try {
       await _repo.deleteAssignment(_groupId, assignmentId);
@@ -104,7 +93,7 @@ class AssignmentsNotifier extends StateNotifier<AssignmentsState> {
 final assignmentsProvider = StateNotifierProvider.family<AssignmentsNotifier,
     AssignmentsState, String>((ref, groupId) {
   return AssignmentsNotifier(
-    ref.watch(assignmentsRepositoryProvider(groupId)),
+    ref.watch(assignmentsRepositoryProvider),
     groupId,
   );
 });

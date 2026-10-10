@@ -126,7 +126,7 @@ func (s *memStore) RemoveObject(_ context.Context, key string) error { delete(s.
 
 type noopSigner struct{}
 
-func (noopSigner) PresignedGetURL(_ context.Context, key string) (string, error) { return key, nil }
+func (noopSigner) PresignedGetURL(_ context.Context, key, _ string) (string, error) { return key, nil }
 
 func newSvc() (*Service, *memRepo, *memStore) {
 	repo := &memRepo{files: map[uuid.UUID]*domain.File{}}

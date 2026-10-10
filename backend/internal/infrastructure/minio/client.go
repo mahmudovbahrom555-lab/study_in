@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -64,8 +65,16 @@ func New(cfg config.S3Config) (*Client, error) {
 }
 
 // PresignedGetURL returns a signed GET URL valid for signedURLTTL.
-func (c *Client) PresignedGetURL(ctx context.Context, objectKey string) (string, error) {
-	u, err := c.signer.PresignedGetObject(ctx, c.bucket, objectKey, signedURLTTL, nil)
+// filename — исходное имя: браузер покажет или сохранит файл под ним, а не
+// под техническим ключом объекта. Пусто — без подсказки.
+func (c *Client) PresignedGetURL(ctx context.Context, objectKey, filename string) (string, error) {
+	var params url.Values
+	if filename != "" {
+		params = url.Values{}
+		params.Set("response-content-disposition",
+			"inline; filename*=UTF-8''"+url.PathEscape(filename))
+	}
+	u, err := c.signer.PresignedGetObject(ctx, c.bucket, objectKey, signedURLTTL, params)
 	if err != nil {
 		return "", fmt.Errorf("minio PresignedGetObject: %w", err)
 	}

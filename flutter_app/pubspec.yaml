@@ -38,6 +38,12 @@ dependencies:
   json_annotation: ^4.9.0
   uuid: ^4.4.0
 
+  # Файлы ДЗ (G10): фото с камеры/галереи (сжимает и переводит HEIC в JPEG),
+  # PDF/Word, открытие PDF/Word во внешнем просмотрщике
+  image_picker: ^1.2.3
+  file_picker: ^11.0.3
+  url_launcher: ^6.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

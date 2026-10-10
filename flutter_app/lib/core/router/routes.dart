@@ -22,6 +22,8 @@ abstract class Routes {
       '/groups/$groupId/students/$studentId/attendance';
   static String groupAssignments(String groupId) =>
       '/groups/$groupId/assignments';
+  static String assignment(String groupId, String assignmentId) =>
+      '/groups/$groupId/assignments/$assignmentId';
   static const notifications = '/notifications';
   static const account = '/account';
   static const parentChildren = '/parent/children';

@@ -106,9 +106,41 @@ func (r *memRepo) GetSubmissionByID(_ context.Context, id uuid.UUID) (*domain.Su
 	for _, s := range r.submissions { if s.ID == id { cp := *s; return &cp, nil } }
 	return nil, nil
 }
-func (r *memRepo) ListSubmissions(_ context.Context, aid uuid.UUID) ([]*domain.Submission, error) {
-	var out []*domain.Submission
-	for _, s := range r.submissions { if s.AssignmentID == aid { cp := *s; out = append(out, &cp) } }
+func (r *memRepo) ListSubmissions(_ context.Context, aid uuid.UUID) ([]*domain.SubmissionWithStudent, error) {
+	var out []*domain.SubmissionWithStudent
+	for _, s := range r.submissions {
+		if s.AssignmentID == aid {
+			out = append(out, &domain.SubmissionWithStudent{Submission: *s, StudentName: "Test Student"})
+		}
+	}
+	return out, nil
+}
+func (r *memRepo) ListStudentSubmissions(_ context.Context, sid uuid.UUID, aids []uuid.UUID) (map[uuid.UUID]*domain.Submission, error) {
+	out := map[uuid.UUID]*domain.Submission{}
+	for _, s := range r.submissions {
+		for _, aid := range aids {
+			if s.StudentID == sid && s.AssignmentID == aid {
+				cp := *s
+				out[aid] = &cp
+			}
+		}
+	}
+	return out, nil
+}
+func (r *memRepo) SubmissionStats(_ context.Context, aids []uuid.UUID) (map[uuid.UUID]domain.SubmissionStats, error) {
+	out := map[uuid.UUID]domain.SubmissionStats{}
+	for _, s := range r.submissions {
+		for _, aid := range aids {
+			if s.AssignmentID == aid {
+				st := out[aid]
+				st.Submitted++
+				if s.Grade == nil {
+					st.Ungraded++
+				}
+				out[aid] = st
+			}
+		}
+	}
 	return out, nil
 }
 func (r *memRepo) GradeSubmission(_ context.Context, id uuid.UUID, grade int16, note string) error {
@@ -149,7 +181,7 @@ type noopStore struct{}
 func (noopStore) PutObject(_ context.Context, _ string, _ io.Reader, _ int64, _ string) error { return nil }
 
 type noopSigner struct{}
-func (noopSigner) PresignedGetURL(_ context.Context, key string) (string, error) { return key, nil }
+func (noopSigner) PresignedGetURL(_ context.Context, key, _ string) (string, error) { return key, nil }
 
 // --- helpers ---
 
@@ -197,6 +229,46 @@ func TestListAssignments_StudentSeesGroup(t *testing.T) {
 	as, err := svc.ListAssignments(context.Background(), gid, studentID, domain.RoleStudent)
 	require.NoError(t, err)
 	assert.Len(t, as, 1)
+}
+
+func TestListAssignments_StudentSeesOwnSubmission(t *testing.T) {
+	svc, _, gid := buildSvc()
+	done := newAssignment(t, svc, gid)
+	_ = newAssignment(t, svc, gid)
+	comment := "готово"
+	_, err := svc.Submit(context.Background(), done.ID, studentID, assignments.SubmitRequest{Comment: &comment})
+	require.NoError(t, err)
+
+	items, err := svc.ListAssignments(context.Background(), gid, studentID, domain.RoleStudent)
+	require.NoError(t, err)
+	require.Len(t, items, 2)
+	for _, it := range items {
+		assert.Nil(t, it.Stats, "счётчики ученику не нужны")
+		if it.Assignment.ID == done.ID {
+			assert.NotNil(t, it.MySubmission)
+		} else {
+			assert.Nil(t, it.MySubmission)
+		}
+	}
+}
+
+func TestListAssignments_TeacherSeesStats(t *testing.T) {
+	svc, _, gid := buildSvc()
+	a := newAssignment(t, svc, gid)
+	comment := "готово"
+	sub, err := svc.Submit(context.Background(), a.ID, studentID, assignments.SubmitRequest{Comment: &comment})
+	require.NoError(t, err)
+
+	items, err := svc.ListAssignments(context.Background(), gid, teacherID, domain.RoleTeacher)
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+	require.NotNil(t, items[0].Stats)
+	assert.Equal(t, domain.SubmissionStats{Submitted: 1, Ungraded: 1}, *items[0].Stats)
+
+	_, err = svc.Grade(context.Background(), sub.ID, teacherID, assignments.GradeRequest{Grade: 5})
+	require.NoError(t, err)
+	items, _ = svc.ListAssignments(context.Background(), gid, teacherID, domain.RoleTeacher)
+	assert.Equal(t, domain.SubmissionStats{Submitted: 1, Ungraded: 0}, *items[0].Stats)
 }
 
 func TestListAssignments_NonMemberForbidden(t *testing.T) {

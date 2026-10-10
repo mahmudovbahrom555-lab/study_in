@@ -39,9 +39,14 @@ type Submission struct {
 	GradedAt     *time.Time `db:"graded_at"`
 }
 
-// AssignmentWithMeta — задание с дополнительными полями для ответа API.
-type AssignmentWithMeta struct {
-	Assignment
-	AttachmentCount int        `db:"attachment_count"`
-	Submission      *Submission `db:"-"` // nil если студент ещё не сдал
+// SubmissionWithStudent — сдача с именем ученика (экран проверки у репетитора).
+type SubmissionWithStudent struct {
+	Submission
+	StudentName string `db:"student_name"`
+}
+
+// SubmissionStats — сколько работ по заданию сдано и сколько из них ждут оценки.
+type SubmissionStats struct {
+	Submitted int `db:"submitted"`
+	Ungraded  int `db:"ungraded"`
 }

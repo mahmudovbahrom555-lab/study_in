@@ -53,12 +53,26 @@ type AssignmentResponse struct {
 	DueDate     *time.Time           `json:"due_date"`
 	Attachments []AttachmentResponse `json:"attachments"`
 	CreatedAt   time.Time            `json:"created_at"`
+	// Только в списке: ученику — своя сдача (null — не сдавал), репетитору — счётчики.
+	MySubmission *SubmissionSummary `json:"my_submission,omitempty"`
+	Stats        *StatsResponse     `json:"stats,omitempty"`
+}
+
+type SubmissionSummary struct {
+	Grade       *int16    `json:"grade"`
+	SubmittedAt time.Time `json:"submitted_at"`
+}
+
+type StatsResponse struct {
+	Submitted int `json:"submitted"`
+	Ungraded  int `json:"ungraded"`
 }
 
 type SubmissionResponse struct {
 	ID           uuid.UUID            `json:"id"`
 	AssignmentID uuid.UUID            `json:"assignment_id"`
 	StudentID    uuid.UUID            `json:"student_id"`
+	StudentName  string               `json:"student_name,omitempty"`
 	Comment      *string              `json:"comment"`
 	Grade        *int16               `json:"grade"`
 	TeacherNote  *string              `json:"teacher_note"`
