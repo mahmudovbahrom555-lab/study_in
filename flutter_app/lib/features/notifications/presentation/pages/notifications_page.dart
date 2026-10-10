@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/entities/notification.dart';
 import '../providers/notifications_provider.dart';
@@ -48,7 +49,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.notifications_none_outlined, size: 64, color: Colors.grey),
+            const Icon(LucideIcons.bell, size: 64, color: Colors.grey),
             const SizedBox(height: 12),
             Text(context.l10n.noNotifications, style: const TextStyle(color: Colors.grey)),
           ],
@@ -127,11 +128,11 @@ class _NotificationTile extends StatelessWidget {
   }
 
   IconData _iconForType(String? type) => switch (type) {
-        'quiz_published' => Icons.quiz_outlined,
-        'assignment_due' => Icons.assignment_outlined,
-        'grade_posted' => Icons.grade_outlined,
-        'at_risk' => Icons.warning_amber_outlined,
-        'celebrate' => Icons.celebration_outlined,
-        _ => Icons.notifications_outlined,
+        'quiz_published' => LucideIcons.clipboardCheck,
+        'assignment_due' => LucideIcons.fileCheck,
+        'grade_posted' => LucideIcons.chartColumn,
+        'at_risk' => LucideIcons.triangleAlert,
+        'celebrate' => LucideIcons.partyPopper,
+        _ => LucideIcons.bell,
       };
 }

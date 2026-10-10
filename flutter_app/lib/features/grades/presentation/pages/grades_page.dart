@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/entities/grade.dart';
 import '../providers/grades_provider.dart';
@@ -65,7 +66,7 @@ class _TeacherView extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         tooltip: context.l10n.addGrade,
         onPressed: () => _showAdd(context, ref),
-        child: const Icon(Icons.add),
+        child: const Icon(LucideIcons.plus),
       ),
       body: Builder(
         builder: (_) {
@@ -182,7 +183,7 @@ class _SummaryBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          const Icon(Icons.bar_chart),
+          const Icon(LucideIcons.chartColumn),
           const SizedBox(width: 8),
           Text(
             context.l10n.gradesSummary(avg.toStringAsFixed(1), grades.length),
@@ -247,7 +248,7 @@ class _GradeTile extends StatelessWidget {
       trailing: onDelete != null
           ? IconButton(
             tooltip: context.l10n.deleteGrade,
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              icon: const Icon(LucideIcons.trash2, color: Colors.red),
               onPressed: onDelete,
             )
           : null,

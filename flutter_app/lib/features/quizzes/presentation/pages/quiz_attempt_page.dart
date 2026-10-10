@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/entities/quiz.dart';
 import '../providers/quizzes_provider.dart';
@@ -114,20 +115,20 @@ class _StartScreen extends StatelessWidget {
             const SizedBox(height: 24),
             if (quiz.timeLimit != null)
               _InfoRow(
-                icon: Icons.timer_outlined,
+                icon: LucideIcons.timer,
                 label: context.l10n.timeLimitMinutes(quiz.timeLimit!),
               ),
             _InfoRow(
-              icon: Icons.quiz_outlined,
+              icon: LucideIcons.clipboardCheck,
               label: context.l10n.questionsCount(quiz.questions.length),
             ),
             _InfoRow(
-              icon: Icons.repeat,
+              icon: LucideIcons.repeat,
               label: context.l10n.attemptsCount(quiz.maxAttempts),
             ),
             const SizedBox(height: 40),
             FilledButton.icon(
-              icon: const Icon(Icons.play_arrow),
+              icon: const Icon(LucideIcons.play),
               label: Text(context.l10n.start),
               onPressed: onStart,
             ),

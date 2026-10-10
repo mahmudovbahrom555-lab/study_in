@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/router/routes.dart';
+import '../../../../core/widgets/brand_mark.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../groups/presentation/pages/groups_page.dart';
 import '../../../notifications/presentation/providers/notifications_provider.dart';
@@ -37,22 +39,23 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(context.l10n.appName),
+        title: const BrandTitle(),
         actions: [
-          IconButton(
-            tooltip: context.l10n.account,
-            icon: const Icon(Icons.account_circle_outlined),
-            onPressed: () => context.push(Routes.account),
-          ),
           IconButton(
             tooltip: unread > 0 ? context.l10n.notificationsUnread(unread) : context.l10n.notifications,
             icon: Badge(
               isLabelVisible: unread > 0,
               label: Text('$unread'),
-              child: const Icon(Icons.notifications_outlined),
+              child: const Icon(LucideIcons.bell),
             ),
             onPressed: () => context.push(Routes.notifications),
           ),
+          IconButton(
+            tooltip: context.l10n.account,
+            icon: const Icon(LucideIcons.circleUser),
+            onPressed: () => context.push(Routes.account),
+          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: IndexedStack(
@@ -65,13 +68,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               onDestinationSelected: (i) => setState(() => _tab = i),
               destinations: [
                 NavigationDestination(
-                  icon: const Icon(Icons.groups_outlined),
-                  selectedIcon: const Icon(Icons.groups),
+                  icon: const Icon(LucideIcons.users),
                   label: context.l10n.navGroups,
                 ),
                 NavigationDestination(
-                  icon: const Icon(Icons.child_care_outlined),
-                  selectedIcon: const Icon(Icons.child_care),
+                  icon: const Icon(LucideIcons.heartHandshake),
                   label: context.l10n.navChildren,
                 ),
               ],

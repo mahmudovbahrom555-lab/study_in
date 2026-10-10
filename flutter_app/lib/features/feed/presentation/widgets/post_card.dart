@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../feed/domain/entities/post.dart';
 import '../../../../core/localization/l10n.dart';
@@ -35,7 +36,7 @@ class PostCard extends StatelessWidget {
               children: [
                 if (post.pinned) ...[
                   Icon(
-                    Icons.push_pin,
+                    LucideIcons.pin,
                     size: 14,
                     color: theme.colorScheme.primary,
                   ),
@@ -111,7 +112,7 @@ class _AttachmentChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ActionChip(
-      avatar: const Icon(Icons.attach_file, size: 14),
+      avatar: const Icon(LucideIcons.paperclip, size: 14),
       label: Text(
         attachment.filename,
         overflow: TextOverflow.ellipsis,

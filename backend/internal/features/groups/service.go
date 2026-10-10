@@ -115,11 +115,12 @@ func (s *Service) UpdateGroup(ctx context.Context, id, teacherID uuid.UUID, req 
 		trimmed := strings.TrimSpace(*req.Name)
 		g.Name = trimmed
 	}
+	// Пустая строка — поле очищено в форме.
 	if req.Subject != nil {
-		g.Subject = req.Subject
+		g.Subject = nilIfBlank(*req.Subject)
 	}
 	if req.Description != nil {
-		g.Description = req.Description
+		g.Description = nilIfBlank(*req.Description)
 	}
 	g.UpdatedAt = time.Now()
 
@@ -336,4 +337,13 @@ func generateInviteCode() (string, error) {
 		b[i] = safeAlphabet[n.Int64()]
 	}
 	return string(b), nil
+}
+
+// nilIfBlank обрезает пробелы; пустое значение хранится как NULL.
+func nilIfBlank(s string) *string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil
+	}
+	return &s
 }

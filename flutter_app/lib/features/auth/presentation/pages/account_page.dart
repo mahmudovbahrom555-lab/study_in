@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/app_restart.dart';
 import '../../../../core/localization/l10n.dart';
@@ -25,17 +26,17 @@ class AccountPage extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           ListTile(
-            leading: const Icon(Icons.person_outline),
+            leading: const Icon(LucideIcons.user),
             title: Text(user?.name.isNotEmpty == true ? user!.name : '—'),
             subtitle: Text(l10n.nameLabel),
           ),
           ListTile(
-            leading: const Icon(Icons.phone_outlined),
+            leading: const Icon(LucideIcons.phone),
             title: Text(user?.phone ?? '—'),
             subtitle: Text(l10n.phoneNumber),
           ),
           ListTile(
-            leading: const Icon(Icons.badge_outlined),
+            leading: const Icon(LucideIcons.idCard),
             title: Text(_roleName(l10n, user?.role)),
             subtitle: Text(l10n.roleLabel),
           ),
@@ -45,13 +46,13 @@ class AccountPage extends ConsumerWidget {
           ],
           const Divider(height: 32),
           ListTile(
-            leading: const Icon(Icons.language),
+            leading: const Icon(LucideIcons.languages),
             title: Text(l10n.language),
             trailing: const LanguageSwitcher(),
           ),
           const Divider(height: 32),
           ListTile(
-            leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.error),
+            leading: Icon(LucideIcons.logOut, color: Theme.of(context).colorScheme.error),
             title: Text(
               l10n.signOut,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
@@ -148,7 +149,7 @@ class _ParentCodeSectionState extends ConsumerState<_ParentCodeSection> {
         children: [
           Row(
             children: [
-              const Icon(Icons.family_restroom),
+              const Icon(LucideIcons.heartHandshake),
               const SizedBox(width: 16),
               Text(l10n.parentCodeTitle, style: theme.textTheme.titleMedium),
             ],
@@ -169,7 +170,7 @@ class _ParentCodeSectionState extends ConsumerState<_ParentCodeSection> {
                 const SizedBox(width: 8),
                 IconButton(
                   tooltip: l10n.copy,
-                  icon: const Icon(Icons.copy),
+                  icon: const Icon(LucideIcons.copy),
                   onPressed: _copy,
                 ),
               ],

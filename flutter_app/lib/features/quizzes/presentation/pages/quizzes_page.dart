@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/router/routes.dart';
 import '../providers/quizzes_provider.dart';
@@ -36,7 +37,7 @@ class _QuizzesPageState extends ConsumerState<QuizzesPage> {
       floatingActionButton: FloatingActionButton(
         tooltip: context.l10n.createQuiz,
         onPressed: () => _showCreate(context),
-        child: const Icon(Icons.add),
+        child: const Icon(LucideIcons.plus),
       ),
       body: Builder(
         builder: (_) {

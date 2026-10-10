@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/router/routes.dart';
 import '../../domain/entities/quiz.dart';
@@ -62,17 +63,17 @@ class _QuizBody extends StatelessWidget {
           spacing: 8,
           children: [
             Chip(
-              avatar: const Icon(Icons.repeat, size: 16),
+              avatar: const Icon(LucideIcons.repeat, size: 16),
               label: Text(context.l10n.attemptsChip(quiz.maxAttempts)),
             ),
             if (quiz.timeLimit != null)
               Chip(
-                avatar: const Icon(Icons.timer_outlined, size: 16),
+                avatar: const Icon(LucideIcons.timer, size: 16),
                 label: Text(context.l10n.minutesShort(quiz.timeLimit!)),
               ),
             Chip(
               avatar: Icon(
-                quiz.isPublished ? Icons.visibility : Icons.visibility_off,
+                quiz.isPublished ? LucideIcons.eye : LucideIcons.eyeOff,
                 size: 16,
                 color: quiz.isPublished ? Colors.green : Colors.orange,
               ),
@@ -99,7 +100,7 @@ class _QuizBody extends StatelessWidget {
         const SizedBox(height: 24),
         if (quiz.isPublished)
           FilledButton.icon(
-            icon: const Icon(Icons.play_arrow),
+            icon: const Icon(LucideIcons.play),
             label: Text(context.l10n.startQuiz),
             onPressed: () => context.push(
               Routes.quizAttempt(groupId, quiz.id),
@@ -154,8 +155,8 @@ class _QuestionTile extends StatelessWidget {
                     children: [
                       Icon(
                         o.isCorrect == true
-                            ? Icons.check_circle
-                            : Icons.radio_button_unchecked,
+                            ? LucideIcons.circleCheck
+                            : LucideIcons.circle,
                         size: 16,
                         color: o.isCorrect == true
                             ? Colors.green

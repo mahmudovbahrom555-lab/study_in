@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/entities/group.dart';
 import '../providers/groups_provider.dart';
 import '../../../../core/localization/l10n.dart';
 
-class CreateGroupSheet extends ConsumerStatefulWidget {
-  const CreateGroupSheet({super.key});
+/// Создание группы, а с [group] — её редактирование.
+class GroupFormSheet extends ConsumerStatefulWidget {
+  const GroupFormSheet({super.key, this.group});
+
+  final Group? group;
 
   @override
-  ConsumerState<CreateGroupSheet> createState() => _CreateGroupSheetState();
+  ConsumerState<GroupFormSheet> createState() => _GroupFormSheetState();
 }
 
-class _CreateGroupSheetState extends ConsumerState<CreateGroupSheet> {
+class _GroupFormSheetState extends ConsumerState<GroupFormSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _subjectCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
+  late final _nameCtrl = TextEditingController(text: widget.group?.name);
+  late final _subjectCtrl = TextEditingController(text: widget.group?.subject);
+  late final _descCtrl = TextEditingController(text: widget.group?.description);
+
+  bool get _isEdit => widget.group != null;
 
   @override
   void dispose() {
@@ -43,7 +49,7 @@ class _CreateGroupSheetState extends ConsumerState<CreateGroupSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              context.l10n.newGroup,
+              _isEdit ? context.l10n.editGroup : context.l10n.newGroup,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -74,7 +80,7 @@ class _CreateGroupSheetState extends ConsumerState<CreateGroupSheet> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text(context.l10n.create),
+                  : Text(_isEdit ? context.l10n.save : context.l10n.create),
             ),
           ],
         ),
@@ -84,14 +90,25 @@ class _CreateGroupSheetState extends ConsumerState<CreateGroupSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref.read(groupsProvider.notifier).createGroup(
-          name: _nameCtrl.text.trim(),
-          subject: _subjectCtrl.text.trim().isEmpty
-              ? null
-              : _subjectCtrl.text.trim(),
-          description:
-              _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-        );
+    final notifier = ref.read(groupsProvider.notifier);
+    final name = _nameCtrl.text.trim();
+    final subject = _subjectCtrl.text.trim();
+    final description = _descCtrl.text.trim();
+    if (_isEdit) {
+      // Пустая строка очищает поле на сервере.
+      await notifier.updateGroup(
+        widget.group!.id,
+        name: name,
+        subject: subject,
+        description: description,
+      );
+    } else {
+      await notifier.createGroup(
+        name: name,
+        subject: subject.isEmpty ? null : subject,
+        description: description.isEmpty ? null : description,
+      );
+    }
     if (mounted) Navigator.of(context).pop();
   }
 }

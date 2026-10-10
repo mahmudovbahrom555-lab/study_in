@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/entities/quiz.dart';
 import '../../../../core/localization/l10n.dart';
@@ -48,34 +49,34 @@ class QuizCard extends StatelessWidget {
                     Row(
                       children: [
                         _Chip(
-                          icon: Icons.repeat,
+                          icon: LucideIcons.repeat,
                           label: context.l10n.attemptsShortChip(quiz.maxAttempts),
                         ),
                         if (quiz.timeLimit != null) ...[
                           const SizedBox(width: 8),
                           _Chip(
-                            icon: Icons.timer_outlined,
+                            icon: LucideIcons.timer,
                             label: context.l10n.minutesShort(quiz.timeLimit!),
                           ),
                         ],
                         const SizedBox(width: 8),
                         if (quiz.isClosed)
                           _Chip(
-                            icon: Icons.lock_outline,
+                            icon: LucideIcons.lock,
                             label: context.l10n.closed,
                             color: Colors.grey,
                           )
                         else if (quiz.isNotYetOpen)
                           _Chip(
-                            icon: Icons.schedule_outlined,
+                            icon: LucideIcons.clock,
                             label: context.l10n.notStarted,
                             color: Colors.blue,
                           )
                         else
                           _Chip(
                             icon: quiz.isPublished
-                                ? Icons.visibility
-                                : Icons.visibility_off,
+                                ? LucideIcons.eye
+                                : LucideIcons.eyeOff,
                             label: quiz.isPublished ? context.l10n.publishedShort : context.l10n.draft,
                             color: quiz.isPublished
                                 ? Colors.green
@@ -89,7 +90,7 @@ class QuizCard extends StatelessWidget {
               if (onTogglePublish != null)
                 IconButton(
                   icon: Icon(
-                    quiz.isPublished ? Icons.unpublished : Icons.publish,
+                    quiz.isPublished ? LucideIcons.eyeOff : LucideIcons.send,
                     color: quiz.isPublished ? Colors.orange : Colors.green,
                   ),
                   tooltip: quiz.isPublished ? context.l10n.unpublish : context.l10n.publish,

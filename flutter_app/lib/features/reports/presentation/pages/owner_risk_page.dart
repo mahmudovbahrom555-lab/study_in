@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/entities/report.dart';
 import '../providers/reports_provider.dart';
@@ -18,7 +19,7 @@ class OwnerRiskPage extends ConsumerWidget {
         title: Text(context.l10n.churnRisks),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(LucideIcons.refreshCw),
             tooltip: context.l10n.recalculate,
             onPressed: () => ref.read(riskAlertsProvider.notifier).refresh(),
           ),
@@ -62,7 +63,7 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle_outline, size: 64, color: Colors.green.shade300),
+          Icon(LucideIcons.circleCheck, size: 64, color: Colors.green.shade300),
           const SizedBox(height: 16),
           Text(
             context.l10n.allGood,
@@ -88,7 +89,7 @@ class _AlertCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = alert.isHigh ? Colors.red : Colors.orange;
-    final icon = alert.isHigh ? Icons.warning_amber : Icons.info_outline;
+    final icon = alert.isHigh ? LucideIcons.triangleAlert : LucideIcons.info;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -139,7 +140,7 @@ class _AlertCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.lightbulb_outline, size: 15, color: Colors.blue),
+                  const Icon(LucideIcons.lightbulb, size: 15, color: Colors.blue),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -154,7 +155,7 @@ class _AlertCard extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
-                icon: const Icon(Icons.check, size: 16),
+                icon: const Icon(LucideIcons.check, size: 16),
                 label: Text(context.l10n.resolved),
                 onPressed: onResolve,
                 style: TextButton.styleFrom(

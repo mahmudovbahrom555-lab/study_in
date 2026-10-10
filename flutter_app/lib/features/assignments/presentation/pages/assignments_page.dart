@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/assignment.dart';
@@ -36,7 +37,7 @@ class _AssignmentsPageState extends ConsumerState<AssignmentsPage> {
           ? FloatingActionButton(
             tooltip: context.l10n.createAssignment,
               onPressed: () => _showCreateSheet(context),
-              child: const Icon(Icons.add),
+              child: const Icon(LucideIcons.plus),
             )
           : null,
       body: Builder(
@@ -113,8 +114,8 @@ class _AssignmentCard extends ConsumerWidget {
                   : null,
           child: Icon(
             assignment.isSubmitted
-                ? Icons.check_circle
-                : Icons.assignment_outlined,
+                ? LucideIcons.circleCheck
+                : LucideIcons.fileCheck,
             color: assignment.isSubmitted
                 ? Colors.green
                 : overdue
@@ -154,7 +155,7 @@ class _AssignmentCard extends ConsumerWidget {
         trailing: isTeacher
             ? IconButton(
               tooltip: context.l10n.deleteAssignment,
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                icon: const Icon(LucideIcons.trash2, color: Colors.red),
                 onPressed: () => ref
                     .read(assignmentsProvider(groupId).notifier)
                     .delete(assignment.id),
@@ -265,7 +266,7 @@ class _CreateAssignmentSheetState extends State<_CreateAssignmentSheet> {
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            icon: const Icon(Icons.calendar_today),
+            icon: const Icon(LucideIcons.calendar),
             label: Text(
               _dueDate == null
                   ? context.l10n.dueDateOptional

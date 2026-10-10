@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/router/routes.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../ai/presentation/providers/ai_insights_provider.dart';
 import '../providers/groups_provider.dart';
 import '../widgets/group_card.dart';
-import '../widgets/create_group_sheet.dart';
+import '../widgets/group_form_sheet.dart';
 import '../widgets/join_group_sheet.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../../../core/localization/l10n.dart';
@@ -40,7 +41,7 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
         actions: [
           if (!isTeacher)
             IconButton(
-              icon: const Icon(Icons.add_link),
+              icon: const Icon(LucideIcons.link),
               tooltip: context.l10n.joinByCode,
               onPressed: () => _showJoinSheet(context),
             ),
@@ -50,7 +51,7 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
           ? FloatingActionButton(
             tooltip: context.l10n.createGroup,
               onPressed: () => _showCreateSheet(context),
-              child: const Icon(Icons.add),
+              child: const Icon(LucideIcons.plus),
             )
           : null,
       body: _buildBody(state, isTeacher),
@@ -111,7 +112,7 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => const CreateGroupSheet(),
+      builder: (_) => const GroupFormSheet(),
     );
   }
 
@@ -139,7 +140,7 @@ class _TeacherEmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.school_outlined,
+              LucideIcons.presentation,
               size: 72,
               color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
             ),
@@ -160,12 +161,12 @@ class _TeacherEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             FilledButton.icon(
-              icon: const Icon(Icons.add),
+              icon: const Icon(LucideIcons.plus),
               label: Text(context.l10n.createFirstGroup),
               onPressed: () => showModalBottomSheet<void>(
                 context: context,
                 isScrollControlled: true,
-                builder: (_) => const CreateGroupSheet(),
+                builder: (_) => const GroupFormSheet(),
               ),
             ),
             const SizedBox(height: 12),
@@ -176,7 +177,7 @@ class _TeacherEmptyState extends StatelessWidget {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.play_circle_outline),
+                  : const Icon(LucideIcons.circlePlay),
               label: Text(context.l10n.viewDemo),
               onPressed: demoLoading ? null : onDemo,
             ),
@@ -201,7 +202,7 @@ class _StudentEmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.groups_outlined,
+              LucideIcons.users,
               size: 72,
               color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
             ),
@@ -222,7 +223,7 @@ class _StudentEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             FilledButton.icon(
-              icon: const Icon(Icons.add_link),
+              icon: const Icon(LucideIcons.link),
               label: Text(context.l10n.joinByCode),
               onPressed: onJoin,
             ),

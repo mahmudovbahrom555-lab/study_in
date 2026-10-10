@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/entities/class_insights.dart';
 import '../providers/ai_insights_provider.dart';
@@ -96,19 +97,19 @@ class _GamificationCard extends StatelessWidget {
               children: [
                 _Chip(
                   label: '${g?.xpTotal ?? 0} XP',
-                  icon: Icons.star,
+                  icon: LucideIcons.star,
                   color: Colors.amber,
                 ),
                 const SizedBox(width: 8),
                 _Chip(
                   label: context.l10n.streakChip(g?.streakDays ?? 0),
-                  icon: Icons.local_fire_department,
+                  icon: LucideIcons.flame,
                   color: Colors.orange,
                 ),
                 const SizedBox(width: 8),
                 _Chip(
                   label: context.l10n.recordChip(g?.longestStreak ?? 0),
-                  icon: Icons.emoji_events,
+                  icon: LucideIcons.trophy,
                   color: Colors.green,
                 ),
               ],

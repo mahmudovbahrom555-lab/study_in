@@ -230,6 +230,30 @@ func TestArchiveGroup_Toggle(t *testing.T) {
 	assert.False(t, resp.IsArchived)
 }
 
+func TestUpdateGroup_EditsAndClearsFields(t *testing.T) {
+	svc := buildSvc()
+	subject, desc := "Математика", "7 класс"
+	g, _ := svc.CreateGroup(context.Background(), teacherID,
+		groups.CreateGroupRequest{Name: "Old", Subject: &subject, Description: &desc})
+
+	name, newSubject, empty := "  Алгебра  ", "Алгебра", "  "
+	resp, err := svc.UpdateGroup(context.Background(), g.ID, teacherID,
+		groups.UpdateGroupRequest{Name: &name, Subject: &newSubject, Description: &empty})
+	require.NoError(t, err)
+	assert.Equal(t, "Алгебра", resp.Name)
+	require.NotNil(t, resp.Subject)
+	assert.Equal(t, "Алгебра", *resp.Subject)
+	assert.Nil(t, resp.Description, "очищенное поле хранится как NULL, а не пустая строка")
+}
+
+func TestUpdateGroup_ForbiddenForNonOwner(t *testing.T) {
+	svc := buildSvc()
+	g, _ := svc.CreateGroup(context.Background(), teacherID, groups.CreateGroupRequest{Name: "Math"})
+	name := "Hacked"
+	_, err := svc.UpdateGroup(context.Background(), g.ID, uuid.New(), groups.UpdateGroupRequest{Name: &name})
+	assert.ErrorIs(t, err, domain.ErrForbidden)
+}
+
 func TestUpdatePayment_Success(t *testing.T) {
 	svc := buildSvc()
 	g, _ := svc.CreateGroup(context.Background(), teacherID, groups.CreateGroupRequest{Name: "Math"})

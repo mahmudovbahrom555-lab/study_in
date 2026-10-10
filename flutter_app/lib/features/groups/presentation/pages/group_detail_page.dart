@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/router/routes.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/group.dart';
 import '../providers/groups_provider.dart';
+import '../widgets/group_form_sheet.dart';
 import '../widgets/member_tile.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../../../core/localization/l10n.dart';
@@ -41,16 +44,9 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
       appBar: AppBar(
         title: Text(group.name),
         actions: [
-          if (isOwner) ...[
-            IconButton(
-              tooltip: group.isArchived ? context.l10n.unarchive : context.l10n.archive,
-              icon: Icon(
-                group.isArchived ? Icons.unarchive : Icons.archive,
-              ),
-              onPressed: () =>
-                  ref.read(groupsProvider.notifier).archiveGroup(group.id),
-            ),
+          if (isOwner)
             PopupMenuButton<String>(
+              icon: const Icon(LucideIcons.ellipsisVertical),
               onSelected: (v) => _onMenuSelected(context, v, group),
               itemBuilder: (_) => [
                 PopupMenuItem(
@@ -58,12 +54,18 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
                   child: Text(context.l10n.edit),
                 ),
                 PopupMenuItem(
+                  value: 'archive',
+                  child: Text(group.isArchived ? context.l10n.unarchive : context.l10n.archive),
+                ),
+                PopupMenuItem(
                   value: 'delete',
-                  child: Text(context.l10n.delete, style: const TextStyle(color: Colors.red)),
+                  child: Text(
+                    context.l10n.delete,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
                 ),
               ],
             ),
-          ],
           if (!isTeacher)
             TextButton(
               onPressed: () => _confirmLeave(context, group),
@@ -120,7 +122,18 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
   }
 
   void _onMenuSelected(BuildContext context, String value, Group group) {
-    if (value == 'delete') _confirmDelete(context, group);
+    switch (value) {
+      case 'edit':
+        showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          builder: (_) => GroupFormSheet(group: group),
+        );
+      case 'archive':
+        ref.read(groupsProvider.notifier).archiveGroup(group.id);
+      case 'delete':
+        _confirmDelete(context, group);
+    }
   }
 
   Future<void> _confirmDelete(BuildContext context, Group group) async {
@@ -215,60 +228,59 @@ class _QuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final role = isTeacher ? 'teacher' : 'student';
+    // Порядок — по частоте: посещаемость и ДЗ отмечают каждое занятие.
+    final tiles = [
+      _ActionTile(
+        icon: LucideIcons.calendarCheck,
+        label: context.l10n.attendance,
+        onTap: () => context.push('${Routes.groupAttendance(groupId)}?role=$role'),
+      ),
+      _ActionTile(
+        icon: LucideIcons.fileCheck,
+        label: context.l10n.tabAssignments,
+        onTap: () => context.push(Routes.groupAssignments(groupId)),
+      ),
+      _ActionTile(
+        icon: LucideIcons.chartColumn,
+        label: context.l10n.tabGrades,
+        onTap: () => context.push('${Routes.groupGrades(groupId)}?role=$role'),
+      ),
+      _ActionTile(
+        icon: LucideIcons.messageCircle,
+        label: context.l10n.tabFeed,
+        onTap: () => context.push(Routes.groupFeed(groupId)),
+      ),
+      _ActionTile(
+        icon: LucideIcons.clipboardCheck,
+        label: context.l10n.tabQuizzes,
+        onTap: () => context.push(Routes.groupQuizzes(groupId)),
+      ),
+      if (isTeacher)
+        _ActionTile(
+          icon: LucideIcons.triangleAlert,
+          label: context.l10n.tabRisks,
+          onTap: () => context.push(Routes.ownerRisk),
+        ),
+    ];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: Wrap(
-        spacing: 8,
-        children: [
-          _ActionChip(
-            icon: Icons.dynamic_feed,
-            label: context.l10n.tabFeed,
-            onTap: () => context.push(Routes.groupFeed(groupId)),
-          ),
-          _ActionChip(
-            icon: Icons.assignment_outlined,
-            label: context.l10n.tabAssignments,
-            onTap: () => context.push(Routes.groupAssignments(groupId)),
-          ),
-          _ActionChip(
-            icon: Icons.quiz,
-            label: context.l10n.tabQuizzes,
-            onTap: () => context.push(Routes.groupQuizzes(groupId)),
-          ),
-          _ActionChip(
-            icon: Icons.grade,
-            label: context.l10n.tabGrades,
-            onTap: () => context.push(
-              '${Routes.groupGrades(groupId)}?role=$role',
-            ),
-          ),
-          _ActionChip(
-            icon: Icons.calendar_month,
-            label: context.l10n.tabAttendanceShort,
-            onTap: () => context.push(
-              '${Routes.groupAttendance(groupId)}?role=$role',
-            ),
-          ),
-          if (isTeacher) ...[
-            _ActionChip(
-              icon: Icons.insights,
-              label: 'AI Insights',
-              onTap: () => context.push(Routes.aiInsights(groupId)),
-            ),
-            _ActionChip(
-              icon: Icons.warning_amber_outlined,
-              label: context.l10n.tabRisks,
-              onTap: () => context.push(Routes.ownerRisk),
-            ),
-          ],
-        ],
+      padding: const EdgeInsets.all(16),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          const gap = 8.0;
+          final width = (c.maxWidth - gap) / 2;
+          return Wrap(
+            spacing: gap,
+            runSpacing: gap,
+            children: [for (final t in tiles) SizedBox(width: width, child: t)],
+          );
+        },
       ),
     );
   }
 }
 
-class _ActionChip extends StatelessWidget {
-  const _ActionChip({
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({
     required this.icon,
     required this.label,
     required this.onTap,
@@ -280,10 +292,29 @@ class _ActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ActionChip(
-      avatar: Icon(icon, size: 18),
-      label: Text(label),
-      onPressed: onTap,
+    final theme = Theme.of(context);
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+          child: Row(
+            children: [
+              Icon(icon, size: 22, color: theme.colorScheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: theme.textTheme.titleSmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -319,11 +350,19 @@ class _GroupInfoCard extends StatelessWidget {
           if (isOwner)
             Row(
               children: [
-                const Icon(Icons.link, size: 16),
-                const SizedBox(width: 4),
                 Text(
                   context.l10n.inviteCode(group.inviteCode),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                IconButton(
+                  tooltip: context.l10n.copy,
+                  icon: const Icon(LucideIcons.copy, size: 18),
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: group.inviteCode));
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text(context.l10n.copied)));
+                  },
                 ),
               ],
             ),

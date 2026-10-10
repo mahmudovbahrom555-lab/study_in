@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/router/routes.dart';
 import '../../domain/entities/class_insights.dart';
@@ -180,20 +181,20 @@ class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
                 children: [
                   TextButton.icon(
                     onPressed: () => _act('accepted'),
-                    icon: const Icon(Icons.check, size: 16),
+                    icon: const Icon(LucideIcons.check, size: 16),
                     label: Text(context.l10n.accept),
                     style: TextButton.styleFrom(foregroundColor: Colors.green),
                   ),
                   TextButton.icon(
                     onPressed: () => _act('dismissed'),
-                    icon: const Icon(Icons.close, size: 16),
+                    icon: const Icon(LucideIcons.x, size: 16),
                     label: Text(context.l10n.dismiss),
                     style: TextButton.styleFrom(foregroundColor: Colors.grey),
                   ),
                   const Spacer(),
                   TextButton.icon(
                     onPressed: _explain,
-                    icon: const Icon(Icons.auto_awesome, size: 16),
+                    icon: const Icon(LucideIcons.sparkles, size: 16),
                     label: Text(context.l10n.why),
                     style: TextButton.styleFrom(foregroundColor: Colors.indigo),
                   ),
@@ -205,7 +206,7 @@ class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  const Icon(LucideIcons.circleCheck, color: Colors.green, size: 16),
                   const SizedBox(width: 4),
                   Text(context.l10n.accepted, style: theme.textTheme.bodySmall?.copyWith(color: Colors.green)),
                 ],
@@ -217,12 +218,12 @@ class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
   }
 
   (IconData, Color) _iconFor(String action) => switch (action) {
-        'create_quiz' => (Icons.quiz_outlined, Colors.blue),
-        'schedule_review' => (Icons.event_repeat, Colors.orange),
-        'check_students' => (Icons.person_search, Colors.red),
-        'rate_questions' => (Icons.rate_review_outlined, Colors.purple),
-        'celebrate' => (Icons.celebration, Colors.green),
-        _ => (Icons.lightbulb_outline, Colors.grey),
+        'create_quiz' => (LucideIcons.clipboardCheck, Colors.blue),
+        'schedule_review' => (LucideIcons.calendarSync, Colors.orange),
+        'check_students' => (LucideIcons.userSearch, Colors.red),
+        'rate_questions' => (LucideIcons.messageSquare, Colors.purple),
+        'celebrate' => (LucideIcons.partyPopper, Colors.green),
+        _ => (LucideIcons.lightbulb, Colors.grey),
       };
 
   String _labelFor(AppLocalizations l10n, String action) => switch (action) {
@@ -272,20 +273,20 @@ class _StatRow extends StatelessWidget {
         _StatCard(
           label: context.l10n.studentsLabel,
           value: '${insights.studentCount}',
-          icon: Icons.group,
+          icon: LucideIcons.users,
         ),
         const SizedBox(width: 8),
         _StatCard(
           label: 'TAR',
           value: '$pct%',
-          icon: Icons.thumb_up_outlined,
+          icon: LucideIcons.thumbsUp,
           color: _tarColor(insights.quizStats.acceptanceRate),
         ),
         const SizedBox(width: 8),
         _StatCard(
           label: context.l10n.avgScore,
           value: '${insights.quizStats.avgScore.toStringAsFixed(1)}%',
-          icon: Icons.bar_chart,
+          icon: LucideIcons.chartColumn,
         ),
       ],
     );
@@ -376,7 +377,7 @@ class _StudentTile extends StatelessWidget {
         children: [
           Expanded(child: Text(student.name)),
           if (student.isAtRisk)
-            const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
+            const Icon(LucideIcons.triangleAlert, color: Colors.orange, size: 18),
         ],
       ),
       subtitle: Text(
@@ -385,7 +386,7 @@ class _StudentTile extends StatelessWidget {
                 ? context.l10n.weakSuffix(student.topWeakness)
                 : ''),
       ),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: const Icon(LucideIcons.chevronRight),
       onTap: () => context.push(Routes.studentProgress(groupId, student.studentId)),
     );
   }

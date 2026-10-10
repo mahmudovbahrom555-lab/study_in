@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/feed_provider.dart';
@@ -51,7 +52,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
           ? FloatingActionButton(
             tooltip: context.l10n.newPostTooltip,
               onPressed: () => _showCreateSheet(context),
-              child: const Icon(Icons.edit),
+              child: const Icon(LucideIcons.squarePen),
             )
           : null,
       body: _buildBody(feedState, authUser?.id ?? '', isTeacher),

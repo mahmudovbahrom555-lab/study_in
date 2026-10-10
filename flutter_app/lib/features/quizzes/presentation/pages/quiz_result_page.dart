@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../features/ai/domain/entities/class_insights.dart';
 import '../../../../features/ai/presentation/providers/ai_insights_provider.dart';
@@ -80,21 +81,21 @@ class _GamificationBanner extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _Stat(
-              icon: Icons.bolt,
+              icon: LucideIcons.zap,
               iconColor: Colors.amber,
               value: '${gamification.xpTotal} XP',
               label: context.l10n.totalXp,
             ),
             Container(width: 1, height: 36, color: Colors.deepPurple.withValues(alpha: 0.15)),
             _Stat(
-              icon: Icons.local_fire_department,
+              icon: LucideIcons.flame,
               iconColor: Colors.orange,
               value: context.l10n.daysShort(gamification.streakDays),
               label: context.l10n.streak,
             ),
             Container(width: 1, height: 36, color: Colors.deepPurple.withValues(alpha: 0.15)),
             _Stat(
-              icon: Icons.emoji_events,
+              icon: LucideIcons.trophy,
               iconColor: Colors.deepPurple,
               value: context.l10n.daysShort(gamification.longestStreak),
               label: context.l10n.record,
@@ -183,7 +184,7 @@ class _ScoreHeader extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.star, size: 18, color: Colors.amber),
+                  const Icon(LucideIcons.star, size: 18, color: Colors.amber),
                   const SizedBox(width: 6),
                   Text(
                     '+${result.xpEarned} XP',
@@ -225,10 +226,10 @@ class _QuestionResultCardState extends State<_QuestionResultCard> {
             ? Colors.green
             : Colors.red;
     final icon = unanswered
-        ? Icons.remove_circle_outline
+        ? LucideIcons.circleMinus
         : item.isCorrect
-            ? Icons.check_circle
-            : Icons.cancel;
+            ? LucideIcons.circleCheck
+            : LucideIcons.circleX;
     // Результат передаётся только цветом и иконкой — диктору нужен текст.
     final resultLabel = unanswered
         ? context.l10n.noAnswer
@@ -263,8 +264,8 @@ class _QuestionResultCardState extends State<_QuestionResultCard> {
                   ),
                   Icon(
                     _expanded
-                        ? Icons.expand_less
-                        : Icons.expand_more,
+                        ? LucideIcons.chevronUp
+                        : LucideIcons.chevronDown,
                     color: Colors.grey,
                     size: 20,
                     semanticLabel: _expanded ? context.l10n.collapse : context.l10n.showExplanation,
@@ -280,7 +281,7 @@ class _QuestionResultCardState extends State<_QuestionResultCard> {
                     label: context.l10n.yourAnswer,
                     text: item.selectedBody ?? '',
                     color: Colors.red,
-                    icon: Icons.close,
+                    icon: LucideIcons.x,
                   ),
                   const SizedBox(height: 6),
                 ],
@@ -288,7 +289,7 @@ class _QuestionResultCardState extends State<_QuestionResultCard> {
                   label: context.l10n.correctAnswer,
                   text: item.correctBody,
                   color: Colors.green,
-                  icon: Icons.check,
+                  icon: LucideIcons.check,
                 ),
                 if (unanswered) ...[
                   const SizedBox(height: 6),
@@ -314,7 +315,7 @@ class _QuestionResultCardState extends State<_QuestionResultCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Icon(
-                          Icons.info_outline,
+                          LucideIcons.info,
                           size: 16,
                           color: Colors.blue,
                         ),

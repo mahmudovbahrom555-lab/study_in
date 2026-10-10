@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/router/routes.dart';
 import '../providers/auth_provider.dart';
@@ -49,21 +50,21 @@ class RoleSelectPage extends ConsumerWidget {
               ),
               const SizedBox(height: 48),
               _RoleCard(
-                icon: Icons.school,
+                icon: LucideIcons.presentation,
                 title: context.l10n.roleTeacher,
                 subtitle: context.l10n.roleTeacherDesc,
                 onTap: isLoading ? null : () => selectRole('teacher'),
               ),
               const SizedBox(height: 16),
               _RoleCard(
-                icon: Icons.person,
+                icon: LucideIcons.graduationCap,
                 title: context.l10n.roleStudent,
                 subtitle: context.l10n.roleStudentDesc,
                 onTap: isLoading ? null : () => selectRole('student'),
               ),
               const SizedBox(height: 16),
               _RoleCard(
-                icon: Icons.family_restroom,
+                icon: LucideIcons.heartHandshake,
                 title: context.l10n.roleParent,
                 subtitle: context.l10n.roleParentDesc,
                 onTap: isLoading ? null : () => selectRole('parent'),
@@ -100,7 +101,7 @@ class _RoleCard extends StatelessWidget {
         leading: Icon(icon, size: 32),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: const Icon(LucideIcons.chevronRight),
         onTap: onTap,
       ),
     );

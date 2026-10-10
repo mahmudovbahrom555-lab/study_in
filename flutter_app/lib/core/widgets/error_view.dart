@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../localization/l10n.dart';
 import '../network/error_message.dart';
@@ -33,7 +34,7 @@ class ErrorView extends StatelessWidget {
               children: [
                 ExcludeSemantics(
                   child: Icon(
-                    Icons.error_outline,
+                    LucideIcons.circleAlert,
                     size: 48,
                     color: theme.colorScheme.error,
                   ),
@@ -48,7 +49,7 @@ class ErrorView extends StatelessWidget {
                   const SizedBox(height: 16),
                   FilledButton.icon(
                     onPressed: onRetry,
-                    icon: const Icon(Icons.refresh),
+                    icon: const Icon(LucideIcons.refreshCw),
                     label: Text(context.l10n.retry),
                   ),
                 ],

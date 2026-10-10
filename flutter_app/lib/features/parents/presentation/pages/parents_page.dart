@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../attendance/presentation/pages/attendance_page.dart';
 import '../../../grades/presentation/pages/grades_page.dart';
@@ -32,7 +33,7 @@ class _ParentsPageState extends ConsumerState<ParentsPage> {
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.myChildren)),
       floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.link),
+        icon: const Icon(LucideIcons.link),
         label: Text(context.l10n.add),
         onPressed: () => _showLinkDialog(context),
       ),
@@ -147,18 +148,18 @@ class _ChildCard extends ConsumerWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ExpansionTile(
-        leading: const CircleAvatar(child: Icon(Icons.person)),
+        leading: const CircleAvatar(child: Icon(LucideIcons.user)),
         title: Text(context.l10n.studentShort(link.studentId.substring(0, 8))),
         subtitle: Text('ID: ${link.studentId}'),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.link_off, color: Colors.red),
+              icon: const Icon(LucideIcons.unlink, color: Colors.red),
               tooltip: context.l10n.unlink,
               onPressed: () => _confirmUnlink(context, ref),
             ),
-            const Icon(Icons.expand_more),
+            const Icon(LucideIcons.chevronDown),
           ],
         ),
         children: [
@@ -228,13 +229,11 @@ class _ChildGroupsSection extends ConsumerWidget {
                 (g) => ListTile(
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-                  title: Text(g.name),
-                  subtitle: Text(g.subject ?? ''),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  title: Text(g.subject == null ? g.name : '${g.name} · ${g.subject}'),
+                  subtitle: Wrap(
                     children: [
                       TextButton.icon(
-                        icon: const Icon(Icons.grade, size: 18),
+                        icon: const Icon(LucideIcons.chartColumn, size: 18),
                         label: Text(context.l10n.tabGrades),
                         onPressed: () => Navigator.push<void>(
                           context,
@@ -247,8 +246,8 @@ class _ChildGroupsSection extends ConsumerWidget {
                         ),
                       ),
                       TextButton.icon(
-                        icon: const Icon(Icons.calendar_month, size: 18),
-                        label: Text(context.l10n.tabAttendanceShort),
+                        icon: const Icon(LucideIcons.calendarCheck, size: 18),
+                        label: Text(context.l10n.attendance),
                         onPressed: () => Navigator.push<void>(
                           context,
                           MaterialPageRoute(
@@ -260,7 +259,7 @@ class _ChildGroupsSection extends ConsumerWidget {
                         ),
                       ),
                       TextButton.icon(
-                        icon: const Icon(Icons.bar_chart, size: 18),
+                        icon: const Icon(LucideIcons.chartColumn, size: 18),
                         label: const Text('ROI'),
                         onPressed: () => Navigator.push<void>(
                           context,

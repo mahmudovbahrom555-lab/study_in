@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/theme/colors.dart';
 import '../../domain/entities/group.dart';
 import '../../../../core/localization/l10n.dart';
 
@@ -38,11 +40,19 @@ class MemberTile extends StatelessWidget {
                   status: member.paymentStatus,
                   onTap: onPaymentTap,
                 ),
+                // Редкое и необратимое действие — в меню, а не кнопкой рядом со статусом оплаты.
                 if (onRemove != null)
-                  IconButton(
-                    tooltip: context.l10n.removeFromGroup,
-                    icon: const Icon(Icons.person_remove_outlined),
-                    onPressed: onRemove,
+                  PopupMenuButton<void>(
+                    icon: const Icon(LucideIcons.ellipsisVertical),
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                        onTap: onRemove,
+                        child: Text(
+                          context.l10n.removeFromGroup,
+                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                        ),
+                      ),
+                    ],
                   ),
               ],
             )
@@ -60,15 +70,15 @@ class _PaymentChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (status) {
-      PaymentStatus.paid => (context.l10n.paymentPaid, Colors.green),
-      PaymentStatus.pending => (context.l10n.paymentPending, Colors.orange),
-      PaymentStatus.trial => (context.l10n.paymentTrial, Colors.grey),
+      PaymentStatus.paid => (context.l10n.paymentPaid, AppColors.success),
+      PaymentStatus.pending => (context.l10n.paymentPending, AppColors.warning),
+      PaymentStatus.trial => (context.l10n.paymentTrial, AppColors.textSecondary),
     };
 
     final chip = Chip(
       label: Text(label, style: const TextStyle(fontSize: 12)),
-      backgroundColor: color.withOpacity(0.15),
-      side: BorderSide(color: color.withOpacity(0.4)),
+      backgroundColor: color.withValues(alpha: 0.15),
+      side: BorderSide(color: color.withValues(alpha: 0.4)),
       visualDensity: VisualDensity.compact,
     );
 
@@ -98,9 +108,7 @@ class _PaymentChip extends StatelessWidget {
             for (final s in PaymentStatus.values)
               ListTile(
                 title: Text(_label(context.l10n, s)),
-                leading: Icon(
-                  s == status ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                ),
+                leading: Icon(s == status ? LucideIcons.circleDot : LucideIcons.circle),
                 onTap: () {
                   Navigator.pop(context);
                   onTap?.call(s);

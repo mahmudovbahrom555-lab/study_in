@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/entities/report.dart';
 import '../providers/reports_provider.dart';
@@ -71,7 +72,7 @@ class _ReportBody extends StatelessWidget {
                 title: context.l10n.attendance,
                 value: '${report.attendancePct.toStringAsFixed(0)}%',
                 color: _attendanceColor(report.attendancePct),
-                icon: Icons.calendar_today_outlined,
+                icon: LucideIcons.calendar,
               ),
             ),
             const SizedBox(width: 12),
@@ -80,7 +81,7 @@ class _ReportBody extends StatelessWidget {
                 title: context.l10n.tabQuizzes,
                 value: '${report.quizScoreAvg.toStringAsFixed(0)}%',
                 delta: report.quizScoreDelta,
-                icon: Icons.quiz_outlined,
+                icon: LucideIcons.clipboardCheck,
               ),
             ),
           ],
@@ -93,7 +94,7 @@ class _ReportBody extends StatelessWidget {
                 title: context.l10n.mastery,
                 value: '${(report.masteryAvg * 100).toStringAsFixed(0)}%',
                 delta: report.masteryDelta,
-                icon: Icons.auto_graph_outlined,
+                icon: LucideIcons.chartLine,
               ),
             ),
             const SizedBox(width: 12),
@@ -101,7 +102,7 @@ class _ReportBody extends StatelessWidget {
               child: _MetricCard(
                 title: context.l10n.homework,
                 value: '${report.homeworkCompletionPct.toStringAsFixed(0)}%',
-                icon: Icons.assignment_turned_in_outlined,
+                icon: LucideIcons.fileCheck,
                 color: Colors.teal,
               ),
             ),
@@ -139,7 +140,7 @@ class _SummaryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.auto_awesome, color: Colors.blue.shade700, size: 18),
+              Icon(LucideIcons.sparkles, color: Colors.blue.shade700, size: 18),
               const SizedBox(width: 8),
               Text(
                 context.l10n.summary,

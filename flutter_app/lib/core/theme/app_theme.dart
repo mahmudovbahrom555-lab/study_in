@@ -6,15 +6,20 @@ import 'colors.dart';
 class AppTheme {
   AppTheme._();
 
+  static const _font = 'GolosText';
+
   static ThemeData light() {
+    // fidelity держит оттенки близко к фирменному синему; primary — ровно как в логотипе.
     final colorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       brightness: Brightness.light,
-    );
+      dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+    ).copyWith(primary: AppColors.primary, onPrimary: AppColors.textOnPrimary);
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      fontFamily: _font,
       scaffoldBackgroundColor: AppColors.background,
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.surface,
@@ -67,11 +72,13 @@ class AppTheme {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       brightness: Brightness.dark,
-    );
+      dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+    ).copyWith(primary: AppColors.primaryLight);
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      fontFamily: _font,
       brightness: Brightness.dark,
     );
   }

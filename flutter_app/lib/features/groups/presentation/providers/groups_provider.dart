@@ -89,6 +89,29 @@ class GroupsNotifier extends StateNotifier<GroupsState> {
     }
   }
 
+  Future<void> updateGroup(
+    String id, {
+    required String name,
+    required String subject,
+    required String description,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final updated = await _repo.updateGroup(
+        id,
+        name: name,
+        subject: subject,
+        description: description,
+      );
+      state = state.copyWith(
+        isLoading: false,
+        groups: state.groups.map((g) => g.id == id ? updated : g).toList(),
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
+    }
+  }
+
   Future<void> archiveGroup(String id) async {
     try {
       final updated = await _repo.archiveGroup(id);

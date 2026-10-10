@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/theme/colors.dart';
 import '../../domain/entities/attendance.dart';
 import '../providers/attendance_provider.dart';
 import '../../../../core/widgets/error_view.dart';
@@ -48,7 +50,7 @@ class _TeacherAttendancePage extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: context.l10n.pickDate,
-            icon: const Icon(Icons.calendar_today),
+            icon: const Icon(LucideIcons.calendar),
             onPressed: () => _pickDate(context, ref, state.selectedDate),
           ),
         ],
@@ -82,7 +84,7 @@ class _TeacherAttendancePage extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _markSheet(context, ref),
-        icon: const Icon(Icons.add),
+        icon: const Icon(LucideIcons.plus),
         label: Text(context.l10n.mark),
       ),
     );
@@ -234,7 +236,7 @@ class _DateBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          const Icon(Icons.calendar_today, size: 16),
+          const Icon(LucideIcons.calendar, size: 16),
           const SizedBox(width: 8),
           Text(label, style: Theme.of(context).textTheme.bodyMedium),
         ],
@@ -291,10 +293,10 @@ class _AttendanceTile extends StatelessWidget {
   final VoidCallback? onDelete;
 
   Color _statusColor(AttendanceStatus s) => switch (s) {
-        AttendanceStatus.present => Colors.green,
-        AttendanceStatus.absent => Colors.red,
-        AttendanceStatus.late => Colors.orange,
-        AttendanceStatus.excused => Colors.blue,
+        AttendanceStatus.present => AppColors.success,
+        AttendanceStatus.absent => AppColors.error,
+        AttendanceStatus.late => AppColors.warning,
+        AttendanceStatus.excused => AppColors.info,
       };
 
   @override
@@ -302,7 +304,7 @@ class _AttendanceTile extends StatelessWidget {
     final color = _statusColor(record.status);
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: color.withOpacity(0.15),
+        backgroundColor: color.withValues(alpha: 0.15),
         child: Icon(_statusIcon(record.status), color: color, size: 20),
       ),
       title: Text(record.studentId),
@@ -313,7 +315,8 @@ class _AttendanceTile extends StatelessWidget {
               children: [
                 if (onChangeStatus != null)
                   PopupMenuButton<AttendanceStatus>(
-                    icon: const Icon(Icons.edit_outlined),
+                    tooltip: context.l10n.changeMark,
+                    icon: const Icon(LucideIcons.pencil),
                     onSelected: onChangeStatus,
                     itemBuilder: (_) => AttendanceStatus.values
                         .map(
@@ -326,7 +329,7 @@ class _AttendanceTile extends StatelessWidget {
                   ),
                 IconButton(
                   tooltip: context.l10n.deleteMark,
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  icon: const Icon(LucideIcons.trash2, color: AppColors.error),
                   onPressed: onDelete,
                 ),
               ],
@@ -336,9 +339,9 @@ class _AttendanceTile extends StatelessWidget {
   }
 
   IconData _statusIcon(AttendanceStatus s) => switch (s) {
-        AttendanceStatus.present => Icons.check_circle,
-        AttendanceStatus.absent => Icons.cancel,
-        AttendanceStatus.late => Icons.watch_later,
-        AttendanceStatus.excused => Icons.info,
+        AttendanceStatus.present => LucideIcons.circleCheck,
+        AttendanceStatus.absent => LucideIcons.circleX,
+        AttendanceStatus.late => LucideIcons.clock,
+        AttendanceStatus.excused => LucideIcons.info,
       };
 }
