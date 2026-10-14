@@ -35,6 +35,15 @@ class AttendanceDto {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  static RosterEntry rosterFromJson(Map<String, dynamic> json) => RosterEntry(
+        studentId: json['student_id'] as String,
+        studentName: json['student_name'] as String,
+        attendanceId: json['attendance_id'] as String?,
+        status: json['status'] == null
+            ? null
+            : AttendanceStatus.fromJson(json['status'] as String),
+      );
+
   Attendance toDomain() => Attendance(
         id: id,
         groupId: groupId,

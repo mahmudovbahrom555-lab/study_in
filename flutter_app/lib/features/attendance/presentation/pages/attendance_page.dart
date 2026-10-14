@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../core/theme/colors.dart';
-import '../../domain/entities/attendance.dart';
-import '../providers/attendance_provider.dart';
-import '../../../../core/widgets/error_view.dart';
 import '../../../../core/localization/l10n.dart';
+import '../../../../core/theme/colors.dart';
+import '../../../../core/widgets/error_view.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../domain/entities/attendance.dart';
 import '../attendance_status_l10n.dart';
+import '../providers/attendance_provider.dart';
 
 class AttendancePage extends ConsumerWidget {
   const AttendancePage({
@@ -19,21 +21,38 @@ class AttendancePage extends ConsumerWidget {
 
   final String groupId;
   final bool isTeacher;
+
+  /// Чью историю показать (родитель смотрит ребёнка); null — свою.
   final String? studentId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (isTeacher) {
-      return _TeacherAttendancePage(groupId: groupId);
-    }
+    if (isTeacher) return _TeacherAttendancePage(groupId: groupId);
+    final me = ref.watch(authProvider).user?.id;
     return _StudentAttendancePage(
       groupId: groupId,
-      studentId: studentId ?? '',
+      studentId: studentId ?? me ?? '',
     );
   }
 }
 
-// ─── Teacher view ─────────────────────────────────────────────────────────────
+Color _statusColor(AttendanceStatus s) => switch (s) {
+      AttendanceStatus.present => AppColors.success,
+      AttendanceStatus.absent => AppColors.error,
+      AttendanceStatus.late => AppColors.warning,
+      AttendanceStatus.excused => AppColors.info,
+    };
+
+IconData _statusIcon(AttendanceStatus s) => switch (s) {
+      AttendanceStatus.present => LucideIcons.circleCheck,
+      AttendanceStatus.absent => LucideIcons.circleX,
+      AttendanceStatus.late => LucideIcons.clock,
+      AttendanceStatus.excused => LucideIcons.info,
+    };
+
+String _fmtDate(DateTime d) => DateFormat('dd.MM.yyyy').format(d);
+
+// ─── Репетитор: список занятия ────────────────────────────────────────────────
 
 class _TeacherAttendancePage extends ConsumerWidget {
   const _TeacherAttendancePage({required this.groupId});
@@ -42,128 +61,237 @@ class _TeacherAttendancePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(attendanceDateProvider(groupId));
+    final l10n = context.l10n;
+    final state = ref.watch(rosterProvider(groupId));
+    final notifier = ref.read(rosterProvider(groupId).notifier);
+
+    ref.listen(rosterProvider(groupId).select((s) => s.saveError), (_, err) {
+      if (err != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      }
+    });
+
+    final Widget body;
+    if (state.loadError != null && state.entries.isEmpty) {
+      body = ErrorView(error: state.loadError, onRetry: () => notifier.load(state.date));
+    } else if (state.isLoading && state.entries.isEmpty) {
+      body = const Center(child: CircularProgressIndicator());
+    } else if (state.entries.isEmpty) {
+      body = Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(l10n.attNoStudents, textAlign: TextAlign.center),
+        ),
+      );
+    } else {
+      body = RefreshIndicator(
+        onRefresh: () => notifier.load(state.date),
+        child: ListView.separated(
+          padding: const EdgeInsets.only(bottom: 24),
+          itemCount: state.entries.length,
+          separatorBuilder: (_, __) => const Divider(height: 1, indent: 16),
+          itemBuilder: (_, i) {
+            final e = state.entries[i];
+            return _RosterRow(
+              entry: e,
+              saving: state.saving.contains(e.studentId),
+              onTap: (s) => notifier.toggle(e.studentId, s),
+            );
+          },
+        ),
+      );
+    }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.l10n.attendance),
-        actions: [
-          IconButton(
-            tooltip: context.l10n.pickDate,
-            icon: const Icon(LucideIcons.calendar),
-            onPressed: () => _pickDate(context, ref, state.selectedDate),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text(l10n.attendance)),
       body: Column(
         children: [
-          _DateBanner(date: state.selectedDate),
-          if (state.isLoading)
-            const Expanded(child: Center(child: CircularProgressIndicator()))
-          else if (state.records.isEmpty)
-            Expanded(
-                child: Center(child: Text(context.l10n.noRecordsForDay)),)
-          else
-            Expanded(
-              child: ListView.builder(
-                itemCount: state.records.length,
-                itemBuilder: (_, i) => _AttendanceTile(
-                  record: state.records[i],
-                  onChangeStatus: (status) => ref
-                      .read(attendanceDateProvider(groupId).notifier)
-                      .mark(
-                          studentId: state.records[i].studentId,
-                          status: status,),
-                  onDelete: () => ref
-                      .read(attendanceDateProvider(groupId).notifier)
-                      .delete(state.records[i].id),
-                ),
-              ),
-            ),
+          _DayBar(groupId: groupId),
+          if (state.entries.isNotEmpty) _Summary(state: state, onRestPresent: notifier.markRestPresent),
+          SizedBox(
+            height: 2,
+            child: state.isLoading && state.entries.isNotEmpty
+                ? const LinearProgressIndicator(minHeight: 2)
+                : null,
+          ),
+          Expanded(child: body),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _markSheet(context, ref),
-        icon: const Icon(LucideIcons.plus),
-        label: Text(context.l10n.mark),
-      ),
-    );
-  }
-
-  Future<void> _pickDate(
-    BuildContext context,
-    WidgetRef ref,
-    DateTime? current,
-  ) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: current ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) {
-      ref.read(attendanceDateProvider(groupId).notifier).load(picked);
-    }
-  }
-
-  void _markSheet(BuildContext context, WidgetRef ref) {
-    final studentIdCtrl = TextEditingController();
-    AttendanceStatus selected = AttendanceStatus.present;
-
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) {
-          final insets = MediaQuery.viewInsetsOf(ctx);
-          return Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + insets.bottom),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  context.l10n.markAttendance,
-                  style: Theme.of(ctx).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: studentIdCtrl,
-                  decoration: InputDecoration(labelText: context.l10n.studentId),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<AttendanceStatus>(
-                  initialValue: selected,
-                  decoration: InputDecoration(labelText: context.l10n.status),
-                  items: AttendanceStatus.values
-                      .map(
-                        (s) => DropdownMenuItem(
-                          value: s,
-                          child: Text(s.label(context.l10n)),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) => setState(() => selected = v!),
-                ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: () {
-                    ref.read(attendanceDateProvider(groupId).notifier).mark(
-                        studentId: studentIdCtrl.text.trim(), status: selected,);
-                    Navigator.of(ctx).pop();
-                  },
-                  child: Text(context.l10n.save),
-                ),
-              ],
-            ),
-          );
-        },
       ),
     );
   }
 }
 
-// ─── Student view ─────────────────────────────────────────────────────────────
+class _DayBar extends ConsumerWidget {
+  const _DayBar({required this.groupId});
+
+  final String groupId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final date = ref.watch(rosterProvider(groupId).select((s) => s.date));
+    final notifier = ref.read(rosterProvider(groupId).notifier);
+    final now = DateTime.now();
+    final isToday = date == DateTime(now.year, now.month, now.day);
+
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Row(
+          children: [
+            IconButton(
+              tooltip: l10n.attPrevDay,
+              icon: const Icon(LucideIcons.chevronLeft),
+              onPressed: () => notifier.shiftDay(-1),
+            ),
+            Expanded(
+              child: TextButton.icon(
+                icon: const Icon(LucideIcons.calendar, size: 18),
+                label: Text(isToday ? l10n.attToday(_fmtDate(date)) : _fmtDate(date)),
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: date,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now(),
+                    helpText: l10n.pickDate,
+                  );
+                  if (picked != null) notifier.load(picked);
+                },
+              ),
+            ),
+            IconButton(
+              tooltip: l10n.attNextDay,
+              icon: const Icon(LucideIcons.chevronRight),
+              // Будущие дни не отмечаем.
+              onPressed: isToday ? null : () => notifier.shiftDay(1),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Summary extends StatelessWidget {
+  const _Summary({required this.state, required this.onRestPresent});
+
+  final RosterState state;
+  final VoidCallback onRestPresent;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+    // Высота постоянная: когда кнопка «Остальные…» исчезает, список не должен
+    // прыгать — иначе следующий тап попадёт по соседнему ученику.
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              l10n.attMarkedOf(state.marked, state.entries.length),
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ),
+          if (state.hasUnmarked)
+            FilledButton.tonalIcon(
+              icon: const Icon(LucideIcons.checkCheck, size: 18),
+              label: Text(l10n.attRestPresent),
+              onPressed: onRestPresent,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Строка ученика: имя и статус текстом, справа 4 кнопки статуса.
+/// Тап ставит статус, повторный тап по нему же снимает отметку.
+class _RosterRow extends StatelessWidget {
+  const _RosterRow({required this.entry, required this.saving, required this.onTap});
+
+  final RosterEntry entry;
+  final bool saving;
+  final void Function(AttendanceStatus) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+    final status = entry.status;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.studentName.isEmpty ? '—' : entry.studentName,
+                  style: theme.textTheme.titleMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  status?.label(l10n) ?? l10n.attNotMarked,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: status == null ? theme.colorScheme.onSurfaceVariant : _statusColor(status),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          for (final s in AttendanceStatus.values)
+            _StatusButton(
+              status: s,
+              selected: status == s,
+              enabled: !saving,
+              onTap: () => onTap(s),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusButton extends StatelessWidget {
+  const _StatusButton({
+    required this.status,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final AttendanceStatus status;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor(status);
+    final muted = Theme.of(context).colorScheme.outline;
+    return Semantics(
+      selected: selected,
+      child: IconButton(
+        tooltip: status.label(context.l10n),
+        isSelected: selected,
+        onPressed: enabled ? onTap : null,
+        style: IconButton.styleFrom(
+          backgroundColor: selected ? color.withValues(alpha: 0.15) : null,
+        ),
+        icon: Icon(_statusIcon(status), color: selected ? color : muted),
+      ),
+    );
+  }
+}
+
+// ─── Ученик/родитель: история ─────────────────────────────────────────────────
 
 class _StudentAttendancePage extends ConsumerWidget {
   const _StudentAttendancePage({
@@ -176,9 +304,8 @@ class _StudentAttendancePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(
-      studentAttendanceProvider((groupId: groupId, studentId: studentId)),
-    );
+    final params = (groupId: groupId, studentId: studentId);
+    final state = ref.watch(studentAttendanceProvider(params));
 
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.myAttendance)),
@@ -186,20 +313,17 @@ class _StudentAttendancePage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => ErrorView(
           error: e,
-          onRetry: () => ref.invalidate(
-            studentAttendanceProvider((groupId: groupId, studentId: studentId)),
-          ),
+          onRetry: () => ref.invalidate(studentAttendanceProvider(params)),
         ),
         data: (list) {
           if (list.isEmpty) return Center(child: Text(context.l10n.noData));
-          final stats = _stats(list);
           return Column(
             children: [
-              _StatsBanner(stats: stats),
+              _StatsBanner(list: list),
               Expanded(
                 child: ListView.builder(
                   itemCount: list.length,
-                  itemBuilder: (_, i) => _AttendanceTile(record: list[i]),
+                  itemBuilder: (_, i) => _HistoryTile(record: list[i]),
                 ),
               ),
             ],
@@ -208,140 +332,55 @@ class _StudentAttendancePage extends ConsumerWidget {
       ),
     );
   }
-
-  Map<AttendanceStatus, int> _stats(List<Attendance> list) {
-    final m = <AttendanceStatus, int>{};
-    for (final a in list) {
-      m[a.status] = (m[a.status] ?? 0) + 1;
-    }
-    return m;
-  }
 }
 
-// ─── Date banner ──────────────────────────────────────────────────────────────
+class _StatsBanner extends StatelessWidget {
+  const _StatsBanner({required this.list});
 
-class _DateBanner extends StatelessWidget {
-  const _DateBanner({required this.date});
-
-  final DateTime? date;
+  final List<Attendance> list;
 
   @override
   Widget build(BuildContext context) {
-    if (date == null) return const SizedBox.shrink();
-    final d = date!;
-    final label =
-        '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
+    final counts = <AttendanceStatus, int>{};
+    for (final a in list) {
+      counts[a.status] = (counts[a.status] ?? 0) + 1;
+    }
     return Container(
-      color: Theme.of(context).colorScheme.primaryContainer,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          const Icon(LucideIcons.calendar, size: 16),
-          const SizedBox(width: 8),
-          Text(label, style: Theme.of(context).textTheme.bodyMedium),
+          for (final s in AttendanceStatus.values)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('${counts[s] ?? 0}', style: Theme.of(context).textTheme.titleMedium),
+                Text(s.label(context.l10n), style: Theme.of(context).textTheme.labelSmall),
+              ],
+            ),
         ],
       ),
     );
   }
 }
 
-// ─── Stats banner ─────────────────────────────────────────────────────────────
-
-class _StatsBanner extends StatelessWidget {
-  const _StatsBanner({required this.stats});
-
-  final Map<AttendanceStatus, int> stats;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: AttendanceStatus.values.map((s) {
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '${stats[s] ?? 0}',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Text(
-                s.label(context.l10n),
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
-            ],
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-// ─── Attendance tile ──────────────────────────────────────────────────────────
-
-class _AttendanceTile extends StatelessWidget {
-  const _AttendanceTile({
-    required this.record,
-    this.onChangeStatus,
-    this.onDelete,
-  });
+class _HistoryTile extends StatelessWidget {
+  const _HistoryTile({required this.record});
 
   final Attendance record;
-  final void Function(AttendanceStatus)? onChangeStatus;
-  final VoidCallback? onDelete;
-
-  Color _statusColor(AttendanceStatus s) => switch (s) {
-        AttendanceStatus.present => AppColors.success,
-        AttendanceStatus.absent => AppColors.error,
-        AttendanceStatus.late => AppColors.warning,
-        AttendanceStatus.excused => AppColors.info,
-      };
 
   @override
   Widget build(BuildContext context) {
     final color = _statusColor(record.status);
+    final date = DateTime.tryParse(record.lessonDate);
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: color.withValues(alpha: 0.15),
         child: Icon(_statusIcon(record.status), color: color, size: 20),
       ),
-      title: Text(record.studentId),
-      subtitle: Text('${record.lessonDate}  •  ${record.status.label(context.l10n)}'),
-      trailing: onDelete != null
-          ? Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (onChangeStatus != null)
-                  PopupMenuButton<AttendanceStatus>(
-                    tooltip: context.l10n.changeMark,
-                    icon: const Icon(LucideIcons.pencil),
-                    onSelected: onChangeStatus,
-                    itemBuilder: (_) => AttendanceStatus.values
-                        .map(
-                          (s) => PopupMenuItem(
-                            value: s,
-                            child: Text(s.label(context.l10n)),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                IconButton(
-                  tooltip: context.l10n.deleteMark,
-                  icon: const Icon(LucideIcons.trash2, color: AppColors.error),
-                  onPressed: onDelete,
-                ),
-              ],
-            )
-          : null,
+      title: Text(record.status.label(context.l10n)),
+      subtitle: Text(date == null ? record.lessonDate : _fmtDate(date)),
     );
   }
-
-  IconData _statusIcon(AttendanceStatus s) => switch (s) {
-        AttendanceStatus.present => LucideIcons.circleCheck,
-        AttendanceStatus.absent => LucideIcons.circleX,
-        AttendanceStatus.late => LucideIcons.clock,
-        AttendanceStatus.excused => LucideIcons.info,
-      };
 }

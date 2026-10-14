@@ -26,3 +26,13 @@ type Attendance struct {
 	CreatedAt  time.Time        `db:"created_at"`
 	UpdatedAt  time.Time        `db:"updated_at"`
 }
+
+// RosterEntry — ученик в списке занятия и его отметка за день
+// (поля отметки пустые, если ещё не отмечен).
+type RosterEntry struct {
+	StudentID    uuid.UUID         `db:"student_id"`
+	StudentName  string            `db:"student_name"`
+	AttendanceID *uuid.UUID        `db:"attendance_id"`
+	Status       *AttendanceStatus `db:"status"`
+	Note         *string           `db:"note"`
+}

@@ -26,10 +26,12 @@ func NewHandler(svc *Service) *Handler {
 // RegisterRoutes mounts attendance endpoints.
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Route("/groups/{groupID}/attendance", func(r chi.Router) {
-		// GET /groups/{groupID}/attendance?date=2024-09-01
-		r.Get("/", h.listByDate)
+		// GET /groups/{groupID}/attendance?date=2024-09-01 — список занятия
+		r.Get("/", h.roster)
 		// POST /groups/{groupID}/attendance
 		r.Post("/", h.mark)
+		// POST /groups/{groupID}/attendance/batch
+		r.Post("/batch", h.markMany)
 		// DELETE /groups/{groupID}/attendance/{id}
 		r.Delete("/{id}", h.delete)
 	})
@@ -68,7 +70,39 @@ func (h *Handler) mark(w http.ResponseWriter, r *http.Request) {
 	response.Created(w, toResponse(a))
 }
 
-func (h *Handler) listByDate(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) markMany(w http.ResponseWriter, r *http.Request) {
+	groupID, ok := parseUUID(w, chi.URLParam(r, "groupID"))
+	if !ok {
+		return
+	}
+	if apimw.RoleFromCtx(r.Context()) != domain.RoleTeacher {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "only teachers can mark attendance")
+		return
+	}
+
+	var req BatchMarkRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid JSON")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		writeValidationError(w, err)
+		return
+	}
+
+	list, err := h.svc.MarkMany(r.Context(), apimw.UserIDFromCtx(r.Context()), groupID, req)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	out := make([]AttendanceResponse, len(list))
+	for i, a := range list {
+		out[i] = toResponse(a)
+	}
+	response.OK(w, out)
+}
+
+func (h *Handler) roster(w http.ResponseWriter, r *http.Request) {
 	groupID, ok := parseUUID(w, chi.URLParam(r, "groupID"))
 	if !ok {
 		return
@@ -80,14 +114,14 @@ func (h *Handler) listByDate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	list, err := h.svc.ListByDate(r.Context(), groupID, dateStr, callerID)
+	list, err := h.svc.Roster(r.Context(), groupID, dateStr, callerID)
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
-	out := make([]AttendanceResponse, len(list))
-	for i, a := range list {
-		out[i] = toResponse(a)
+	out := make([]RosterEntryResponse, len(list))
+	for i, e := range list {
+		out[i] = toRosterResponse(e)
 	}
 	response.OK(w, out)
 }
@@ -166,15 +200,7 @@ func writeValidationError(w http.ResponseWriter, err error) {
 	})
 }
 
+// writeServiceError — общий маппер доменных ошибок; причина 5xx уходит в лог.
 func writeServiceError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "not found")
-	case errors.Is(err, domain.ErrForbidden):
-		writeError(w, http.StatusForbidden, "FORBIDDEN", "forbidden")
-	case errors.Is(err, domain.ErrConflict):
-		writeError(w, http.StatusConflict, "CONFLICT", err.Error())
-	default:
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "internal server error")
-	}
+	response.Error(w, err)
 }

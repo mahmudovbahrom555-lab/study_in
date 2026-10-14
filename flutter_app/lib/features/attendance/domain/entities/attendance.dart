@@ -40,3 +40,27 @@ class Attendance {
   final DateTime createdAt;
   final DateTime updatedAt;
 }
+
+/// Ученик в списке занятия; [status] == null — ещё не отмечен.
+@immutable
+class RosterEntry {
+  const RosterEntry({
+    required this.studentId,
+    required this.studentName,
+    this.attendanceId,
+    this.status,
+  });
+
+  final String studentId;
+  final String studentName;
+  final String? attendanceId;
+  final AttendanceStatus? status;
+
+  RosterEntry withMark(String? attendanceId, AttendanceStatus? status) =>
+      RosterEntry(
+        studentId: studentId,
+        studentName: studentName,
+        attendanceId: attendanceId,
+        status: status,
+      );
+}
