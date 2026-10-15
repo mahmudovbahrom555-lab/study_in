@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/grade.dart';
 import '../providers/grades_provider.dart';
 import '../widgets/add_grade_sheet.dart';
@@ -43,9 +44,11 @@ class _GradesPageState extends ConsumerState<GradesPage> {
     if (widget.isTeacher) {
       return _TeacherView(groupId: widget.groupId);
     }
+    // Без studentId ученик смотрит свои оценки (родитель передаёт id ребёнка).
+    final me = ref.watch(authProvider).user?.id;
     return _StudentView(
       groupId: widget.groupId,
-      studentId: widget.studentId ?? '',
+      studentId: widget.studentId ?? me ?? '',
     );
   }
 }

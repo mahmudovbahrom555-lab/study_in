@@ -303,8 +303,6 @@
   "noChildren": "No linked children.\nTap + to add one.",
   "linkChild": "Link a child",
   "linkAction": "Link",
-  "studentShort": "Student: {id}…",
-  "@studentShort": {"placeholders": {"id": {"type": "String"}}},
   "unlink": "Unlink",
   "unlinkChildQ": "Unlink child?",
   "unlinkChildBody": "You will no longer see this student's data.",

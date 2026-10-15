@@ -250,11 +250,8 @@ class _QuickActions extends StatelessWidget {
         label: context.l10n.tabFeed,
         onTap: () => context.push(Routes.groupFeed(groupId)),
       ),
-      _ActionTile(
-        icon: LucideIcons.clipboardCheck,
-        label: context.l10n.tabQuizzes,
-        onTap: () => context.push(Routes.groupQuizzes(groupId)),
-      ),
+      // Тесты скрыты в MVP: вернутся с созданием теста ИИ из файла или текста
+      // (DECISIONS.md, 2026-10-15). Экраны и API тестов остаются.
       if (isTeacher)
         _ActionTile(
           icon: LucideIcons.triangleAlert,

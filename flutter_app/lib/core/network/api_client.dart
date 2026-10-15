@@ -8,6 +8,10 @@ import 'interceptors/logging_interceptor.dart';
 
 final dioProvider = Provider<Dio>((ref) => createDio(ref));
 
+/// Растёт, когда сервер отверг сессию посреди работы; authProvider слушает
+/// его и возвращает пользователя на экран входа.
+final sessionExpiredProvider = StateProvider<int>((ref) => 0);
+
 Dio createDio([Ref? ref]) {
   final dio = Dio(
     BaseOptions(
@@ -29,7 +33,13 @@ Dio createDio([Ref? ref]) {
 
   if (ref != null) {
     final storage = ref.read(secureStorageProvider);
-    dio.interceptors.add(AuthInterceptor(storage, dio));
+    dio.interceptors.add(
+      AuthInterceptor(
+        storage,
+        dio,
+        onSessionExpired: () => ref.read(sessionExpiredProvider.notifier).state++,
+      ),
+    );
   }
 
   return dio;

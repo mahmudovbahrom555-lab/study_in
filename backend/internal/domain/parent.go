@@ -13,6 +13,12 @@ type ParentLink struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
+// ChildLink — привязанный ребёнок с именем (кабинет родителя).
+type ChildLink struct {
+	ParentLink
+	StudentName string `db:"student_name"`
+}
+
 // ParentLinkCode — короткий код, который ученик передаёт родителю для привязки.
 type ParentLinkCode struct {
 	Code      string    `db:"code"`

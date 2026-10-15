@@ -5,6 +5,7 @@ class ParentLinkDto {
         id: json['id'] as String,
         parentId: json['parent_id'] as String,
         studentId: json['student_id'] as String,
+        studentName: json['student_name'] as String? ?? '',
         createdAt: DateTime.parse(json['created_at'] as String),
       );
 
@@ -12,18 +13,21 @@ class ParentLinkDto {
     required this.id,
     required this.parentId,
     required this.studentId,
+    required this.studentName,
     required this.createdAt,
   });
 
   final String id;
   final String parentId;
   final String studentId;
+  final String studentName;
   final DateTime createdAt;
 
   ParentLink toDomain() => ParentLink(
         id: id,
         parentId: parentId,
         studentId: studentId,
+        studentName: studentName,
         createdAt: createdAt,
       );
 }

@@ -87,15 +87,22 @@ Future<RosterNotifier> _notifier(_FakeRepo repo) async {
   return n;
 }
 
+/// Текущее состояние через подписку (debugState устарел, state защищён).
+RosterState _st(RosterNotifier n) {
+  late RosterState s;
+  n.addListener((v) => s = v)();
+  return s;
+}
+
 AttendanceStatus? _status(RosterNotifier n, String sid) =>
-    n.debugState.entries.firstWhere((e) => e.studentId == sid).status;
+    _st(n).entries.firstWhere((e) => e.studentId == sid).status;
 
 void main() {
   test('загружает всю группу, неотмеченные — без статуса', () async {
     final n = await _notifier(_FakeRepo());
-    expect(n.debugState.entries.map((e) => e.studentName), ['Aziza', 'Bekzod']);
-    expect(n.debugState.marked, 0);
-    expect(n.debugState.hasUnmarked, isTrue);
+    expect(_st(n).entries.map((e) => e.studentName), ['Aziza', 'Bekzod']);
+    expect(_st(n).marked, 0);
+    expect(_st(n).hasUnmarked, isTrue);
   });
 
   test('тап ставит статус, повторный тап по нему же снимает', () async {
@@ -126,7 +133,7 @@ void main() {
     await n.markRestPresent();
     expect(_status(n, 's1'), AttendanceStatus.absent, reason: 'чужую отметку не трогаем');
     expect(_status(n, 's2'), AttendanceStatus.present);
-    expect(n.debugState.hasUnmarked, isFalse);
+    expect(_st(n).hasUnmarked, isFalse);
   });
 
   test('без сети отметка откатывается и показывается ошибка', () async {
@@ -135,10 +142,10 @@ void main() {
 
     await n.toggle('s1', AttendanceStatus.present);
     expect(_status(n, 's1'), isNull);
-    expect(n.debugState.saveError, isNotNull);
+    expect(_st(n).saveError, isNotNull);
 
     await n.markRestPresent();
-    expect(n.debugState.marked, 0);
+    expect(_st(n).marked, 0);
   });
 
   test('повторный тап, пока отметка сохраняется, игнорируется', () async {
@@ -156,10 +163,10 @@ void main() {
 
   test('будущие дни не открываются', () async {
     final n = await _notifier(_FakeRepo());
-    final today = n.debugState.date;
+    final today = _st(n).date;
     n.shiftDay(1);
-    expect(n.debugState.date, today);
+    expect(_st(n).date, today);
     n.shiftDay(-1);
-    expect(n.debugState.date, today.subtract(const Duration(days: 1)));
+    expect(_st(n).date, today.subtract(const Duration(days: 1)));
   });
 }

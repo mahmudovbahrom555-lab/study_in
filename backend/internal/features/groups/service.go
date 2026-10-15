@@ -229,9 +229,16 @@ func (s *Service) ListMembers(ctx context.Context, groupID, callerID uuid.UUID, 
 		return nil, fmt.Errorf("groups.ListMembers: %w", err)
 	}
 
+	// Телефоны и статус оплаты учеников (это дети) видит только репетитор группы;
+	// одноклассникам — только имена.
+	isOwner := g.TeacherID == callerID
 	out := make([]MemberResponse, len(members))
 	for i, m := range members {
 		out[i] = memberToResponse(m)
+		if !isOwner {
+			out[i].Phone = ""
+			out[i].PaymentStatus = ""
+		}
 	}
 	return out, nil
 }

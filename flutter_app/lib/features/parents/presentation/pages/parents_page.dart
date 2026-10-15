@@ -148,9 +148,12 @@ class _ChildCard extends ConsumerWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ExpansionTile(
-        leading: const CircleAvatar(child: Icon(LucideIcons.user)),
-        title: Text(context.l10n.studentShort(link.studentId.substring(0, 8))),
-        subtitle: Text('ID: ${link.studentId}'),
+        leading: CircleAvatar(
+          child: link.studentName.isEmpty
+              ? const Icon(LucideIcons.user)
+              : Text(link.studentName.substring(0, 1).toUpperCase()),
+        ),
+        title: Text(link.studentName.isEmpty ? '—' : link.studentName),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

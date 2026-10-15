@@ -144,12 +144,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState();
   }
 
+  /// Сервер отверг сессию посреди работы (токены уже стёрты) — на вход.
+  void sessionExpired() {
+    if (state.isAuthenticated) state = const AuthState();
+  }
+
   String _message(Object e) => userErrorMessage(e);
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(
+  final notifier = AuthNotifier(
     ref.watch(authRepositoryProvider),
     ref.watch(secureStorageProvider),
   );
+  ref.listen(sessionExpiredProvider, (_, __) => notifier.sessionExpired());
+  return notifier;
 });

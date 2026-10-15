@@ -60,8 +60,9 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
   /// диалог показывает её сразу, а не прячет в состоянии списка.
   Future<String?> linkChildByCode(String code) async {
     try {
-      final link = await _repo.linkChildByCode(code);
-      state = state.copyWith(children: [link, ...state.children], clearError: true);
+      await _repo.linkChildByCode(code);
+      // Ответ привязки без имени ребёнка — берём список заново.
+      await load();
       return null;
     } catch (e) {
       return userErrorMessage(e);

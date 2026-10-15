@@ -69,7 +69,7 @@ func (s *Service) UnlinkChild(ctx context.Context, parentID, studentID uuid.UUID
 }
 
 // ListChildren returns all students linked to the parent.
-func (s *Service) ListChildren(ctx context.Context, parentID uuid.UUID) ([]*domain.ParentLink, error) {
+func (s *Service) ListChildren(ctx context.Context, parentID uuid.UUID) ([]*domain.ChildLink, error) {
 	links, err := s.repo.ListChildren(ctx, parentID)
 	if err != nil {
 		return nil, fmt.Errorf("parents.ListChildren: %w", err)

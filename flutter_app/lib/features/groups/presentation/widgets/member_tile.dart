@@ -31,7 +31,8 @@ class MemberTile extends StatelessWidget {
             : null,
       ),
       title: Text(member.name),
-      subtitle: Text(member.phone),
+      // Телефон и оплату ученика видит только репетитор (сервер одноклассникам их не отдаёт).
+      subtitle: isOwner && member.phone.isNotEmpty ? Text(member.phone) : null,
       trailing: isOwner
           ? Row(
               mainAxisSize: MainAxisSize.min,
@@ -56,7 +57,7 @@ class MemberTile extends StatelessWidget {
                   ),
               ],
             )
-          : _PaymentChip(status: member.paymentStatus),
+          : null,
     );
   }
 }

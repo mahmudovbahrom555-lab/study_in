@@ -53,9 +53,13 @@ func (r *memRepo) Unlink(_ context.Context, p, s uuid.UUID) error {
 func (r *memRepo) GetLink(_ context.Context, p, s uuid.UUID) (*domain.ParentLink, error) {
 	l, ok := r.links[key(p, s)]; if !ok { return nil, nil }; cp := *l; return &cp, nil
 }
-func (r *memRepo) ListChildren(_ context.Context, p uuid.UUID) ([]*domain.ParentLink, error) {
-	var out []*domain.ParentLink
-	for _, l := range r.links { if l.ParentID == p { cp := *l; out = append(out, &cp) } }
+func (r *memRepo) ListChildren(_ context.Context, p uuid.UUID) ([]*domain.ChildLink, error) {
+	var out []*domain.ChildLink
+	for _, l := range r.links {
+		if l.ParentID == p {
+			out = append(out, &domain.ChildLink{ParentLink: *l, StudentName: "Bekzod"})
+		}
+	}
 	return out, nil
 }
 func (r *memRepo) ListParents(_ context.Context, s uuid.UUID) ([]*domain.ParentLink, error) {

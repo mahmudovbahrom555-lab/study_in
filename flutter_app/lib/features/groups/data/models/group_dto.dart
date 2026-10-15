@@ -7,7 +7,8 @@ class GroupDto {
         name: json['name'] as String,
         subject: json['subject'] as String?,
         description: json['description'] as String?,
-        inviteCode: json['invite_code'] as String,
+        // Родителю сервер код приглашения не отдаёт.
+        inviteCode: json['invite_code'] as String? ?? '',
         isArchived: json['is_archived'] as bool? ?? false,
         memberCount: json['member_count'] as int? ?? 0,
         createdAt: DateTime.parse(json['created_at'] as String),
@@ -52,10 +53,11 @@ class GroupMemberDto {
   factory GroupMemberDto.fromJson(Map<String, dynamic> json) => GroupMemberDto(
         studentId: json['student_id'] as String,
         name: json['name'] as String,
-        phone: json['phone'] as String,
+        // Телефон и оплату сервер отдаёт только репетитору группы.
+        phone: json['phone'] as String? ?? '',
         avatarUrl: json['avatar_url'] as String?,
         joinedAt: DateTime.parse(json['joined_at'] as String),
-        paymentStatus: PaymentStatus.fromJson(json['payment_status'] as String),
+        paymentStatus: PaymentStatus.fromJson(json['payment_status'] as String? ?? ''),
       );
 
   const GroupMemberDto({

@@ -53,10 +53,14 @@ func (r *ParentRepository) GetLink(ctx context.Context, parentID, studentID uuid
 	return &l, nil
 }
 
-func (r *ParentRepository) ListChildren(ctx context.Context, parentID uuid.UUID) ([]*domain.ParentLink, error) {
-	var links []*domain.ParentLink
-	err := r.db.SelectContext(ctx, &links,
-		`SELECT * FROM parent_links WHERE parent_id=$1 ORDER BY created_at DESC`, parentID)
+func (r *ParentRepository) ListChildren(ctx context.Context, parentID uuid.UUID) ([]*domain.ChildLink, error) {
+	var links []*domain.ChildLink
+	err := r.db.SelectContext(ctx, &links, `
+		SELECT pl.id, pl.parent_id, pl.student_id, pl.created_at, u.name AS student_name
+		FROM parent_links pl
+		JOIN users u ON u.id = pl.student_id
+		WHERE pl.parent_id = $1
+		ORDER BY pl.created_at DESC`, parentID)
 	if err != nil {
 		return nil, fmt.Errorf("ParentRepository.ListChildren: %w", err)
 	}

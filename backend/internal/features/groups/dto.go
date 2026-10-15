@@ -47,10 +47,10 @@ type GroupResponse struct {
 type MemberResponse struct {
 	StudentID     uuid.UUID            `json:"student_id"`
 	Name          string               `json:"name"`
-	Phone         string               `json:"phone"`
+	Phone         string               `json:"phone,omitempty"` // только репетитору группы
 	AvatarURL     *string              `json:"avatar_url"`
 	JoinedAt      time.Time            `json:"joined_at"`
-	PaymentStatus domain.PaymentStatus `json:"payment_status"`
+	PaymentStatus domain.PaymentStatus `json:"payment_status,omitempty"` // только репетитору группы
 }
 
 func groupToResponse(g *domain.Group) GroupResponse {

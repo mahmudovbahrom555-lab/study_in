@@ -11,7 +11,7 @@ import (
 type Repository interface {
 	Link(ctx context.Context, link *domain.ParentLink) error
 	Unlink(ctx context.Context, parentID, studentID uuid.UUID) error
-	ListChildren(ctx context.Context, parentID uuid.UUID) ([]*domain.ParentLink, error)
+	ListChildren(ctx context.Context, parentID uuid.UUID) ([]*domain.ChildLink, error)
 	ListParents(ctx context.Context, studentID uuid.UUID) ([]*domain.ParentLink, error)
 	GetLink(ctx context.Context, parentID, studentID uuid.UUID) (*domain.ParentLink, error)
 

@@ -184,6 +184,27 @@ func TestListMyGroups_Teacher(t *testing.T) {
 	assert.Len(t, list, 2)
 }
 
+// Телефоны и оплату учеников (детей) видит только репетитор, не одноклассники.
+func TestListMembers_PrivateFieldsOnlyForOwner(t *testing.T) {
+	svc := buildSvc()
+	g, _ := svc.CreateGroup(context.Background(), teacherID, groups.CreateGroupRequest{Name: "Physics"})
+	_, err := svc.JoinGroup(context.Background(), studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
+	require.NoError(t, err)
+
+	asTeacher, err := svc.ListMembers(context.Background(), g.ID, teacherID, domain.RoleTeacher)
+	require.NoError(t, err)
+	require.Len(t, asTeacher, 1)
+	assert.NotEmpty(t, asTeacher[0].Phone)
+	assert.NotEmpty(t, asTeacher[0].PaymentStatus)
+
+	asStudent, err := svc.ListMembers(context.Background(), g.ID, studentID, domain.RoleStudent)
+	require.NoError(t, err)
+	require.Len(t, asStudent, 1)
+	assert.NotEmpty(t, asStudent[0].Name)
+	assert.Empty(t, asStudent[0].Phone)
+	assert.Empty(t, asStudent[0].PaymentStatus)
+}
+
 func TestJoinGroup_Success(t *testing.T) {
 	svc := buildSvc()
 	g, _ := svc.CreateGroup(context.Background(), teacherID, groups.CreateGroupRequest{Name: "Physics"})

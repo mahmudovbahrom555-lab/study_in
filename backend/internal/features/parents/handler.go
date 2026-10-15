@@ -3,7 +3,6 @@ package parents
 import (
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -112,16 +111,15 @@ func (h *Handler) listChildren(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	out := make([]ParentLinkResponse, len(links))
-	for i, l := range links {
-		out[i] = ParentLinkResponse{
-			ID:        l.ID,
-			ParentID:  l.ParentID,
-			StudentID: l.StudentID,
-			CreatedAt: l.CreatedAt,
+	response.OK(w, mapAll(links, func(l *domain.ChildLink) ParentLinkResponse {
+		return ParentLinkResponse{
+			ID:          l.ID,
+			ParentID:    l.ParentID,
+			StudentID:   l.StudentID,
+			StudentName: l.StudentName,
+			CreatedAt:   l.CreatedAt,
 		}
-	}
-	response.OK(w, out)
+	}))
 }
 
 func (h *Handler) childGroups(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +134,7 @@ func (h *Handler) childGroups(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	response.OK(w, groups)
+	response.OK(w, mapAll(groups, toChildGroup))
 }
 
 func (h *Handler) childGrades(w http.ResponseWriter, r *http.Request) {
@@ -155,7 +153,7 @@ func (h *Handler) childGrades(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	response.OK(w, grades)
+	response.OK(w, mapAll(grades, toChildGrade))
 }
 
 func (h *Handler) childAttendance(w http.ResponseWriter, r *http.Request) {
@@ -174,7 +172,7 @@ func (h *Handler) childAttendance(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	response.OK(w, list)
+	response.OK(w, mapAll(list, toChildAttendance))
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -213,24 +211,7 @@ func writeValidationError(w http.ResponseWriter, err error) {
 	})
 }
 
+// writeServiceError — общий маппер доменных ошибок; причина 5xx уходит в лог.
 func writeServiceError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "not found")
-	case errors.Is(err, domain.ErrForbidden):
-		writeError(w, http.StatusForbidden, "FORBIDDEN", "forbidden")
-	case errors.Is(err, domain.ErrConflict):
-		writeError(w, http.StatusConflict, "CONFLICT", err.Error())
-	case errors.Is(err, domain.ErrValidation):
-		var de *domain.Error
-		if errors.As(err, &de) {
-			writeError(w, http.StatusBadRequest, de.Code, de.Message)
-			return
-		}
-		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
-	default:
-		// Без лога причина 500 теряется (docs/backend-architecture-methodology.md, P2).
-		slog.Error("parents: internal error", slog.String("err", err.Error()))
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "internal server error")
-	}
+	response.Error(w, err)
 }
