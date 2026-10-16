@@ -7,6 +7,7 @@ import 'core/localization/locale_resolver.dart';
 import 'core/router/app_router.dart';
 import 'generated/l10n/app_localizations.dart';
 import 'core/theme/app_theme.dart';
+import 'features/auth/presentation/providers/auth_provider.dart';
 
 /// Корневой виджет приложения.
 class App extends ConsumerWidget {
@@ -16,6 +17,7 @@ class App extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final locale = ref.watch(localeProvider);
+    ref.watch(languageSyncProvider);
 
     return MaterialApp.router(
       title: 'MaMu Learn',
@@ -32,7 +34,7 @@ class App extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      // Релиз на двух языках (DECISIONS.md, 2026-10-03). Узбекский отложен.
+      // Список языков — appLanguages в locale_resolver.dart.
       supportedLocales: appLocales,
     );
   }

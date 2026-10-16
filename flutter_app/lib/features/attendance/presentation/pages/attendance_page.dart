@@ -16,22 +16,22 @@ class AttendancePage extends ConsumerWidget {
     super.key,
     required this.groupId,
     this.isTeacher = false,
-    this.studentId,
   });
 
   final String groupId;
   final bool isTeacher;
 
-  /// Чью историю показать (родитель смотрит ребёнка); null — свою.
-  final String? studentId;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (isTeacher) return _TeacherAttendancePage(groupId: groupId);
-    final me = ref.watch(authProvider).user?.id;
-    return _StudentAttendancePage(
+    final params = (
       groupId: groupId,
-      studentId: studentId ?? me ?? '',
+      studentId: ref.watch(authProvider).user?.id ?? '',
+    );
+    return AttendanceHistoryView(
+      title: context.l10n.myAttendance,
+      records: ref.watch(studentAttendanceProvider(params)),
+      onRetry: () => ref.invalidate(studentAttendanceProvider(params)),
     );
   }
 }
@@ -293,28 +293,27 @@ class _StatusButton extends StatelessWidget {
 
 // ─── Ученик/родитель: история ─────────────────────────────────────────────────
 
-class _StudentAttendancePage extends ConsumerWidget {
-  const _StudentAttendancePage({
-    required this.groupId,
-    required this.studentId,
+/// История посещаемости одного ученика. Данные приходят снаружи: ученик берёт
+/// свою, родитель — ребёнка через свой модуль (разные эндпоинты и права).
+class AttendanceHistoryView extends StatelessWidget {
+  const AttendanceHistoryView({
+    super.key,
+    required this.title,
+    required this.records,
+    required this.onRetry,
   });
 
-  final String groupId;
-  final String studentId;
+  final String title;
+  final AsyncValue<List<Attendance>> records;
+  final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final params = (groupId: groupId, studentId: studentId);
-    final state = ref.watch(studentAttendanceProvider(params));
-
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(context.l10n.myAttendance)),
-      body: state.when(
+      appBar: AppBar(title: Text(title)),
+      body: records.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ErrorView(
-          error: e,
-          onRetry: () => ref.invalidate(studentAttendanceProvider(params)),
-        ),
+        error: (e, _) => ErrorView(error: e, onRetry: onRetry),
         data: (list) {
           if (list.isEmpty) return Center(child: Text(context.l10n.noData));
           return Column(

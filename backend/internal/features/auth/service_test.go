@@ -247,6 +247,27 @@ func TestSetRole_AlreadySet(t *testing.T) {
 	assert.Equal(t, "ROLE_ALREADY_SET", domErr.Code)
 }
 
+func TestUpdateMe_Language(t *testing.T) {
+	repo, smsMock := newMockRepo(), &mockSMS{}
+	svc := buildService(repo, smsMock, allowLimiter{})
+	phone := "+998901234567"
+	repo.users[phone] = &domain.User{
+		ID: uuid.New(), Phone: phone, Language: domain.LanguageUz, IsActive: true,
+	}
+	id := repo.users[phone].ID
+
+	ru := domain.LanguageRu
+	resp, err := svc.UpdateMe(context.Background(), id, &auth.UpdateMeRequest{Language: &ru})
+	require.NoError(t, err)
+	assert.Equal(t, "ru", resp.Language)
+
+	xx := domain.Language("xx")
+	_, err = svc.UpdateMe(context.Background(), id, &auth.UpdateMeRequest{Language: &xx})
+	var domErr *domain.Error
+	require.ErrorAs(t, err, &domErr)
+	assert.Equal(t, "UNSUPPORTED_LANGUAGE", domErr.Code)
+}
+
 func TestRefresh_TokenRotation(t *testing.T) {
 	repo, smsMock := newMockRepo(), &mockSMS{}
 	svc := buildService(repo, smsMock, allowLimiter{})

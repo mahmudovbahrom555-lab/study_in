@@ -1,5 +1,6 @@
 abstract class Routes {
   static const splash = '/';
+  static const updateRequired = '/update-required';
   static const phone = '/phone';
   static const verify = '/verify';
   static const roleSelect = '/role-select';
@@ -14,12 +15,8 @@ abstract class Routes {
   static String quizAttempt(String groupId, String quizId) =>
       '/groups/$groupId/quizzes/$quizId/attempt';
   static String groupGrades(String groupId) => '/groups/$groupId/grades';
-  static String studentGrades(String groupId, String studentId) =>
-      '/groups/$groupId/students/$studentId/grades';
   static String groupAttendance(String groupId) =>
       '/groups/$groupId/attendance';
-  static String studentAttendance(String groupId, String studentId) =>
-      '/groups/$groupId/students/$studentId/attendance';
   static String groupAssignments(String groupId) =>
       '/groups/$groupId/assignments';
   static String assignment(String groupId, String assignmentId) =>

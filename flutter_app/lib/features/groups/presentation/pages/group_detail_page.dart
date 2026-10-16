@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/remote_config/remote_config.dart';
+import '../../../../core/remote_config/remote_config_provider.dart';
 import '../../../../core/router/routes.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/group.dart';
@@ -219,14 +221,15 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
 
 // ─── Quick action buttons ─────────────────────────────────────────────────────
 
-class _QuickActions extends StatelessWidget {
+class _QuickActions extends ConsumerWidget {
   const _QuickActions({required this.groupId, required this.isTeacher});
 
   final String groupId;
   final bool isTeacher;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(remoteConfigProvider);
     final role = isTeacher ? 'teacher' : 'student';
     // Порядок — по частоте: посещаемость и ДЗ отмечают каждое занятие.
     final tiles = [
@@ -250,8 +253,12 @@ class _QuickActions extends StatelessWidget {
         label: context.l10n.tabFeed,
         onTap: () => context.push(Routes.groupFeed(groupId)),
       ),
-      // Тесты скрыты в MVP: вернутся с созданием теста ИИ из файла или текста
-      // (DECISIONS.md, 2026-10-15). Экраны и API тестов остаются.
+      if (config.isEnabled(Feature.quizzes))
+        _ActionTile(
+          icon: LucideIcons.clipboardCheck,
+          label: context.l10n.tabQuizzes,
+          onTap: () => context.push(Routes.groupQuizzes(groupId)),
+        ),
       if (isTeacher)
         _ActionTile(
           icon: LucideIcons.triangleAlert,

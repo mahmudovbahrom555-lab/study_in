@@ -21,6 +21,7 @@ import (
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/config"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/domain"
 	aifeature "github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/ai"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/appconfig"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/assignments"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/attendance"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/auth"
@@ -237,6 +238,10 @@ func (s *Server) setupRouter() {
 		r.Get("/health", s.handleHealth)
 		r.Get("/version", s.handleVersion)
 
+		appconfig.NewHandler(appconfig.Config{
+			MinVersion: s.cfg.App.MinVersion,
+			Features:   s.cfg.App.Features,
+		}).RegisterRoutes(r)
 		authHandler.RegisterRoutes(r)
 
 		r.Group(func(r chi.Router) {

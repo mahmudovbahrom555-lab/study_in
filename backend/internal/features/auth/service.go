@@ -217,6 +217,9 @@ func (s *Service) GetMe(ctx context.Context, userID uuid.UUID) (*UserResponse, e
 
 // UpdateMe обновляет имя и/или язык профиля.
 func (s *Service) UpdateMe(ctx context.Context, userID uuid.UUID, req *UpdateMeRequest) (*UserResponse, error) {
+	if req.Language != nil && !req.Language.Valid() {
+		return nil, domain.NewError("UNSUPPORTED_LANGUAGE", "unsupported language", domain.ErrValidation)
+	}
 	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("get user: %w", err)

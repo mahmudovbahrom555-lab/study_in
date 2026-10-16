@@ -5,6 +5,7 @@ package config
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -24,6 +25,13 @@ type Config struct {
 	Sentry   SentryConfig
 	Log      LogConfig
 	AI       AIConfig
+	App      AppConfig
+}
+
+// AppConfig — настройки мобильного приложения, меняются без релиза в стор.
+type AppConfig struct {
+	MinVersion string   // APP_MIN_VERSION: ниже — экран «Обновите приложение»
+	Features   []string // APP_FEATURES: включённые фичи через запятую, например "quizzes"
 }
 
 type ServerConfig struct {
@@ -141,6 +149,7 @@ func Load() (*Config, error) {
 	v.SetDefault("AI_MAX_DOC_SIZE_BYTES", 10485760) // 10 MB
 	v.SetDefault("AI_CHUNK_SIZE", 400)              // words
 	v.SetDefault("AI_CHUNK_OVERLAP", 50)            // words
+	v.SetDefault("APP_MIN_VERSION", "0.0.0")
 
 	// .env не обязателен — переменные окружения тоже работают
 	if err := v.ReadInConfig(); err != nil {
@@ -209,6 +218,10 @@ func Load() (*Config, error) {
 			ChunkSize:       v.GetInt("AI_CHUNK_SIZE"),
 			ChunkOverlap:    v.GetInt("AI_CHUNK_OVERLAP"),
 		},
+		App: AppConfig{
+			MinVersion: v.GetString("APP_MIN_VERSION"),
+			Features:   splitList(v.GetString("APP_FEATURES")),
+		},
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -216,6 +229,19 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+var semverRe = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
+
+// splitList разбирает "a, b,,c" в [a b c].
+func splitList(s string) []string {
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 func (c *Config) validate() error {
@@ -230,6 +256,9 @@ func (c *Config) validate() error {
 	}
 	if c.JWT.RefreshSecret == "" || len(c.JWT.RefreshSecret) < 32 {
 		return fmt.Errorf("JWT_REFRESH_SECRET must be at least 32 chars")
+	}
+	if !semverRe.MatchString(c.App.MinVersion) {
+		return fmt.Errorf("APP_MIN_VERSION must look like 1.2.3, got %q", c.App.MinVersion)
 	}
 	// Фиксированный код позволяет войти в любой аккаунт — только для разработки.
 	if c.SMS.DevCode != "" && (c.Server.IsProduction() || c.SMS.Provider != "mock") {

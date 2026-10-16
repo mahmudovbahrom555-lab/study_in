@@ -11,6 +11,40 @@ import '../../../notifications/presentation/providers/notifications_provider.dar
 import '../../../parents/presentation/pages/parents_page.dart';
 import '../../../../core/localization/l10n.dart';
 
+/// Вкладка главного экрана. Новая вкладка (чат, карта для родителя…) —
+/// одна запись в [_tabs] с ролями, которым она видна.
+class _HomeTab {
+  const _HomeTab({
+    required this.icon,
+    required this.label,
+    required this.page,
+    this.roles,
+  });
+
+  final IconData icon;
+  final String Function(AppLocalizations) label;
+  final Widget page;
+
+  /// null — вкладка видна всем ролям.
+  final Set<String>? roles;
+
+  bool visible(String role) => roles == null || roles!.contains(role);
+}
+
+final _tabs = [
+  _HomeTab(
+    icon: LucideIcons.users,
+    label: (l10n) => l10n.navGroups,
+    page: const GroupsPage(),
+  ),
+  _HomeTab(
+    icon: LucideIcons.heartHandshake,
+    label: (l10n) => l10n.navChildren,
+    page: const ParentsPage(),
+    roles: {'parent'},
+  ),
+];
+
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -30,12 +64,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final role = ref.watch(authProvider).user?.role ?? 'student';
-    final isParent = role == 'parent';
+    final tabs = [for (final t in _tabs) if (t.visible(role)) t];
+    final index = _tab.clamp(0, tabs.length - 1);
     final unread = ref.watch(unreadCountProvider);
-
-    final pages = isParent
-        ? const [GroupsPage(), ParentsPage()]
-        : const [GroupsPage()];
 
     return Scaffold(
       appBar: AppBar(
@@ -59,22 +90,20 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         ],
       ),
       body: IndexedStack(
-        index: _tab.clamp(0, pages.length - 1),
-        children: pages,
+        index: index,
+        children: [for (final t in tabs) t.page],
       ),
-      bottomNavigationBar: isParent
+      // Одна вкладка — нижняя панель не нужна.
+      bottomNavigationBar: tabs.length > 1
           ? NavigationBar(
-              selectedIndex: _tab,
+              selectedIndex: index,
               onDestinationSelected: (i) => setState(() => _tab = i),
               destinations: [
-                NavigationDestination(
-                  icon: const Icon(LucideIcons.users),
-                  label: context.l10n.navGroups,
-                ),
-                NavigationDestination(
-                  icon: const Icon(LucideIcons.heartHandshake),
-                  label: context.l10n.navChildren,
-                ),
+                for (final t in tabs)
+                  NavigationDestination(
+                    icon: Icon(t.icon),
+                    label: t.label(context.l10n),
+                  ),
               ],
             )
           : null,

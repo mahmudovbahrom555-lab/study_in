@@ -1,9 +1,26 @@
 import 'dart:ui';
 
-/// Языки релиза (решение 2026-10-03, DECISIONS.md): русский и английский.
+/// Язык интерфейса и его название на нём самом — чтобы человек нашёл свой
+/// язык, даже если автоопределение выбрало непонятный ему.
+class AppLanguage {
+  const AppLanguage(this.locale, this.nativeName);
+
+  final Locale locale;
+  final String nativeName;
+}
+
 const ruLocale = Locale('ru');
 const enLocale = Locale('en');
-const appLocales = [ruLocale, enLocale];
+
+/// Языки приложения (релиз: русский и английский, DECISIONS.md 2026-10-03).
+/// Новый язык: arb/intl_<код>.arb + строка здесь (+ код в
+/// domain.SupportedLanguages на сервере, если сервер пишет на нём push).
+const appLanguages = [
+  AppLanguage(ruLocale, 'Русский'),
+  AppLanguage(enLocale, 'English'),
+];
+
+final appLocales = [for (final l in appLanguages) l.locale];
 
 /// Языки телефона, при которых по умолчанию включаем русский:
 /// страны бывшего СССР, где русский широко понятен.

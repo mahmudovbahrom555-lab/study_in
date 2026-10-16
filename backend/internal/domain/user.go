@@ -18,6 +18,7 @@ func (r Role) Valid() bool {
 	return r == RoleTeacher || r == RoleStudent || r == RoleParent
 }
 
+// Language — язык пользователя: на нём сервер пишет push и SMS.
 type Language string
 
 const (
@@ -27,8 +28,17 @@ const (
 	LanguageEn     Language = "en"
 )
 
+// SupportedLanguages — единственный список языков на сервере. Новый язык —
+// одна строка здесь (в БД ограничения нет, миграция не нужна).
+var SupportedLanguages = []Language{LanguageUz, LanguageUzCyrl, LanguageRu, LanguageEn}
+
 func (l Language) Valid() bool {
-	return l == LanguageUz || l == LanguageUzCyrl || l == LanguageRu || l == LanguageEn
+	for _, s := range SupportedLanguages {
+		if l == s {
+			return true
+		}
+	}
+	return false
 }
 
 type User struct {

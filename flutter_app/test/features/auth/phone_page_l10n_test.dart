@@ -61,6 +61,11 @@ void main() {
   testWidgets('переключатель меняет язык и сохраняет выбор', (tester) async {
     final store = await _pump(tester, 'ru');
 
+    await tester.tap(find.text('Русский')); // открыть меню языков
+    await tester.pumpAndSettle();
+    for (final l in appLanguages) {
+      expect(find.text(l.nativeName), findsWidgets);
+    }
     await tester.tap(find.text('English'));
     await tester.pumpAndSettle();
 

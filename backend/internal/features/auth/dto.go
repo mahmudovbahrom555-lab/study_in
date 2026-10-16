@@ -32,7 +32,7 @@ type SetRoleRequest struct {
 
 type UpdateMeRequest struct {
 	Name     *string          `json:"name"     validate:"omitempty,min=1,max=100"`
-	Language *domain.Language `json:"language" validate:"omitempty,oneof=uz uz-cyrl ru en"`
+	Language *domain.Language `json:"language"` // проверяет сервис: domain.SupportedLanguages
 }
 
 type AddDeviceTokenRequest struct {

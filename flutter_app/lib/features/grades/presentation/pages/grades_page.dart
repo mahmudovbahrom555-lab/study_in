@@ -15,12 +15,10 @@ class GradesPage extends ConsumerStatefulWidget {
     super.key,
     required this.groupId,
     this.isTeacher = false,
-    this.studentId,
   });
 
   final String groupId;
   final bool isTeacher;
-  final String? studentId;
 
   @override
   ConsumerState<GradesPage> createState() => _GradesPageState();
@@ -44,11 +42,14 @@ class _GradesPageState extends ConsumerState<GradesPage> {
     if (widget.isTeacher) {
       return _TeacherView(groupId: widget.groupId);
     }
-    // Без studentId ученик смотрит свои оценки (родитель передаёт id ребёнка).
-    final me = ref.watch(authProvider).user?.id;
-    return _StudentView(
+    final params = (
       groupId: widget.groupId,
-      studentId: widget.studentId ?? me ?? '',
+      studentId: ref.watch(authProvider).user?.id ?? '',
+    );
+    return GradeHistoryView(
+      title: context.l10n.myGrades,
+      grades: ref.watch(studentGradesProvider(params)),
+      onRetry: () => ref.invalidate(studentGradesProvider(params)),
     );
   }
 }
@@ -123,30 +124,29 @@ class _TeacherView extends ConsumerWidget {
   }
 }
 
-// ─── Student view ─────────────────────────────────────────────────────────────
+// ─── Grade history (student, parent) ─────────────────────────────────────────
 
-class _StudentView extends ConsumerWidget {
-  const _StudentView({required this.groupId, required this.studentId});
+/// Оценки одного ученика. Данные приходят снаружи: ученик берёт свои,
+/// родитель — ребёнка через свой модуль (у них разные эндпоинты и права).
+class GradeHistoryView extends StatelessWidget {
+  const GradeHistoryView({
+    super.key,
+    required this.title,
+    required this.grades,
+    required this.onRetry,
+  });
 
-  final String groupId;
-  final String studentId;
+  final String title;
+  final AsyncValue<List<Grade>> grades;
+  final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(
-      studentGradesProvider((groupId: groupId, studentId: studentId)),
-    );
-
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(context.l10n.myGrades)),
-      body: state.when(
+      appBar: AppBar(title: Text(title)),
+      body: grades.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ErrorView(
-          error: e,
-          onRetry: () => ref.invalidate(
-            studentGradesProvider((groupId: groupId, studentId: studentId)),
-          ),
-        ),
+        error: (e, _) => ErrorView(error: e, onRetry: onRetry),
         data: (grades) {
           if (grades.isEmpty) {
             return Center(child: Text(context.l10n.noGrades));

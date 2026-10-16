@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/localization/locale_provider.dart';
 import '../../../../core/router/routes.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/code_input.dart';
@@ -20,17 +19,6 @@ class VerifyPage extends ConsumerStatefulWidget {
 class _VerifyPageState extends ConsumerState<VerifyPage> {
   String _code = '';
 
-  /// Сохраняет язык интерфейса в профиле — по нему сервер будет выбирать язык
-  /// push-уведомлений. Не блокирует вход: при ошибке синхронизируем в следующий раз.
-  void _syncLanguage(String? serverLanguage) {
-    final lang = ref.read(localeProvider).languageCode;
-    if (serverLanguage == lang) return;
-    ref
-        .read(authRepositoryProvider)
-        .updateMe(language: lang)
-        .then((_) {}, onError: (Object e) => debugPrint('language sync: $e'));
-  }
-
   Future<void> _verify() async {
     if (_code.length != 6) return;
 
@@ -46,7 +34,6 @@ class _VerifyPageState extends ConsumerState<VerifyPage> {
     }
 
     final user = ref.read(authProvider).user;
-    _syncLanguage(user?.language);
     // Роль могла не сохраниться при прошлом входе — без неё API отвечает 403.
     if (isNewUser || (user != null && !user.hasRole)) {
       context.go(Routes.roleSelect);

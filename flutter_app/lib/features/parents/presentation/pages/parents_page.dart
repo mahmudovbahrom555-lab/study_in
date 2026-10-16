@@ -166,7 +166,10 @@ class _ChildCard extends ConsumerWidget {
           ],
         ),
         children: [
-          _ChildGroupsSection(studentId: link.studentId),
+          _ChildGroupsSection(
+            studentId: link.studentId,
+            studentName: link.studentName,
+          ),
         ],
       ),
     );
@@ -202,9 +205,14 @@ class _ChildCard extends ConsumerWidget {
 // ─── Child groups section ─────────────────────────────────────────────────────
 
 class _ChildGroupsSection extends ConsumerWidget {
-  const _ChildGroupsSection({required this.studentId});
+  const _ChildGroupsSection({required this.studentId, required this.studentName});
 
   final String studentId;
+  final String studentName;
+
+  /// «Оценки · Бекзод» — родитель с несколькими детьми видит, чей это экран.
+  String _title(String section) =>
+      studentName.isEmpty ? section : '$section · $studentName';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -241,9 +249,16 @@ class _ChildGroupsSection extends ConsumerWidget {
                         onPressed: () => Navigator.push<void>(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => GradesPage(
-                              groupId: g.id,
-                              studentId: studentId,
+                            // Родитель читает через свои эндпоинты (/parent/children/...).
+                            builder: (_) => Consumer(
+                              builder: (_, ref, __) {
+                                final p = (studentId: studentId, groupId: g.id);
+                                return GradeHistoryView(
+                                  title: _title(context.l10n.tabGrades),
+                                  grades: ref.watch(childGradesProvider(p)),
+                                  onRetry: () => ref.invalidate(childGradesProvider(p)),
+                                );
+                              },
                             ),
                           ),
                         ),
@@ -254,9 +269,15 @@ class _ChildGroupsSection extends ConsumerWidget {
                         onPressed: () => Navigator.push<void>(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => AttendancePage(
-                              groupId: g.id,
-                              studentId: studentId,
+                            builder: (_) => Consumer(
+                              builder: (_, ref, __) {
+                                final p = (studentId: studentId, groupId: g.id);
+                                return AttendanceHistoryView(
+                                  title: _title(context.l10n.attendance),
+                                  records: ref.watch(childAttendanceProvider(p)),
+                                  onRetry: () => ref.invalidate(childAttendanceProvider(p)),
+                                );
+                              },
                             ),
                           ),
                         ),
@@ -270,7 +291,7 @@ class _ChildGroupsSection extends ConsumerWidget {
                             builder: (_) => ParentRoiPage(
                               studentId: studentId,
                               groupId: g.id,
-                              studentName: g.name,
+                              studentName: studentName,
                             ),
                           ),
                         ),

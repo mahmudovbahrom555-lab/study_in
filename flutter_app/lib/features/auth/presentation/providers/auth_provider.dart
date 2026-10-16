@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/localization/locale_provider.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/error_message.dart';
 import '../../../../core/storage/secure_storage.dart';
@@ -130,6 +132,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Тихо сохраняет язык интерфейса в профиле: по нему сервер выбирает язык
+  /// push. Ошибка не мешает работе — повторим при следующем входе или смене языка.
+  Future<void> syncLanguage(String language) async {
+    final user = state.user;
+    if (user == null || user.language == language) return;
+    try {
+      final updated = await _repo.updateMe(language: language);
+      if (state.user?.id == updated.id) state = state.copyWith(user: updated);
+    } catch (e) {
+      debugPrint('language sync: $e');
+    }
+  }
+
   Future<void> logout() async {
     final refreshToken = await _storage.getRefreshToken();
     if (refreshToken != null) {
@@ -159,4 +174,16 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   );
   ref.listen(sessionExpiredProvider, (_, __) => notifier.sessionExpired());
   return notifier;
+});
+
+/// Держит язык профиля на сервере равным языку интерфейса: после входа и при
+/// смене языка. Подключён в App — одно место вместо вызовов по экранам.
+final languageSyncProvider = Provider<void>((ref) {
+  void sync() => ref
+      .read(authProvider.notifier)
+      .syncLanguage(ref.read(localeProvider).languageCode);
+  ref.listen(localeProvider, (_, __) => sync());
+  ref.listen(authProvider.select((s) => s.user?.id), (_, id) {
+    if (id != null) sync();
+  });
 });

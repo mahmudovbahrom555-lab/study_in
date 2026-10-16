@@ -1,31 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import 'l10n.dart';
 import 'locale_provider.dart';
 import 'locale_resolver.dart';
 
-/// Переключатель языка интерфейса.
-///
-/// Названия языков — на самих языках, чтобы человек нашёл свой язык,
-/// даже если автоопределение выбрало непонятный ему.
+/// Переключатель языка интерфейса: текущий язык и меню со всеми языками
+/// из [appLanguages] — вмещает любое их число.
 class LanguageSwitcher extends ConsumerWidget {
   const LanguageSwitcher({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final current = ref.watch(localeProvider);
+    final code = ref.watch(localeProvider).languageCode;
+    final current = appLanguages.firstWhere(
+      (l) => l.locale.languageCode == code,
+      orElse: () => appLanguages.first,
+    );
 
-    return SegmentedButton<String>(
-      showSelectedIcon: false,
-      style: const ButtonStyle(visualDensity: VisualDensity.compact),
-      segments: const [
-        ButtonSegment(value: 'ru', label: Text('Русский')),
-        ButtonSegment(value: 'en', label: Text('English')),
+    return PopupMenuButton<AppLanguage>(
+      tooltip: context.l10n.language,
+      initialValue: current,
+      onSelected: (l) => ref.read(localeProvider.notifier).select(l.locale),
+      itemBuilder: (_) => [
+        for (final l in appLanguages)
+          PopupMenuItem(value: l, child: Text(l.nativeName)),
       ],
-      selected: {current.languageCode},
-      onSelectionChanged: (s) => ref
-          .read(localeProvider.notifier)
-          .select(s.first == 'en' ? enLocale : ruLocale),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(current.nativeName),
+            const SizedBox(width: 4),
+            const Icon(LucideIcons.chevronDown, size: 18),
+          ],
+        ),
+      ),
     );
   }
 }

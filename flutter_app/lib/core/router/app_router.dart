@@ -25,6 +25,7 @@ import '../../features/notifications/presentation/pages/notifications_page.dart'
 import '../../features/reports/presentation/pages/parent_roi_page.dart';
 import '../../features/reports/presentation/pages/owner_risk_page.dart';
 import '../../features/auth/presentation/pages/account_page.dart';
+import '../remote_config/update_required_page.dart';
 import 'routes.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -45,7 +46,12 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (isLoading) return null;
 
-      final publicRoutes = {Routes.splash, Routes.phone, Routes.verify};
+      final publicRoutes = {
+        Routes.splash,
+        Routes.updateRequired,
+        Routes.phone,
+        Routes.verify,
+      };
       if (!isAuth && !publicRoutes.contains(loc)) return Routes.phone;
 
       return null;
@@ -54,6 +60,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.splash,
         builder: (_, __) => const SplashPage(),
+      ),
+      GoRoute(
+        path: Routes.updateRequired,
+        builder: (_, __) => const UpdateRequiredPage(),
       ),
       GoRoute(
         path: Routes.phone,
@@ -130,24 +140,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: '/groups/:groupId/students/:studentId/grades',
-        builder: (_, state) => GradesPage(
-          groupId: state.pathParameters['groupId']!,
-          studentId: state.pathParameters['studentId'],
-        ),
-      ),
-      GoRoute(
         path: '/groups/:id/attendance',
         builder: (_, state) => AttendancePage(
           groupId: state.pathParameters['id']!,
           isTeacher: (state.uri.queryParameters['role'] ?? '') == 'teacher',
-        ),
-      ),
-      GoRoute(
-        path: '/groups/:groupId/students/:studentId/attendance',
-        builder: (_, state) => AttendancePage(
-          groupId: state.pathParameters['groupId']!,
-          studentId: state.pathParameters['studentId'],
         ),
       ),
       GoRoute(

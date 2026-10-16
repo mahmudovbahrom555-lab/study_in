@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/remote_config/remote_config_provider.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../providers/auth_provider.dart';
@@ -21,8 +22,17 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   }
 
   Future<void> _init() async {
-    await ref.read(authProvider.notifier).checkAuth();
+    await Future.wait([
+      ref.read(remoteConfigProvider.notifier).refresh(),
+      ref.read(authProvider.notifier).checkAuth(),
+    ]);
     if (!mounted) return;
+
+    final appVersion = ref.read(appInfoProvider).version;
+    if (ref.read(remoteConfigProvider).requiresUpdate(appVersion)) {
+      context.go(Routes.updateRequired);
+      return;
+    }
 
     final state = ref.read(authProvider);
     if (state.isAuthenticated) {
