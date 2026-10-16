@@ -27,7 +27,6 @@ class GradesRepositoryImpl implements GradesRepository {
     required double value,
     double maxValue = 100,
     String? comment,
-    String? gradedAt,
   }) async {
     final dto = await _api.createGrade(
       groupId: groupId,
@@ -36,31 +35,11 @@ class GradesRepositoryImpl implements GradesRepository {
       value: value,
       maxValue: maxValue,
       comment: comment,
-      gradedAt: gradedAt,
     );
     return dto.toDomain();
   }
 
   @override
-  Future<Grade> updateGrade(
-    String gradeId, {
-    String? subject,
-    double? value,
-    double? maxValue,
-    String? comment,
-    String? gradedAt,
-  }) async {
-    final dto = await _api.updateGrade(
-      gradeId,
-      subject: subject,
-      value: value,
-      maxValue: maxValue,
-      comment: comment,
-      gradedAt: gradedAt,
-    );
-    return dto.toDomain();
-  }
-
-  @override
-  Future<void> deleteGrade(String gradeId) => _api.deleteGrade(gradeId);
+  Future<void> deleteGrade(String groupId, String gradeId) =>
+      _api.deleteGrade(groupId, gradeId);
 }

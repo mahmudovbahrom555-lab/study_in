@@ -36,7 +36,6 @@ class GradesApi {
     required double value,
     double maxValue = 100,
     String? comment,
-    String? gradedAt,
   }) async {
     final resp = await _dio.post<Map<String, dynamic>>(
       '/groups/$groupId/grades',
@@ -46,33 +45,11 @@ class GradesApi {
         'value': value,
         'max_value': maxValue,
         if (comment != null) 'comment': comment,
-        if (gradedAt != null) 'graded_at': gradedAt,
       },
     );
     return GradeDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }
 
-  Future<GradeDto> updateGrade(
-    String gradeId, {
-    String? subject,
-    double? value,
-    double? maxValue,
-    String? comment,
-    String? gradedAt,
-  }) async {
-    final resp = await _dio.patch<Map<String, dynamic>>(
-      '/grades/$gradeId',
-      data: {
-        if (subject != null) 'subject': subject,
-        if (value != null) 'value': value,
-        if (maxValue != null) 'max_value': maxValue,
-        if (comment != null) 'comment': comment,
-        if (gradedAt != null) 'graded_at': gradedAt,
-      },
-    );
-    return GradeDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
-  }
-
-  Future<void> deleteGrade(String gradeId) =>
-      _dio.delete<void>('/grades/$gradeId');
+  Future<void> deleteGrade(String groupId, String gradeId) =>
+      _dio.delete<void>('/groups/$groupId/grades/$gradeId');
 }

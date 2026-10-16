@@ -10,6 +10,12 @@ import (
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/domain"
 )
 
+var (
+	errAboveMax = domain.NewError("GRADE_ABOVE_MAX", "grade is greater than the maximum", domain.ErrValidation)
+	// Оценка за ДЗ меняется при проверке работы, иначе журнал и работа разойдутся.
+	errHomeworkReadonly = domain.NewError("HOMEWORK_GRADE_READONLY", "homework grade is changed on the submission", domain.ErrConflict)
+)
+
 type Service struct {
 	repo   Repository
 	groups GroupChecker
@@ -37,12 +43,15 @@ func (s *Service) CreateGrade(ctx context.Context, teacherID, groupID uuid.UUID,
 		return nil, fmt.Errorf("grades.CreateGrade fetch member: %w", err)
 	}
 	if m == nil {
-		return nil, domain.ErrNotFound
+		return nil, domain.NewError("STUDENT_NOT_IN_GROUP", "student is not in this group", domain.ErrValidation)
 	}
 
 	maxValue := req.MaxValue
 	if maxValue == 0 {
 		maxValue = 100
+	}
+	if *req.Value > maxValue {
+		return nil, errAboveMax
 	}
 
 	gradedAt := time.Now()
@@ -59,16 +68,18 @@ func (s *Service) CreateGrade(ctx context.Context, teacherID, groupID uuid.UUID,
 		StudentID: req.StudentID,
 		TeacherID: teacherID,
 		Subject:   req.Subject,
-		Value:     req.Value,
+		Value:     *req.Value,
 		MaxValue:  maxValue,
 		Comment:   req.Comment,
+		Kind:      domain.GradeKindClass,
 		GradedAt:  gradedAt,
 		CreatedAt: now,
 	}
 	if err := s.repo.Create(ctx, grade); err != nil {
 		return nil, fmt.Errorf("grades.CreateGrade: %w", err)
 	}
-	return grade, nil
+	// Перечитываем: в журнале нужна строка с именем ученика.
+	return s.repo.GetByID(ctx, grade.ID)
 }
 
 // ListGroupGrades returns all grades for a group.
@@ -142,6 +153,9 @@ func (s *Service) UpdateGrade(ctx context.Context, gradeID, teacherID uuid.UUID,
 	if grade.TeacherID != teacherID {
 		return nil, domain.ErrForbidden
 	}
+	if grade.Kind == domain.GradeKindHomework {
+		return nil, errHomeworkReadonly
+	}
 
 	if req.Subject != nil {
 		grade.Subject = *req.Subject
@@ -159,6 +173,9 @@ func (s *Service) UpdateGrade(ctx context.Context, gradeID, teacherID uuid.UUID,
 		if t, err2 := time.Parse(time.RFC3339, *req.GradedAt); err2 == nil {
 			grade.GradedAt = t
 		}
+	}
+	if grade.Value > grade.MaxValue {
+		return nil, errAboveMax
 	}
 
 	if err := s.repo.Update(ctx, grade); err != nil {
@@ -178,6 +195,9 @@ func (s *Service) DeleteGrade(ctx context.Context, gradeID, teacherID uuid.UUID)
 	}
 	if grade.TeacherID != teacherID {
 		return domain.ErrForbidden
+	}
+	if grade.Kind == domain.GradeKindHomework {
+		return errHomeworkReadonly
 	}
 	if err := s.repo.Delete(ctx, gradeID); err != nil {
 		return fmt.Errorf("grades.DeleteGrade: %w", err)

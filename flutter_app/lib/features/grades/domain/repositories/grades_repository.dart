@@ -10,15 +10,6 @@ abstract class GradesRepository {
     required double value,
     double maxValue,
     String? comment,
-    String? gradedAt,
   });
-  Future<Grade> updateGrade(
-    String gradeId, {
-    String? subject,
-    double? value,
-    double? maxValue,
-    String? comment,
-    String? gradedAt,
-  });
-  Future<void> deleteGrade(String gradeId);
+  Future<void> deleteGrade(String groupId, String gradeId);
 }

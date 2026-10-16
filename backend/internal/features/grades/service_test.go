@@ -77,9 +77,24 @@ var (
 )
 
 func buildSvc() (*grades.Service, uuid.UUID) {
+	svc, gid, _ := buildSvcRepo()
+	return svc, gid
+}
+
+func buildSvcRepo() (*grades.Service, uuid.UUID, *memRepo) {
 	mg, gid := newGroups(teacherID)
 	mg.addMember(gid, studentID)
-	return grades.NewService(newMemRepo(), mg), gid
+	repo := newMemRepo()
+	return grades.NewService(repo, mg), gid, repo
+}
+
+func v(f float64) *float64 { return &f }
+
+func assertCode(t *testing.T, err error, code string) {
+	t.Helper()
+	var de *domain.Error
+	require.ErrorAs(t, err, &de)
+	assert.Equal(t, code, de.Code)
 }
 
 // ─── tests ────────────────────────────────────────────────────────────────────
@@ -89,8 +104,8 @@ func TestCreateGrade_Success(t *testing.T) {
 	g, err := svc.CreateGrade(context.Background(), teacherID, gid, grades.CreateGradeRequest{
 		StudentID: studentID,
 		Subject:   "Математика",
-		Value:     85,
-		MaxValue:  100,
+		Value: v(85),
+		MaxValue: 100,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, float64(85), g.Value)
@@ -100,7 +115,7 @@ func TestCreateGrade_Success(t *testing.T) {
 func TestCreateGrade_ForbiddenNonTeacher(t *testing.T) {
 	svc, gid := buildSvc()
 	_, err := svc.CreateGrade(context.Background(), uuid.New(), gid, grades.CreateGradeRequest{
-		StudentID: studentID, Subject: "X", Value: 10,
+		StudentID: studentID, Subject: "X", Value: v(10),
 	})
 	assert.ErrorIs(t, err, domain.ErrForbidden)
 }
@@ -108,18 +123,65 @@ func TestCreateGrade_ForbiddenNonTeacher(t *testing.T) {
 func TestCreateGrade_StudentNotMember(t *testing.T) {
 	svc, gid := buildSvc()
 	_, err := svc.CreateGrade(context.Background(), teacherID, gid, grades.CreateGradeRequest{
-		StudentID: uuid.New(), Subject: "X", Value: 10,
+		StudentID: uuid.New(), Subject: "X", Value: v(10),
 	})
-	assert.ErrorIs(t, err, domain.ErrNotFound)
+	assertCode(t, err, "STUDENT_NOT_IN_GROUP")
 }
 
 func TestCreateGrade_DefaultMaxValue(t *testing.T) {
 	svc, gid := buildSvc()
 	g, err := svc.CreateGrade(context.Background(), teacherID, gid, grades.CreateGradeRequest{
-		StudentID: studentID, Subject: "X", Value: 50,
+		StudentID: studentID, Subject: "X", Value: v(50),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, float64(100), g.MaxValue)
+}
+
+func TestCreateGrade_ZeroAllowed(t *testing.T) {
+	svc, gid := buildSvc()
+	g, err := svc.CreateGrade(context.Background(), teacherID, gid, grades.CreateGradeRequest{
+		StudentID: studentID, Subject: "Диктант", Value: v(0), MaxValue: 5,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, float64(0), g.Value)
+	assert.Equal(t, domain.GradeKindClass, g.Kind)
+}
+
+func TestCreateGrade_AboveMaxRejected(t *testing.T) {
+	svc, gid := buildSvc()
+	_, err := svc.CreateGrade(context.Background(), teacherID, gid, grades.CreateGradeRequest{
+		StudentID: studentID, Subject: "Диктант", Value: v(6), MaxValue: 5,
+	})
+	assertCode(t, err, "GRADE_ABOVE_MAX")
+	assert.ErrorIs(t, err, domain.ErrValidation)
+}
+
+func TestUpdateGrade_AboveMaxRejected(t *testing.T) {
+	svc, gid := buildSvc()
+	g, _ := svc.CreateGrade(context.Background(), teacherID, gid, grades.CreateGradeRequest{
+		StudentID: studentID, Subject: "X", Value: v(4), MaxValue: 5,
+	})
+	_, err := svc.UpdateGrade(context.Background(), g.ID, teacherID, grades.UpdateGradeRequest{Value: v(7)})
+	assertCode(t, err, "GRADE_ABOVE_MAX")
+}
+
+func TestHomeworkGrade_ReadonlyInJournal(t *testing.T) {
+	svc, gid, repo := buildSvcRepo()
+	aid := uuid.New()
+	hw := &domain.Grade{
+		ID: uuid.New(), GroupID: gid, StudentID: studentID, TeacherID: teacherID,
+		Subject: "Workbook", Value: 90, MaxValue: 100,
+		Kind: domain.GradeKindHomework, AssignmentID: &aid,
+	}
+	require.NoError(t, repo.Create(context.Background(), hw))
+
+	assertCode(t, svc.DeleteGrade(context.Background(), hw.ID, teacherID), "HOMEWORK_GRADE_READONLY")
+	_, err := svc.UpdateGrade(context.Background(), hw.ID, teacherID, grades.UpdateGradeRequest{Value: v(50)})
+	assertCode(t, err, "HOMEWORK_GRADE_READONLY")
+
+	list, _ := svc.ListGroupGrades(context.Background(), gid, teacherID, domain.RoleTeacher)
+	require.Len(t, list, 1)
+	assert.Equal(t, float64(90), list[0].Value, "оценка за ДЗ не изменилась")
 }
 
 func TestListGroupGrades_TeacherSeesAll(t *testing.T) {
@@ -129,10 +191,10 @@ func TestListGroupGrades_TeacherSeesAll(t *testing.T) {
 	mg.addMember(gid, student2)
 
 	_, _ = svc.CreateGrade(context.Background(), teacherID, gid, grades.CreateGradeRequest{
-		StudentID: studentID, Subject: "X", Value: 10,
+		StudentID: studentID, Subject: "X", Value: v(10),
 	})
 	_, _ = svc.CreateGrade(context.Background(), teacherID, gid, grades.CreateGradeRequest{
-		StudentID: studentID, Subject: "Y", Value: 20,
+		StudentID: studentID, Subject: "Y", Value: v(20),
 	})
 
 	list, err := svc.ListGroupGrades(context.Background(), gid, teacherID, domain.RoleTeacher)
@@ -143,7 +205,7 @@ func TestListGroupGrades_TeacherSeesAll(t *testing.T) {
 func TestListGroupGrades_StudentSeesOnlyOwn(t *testing.T) {
 	svc, gid := buildSvc()
 	_, _ = svc.CreateGrade(context.Background(), teacherID, gid, grades.CreateGradeRequest{
-		StudentID: studentID, Subject: "Math", Value: 90,
+		StudentID: studentID, Subject: "Math", Value: v(90),
 	})
 
 	list, err := svc.ListGroupGrades(context.Background(), gid, studentID, domain.RoleStudent)
@@ -156,7 +218,7 @@ func TestListGroupGrades_StudentSeesOnlyOwn(t *testing.T) {
 func TestUpdateGrade_TeacherOnly(t *testing.T) {
 	svc, gid := buildSvc()
 	g, _ := svc.CreateGrade(context.Background(), teacherID, gid, grades.CreateGradeRequest{
-		StudentID: studentID, Subject: "Math", Value: 70,
+		StudentID: studentID, Subject: "Math", Value: v(70),
 	})
 
 	newVal := float64(95)
@@ -170,7 +232,7 @@ func TestUpdateGrade_TeacherOnly(t *testing.T) {
 func TestUpdateGrade_ForbiddenNonTeacher(t *testing.T) {
 	svc, gid := buildSvc()
 	g, _ := svc.CreateGrade(context.Background(), teacherID, gid, grades.CreateGradeRequest{
-		StudentID: studentID, Subject: "Math", Value: 70,
+		StudentID: studentID, Subject: "Math", Value: v(70),
 	})
 
 	val := float64(50)
@@ -183,7 +245,7 @@ func TestUpdateGrade_ForbiddenNonTeacher(t *testing.T) {
 func TestDeleteGrade_TeacherOnly(t *testing.T) {
 	svc, gid := buildSvc()
 	g, _ := svc.CreateGrade(context.Background(), teacherID, gid, grades.CreateGradeRequest{
-		StudentID: studentID, Subject: "Math", Value: 80,
+		StudentID: studentID, Subject: "Math", Value: v(80),
 	})
 	err := svc.DeleteGrade(context.Background(), g.ID, teacherID)
 	require.NoError(t, err)
@@ -195,7 +257,7 @@ func TestDeleteGrade_TeacherOnly(t *testing.T) {
 func TestDeleteGrade_ForbiddenNonTeacher(t *testing.T) {
 	svc, gid := buildSvc()
 	g, _ := svc.CreateGrade(context.Background(), teacherID, gid, grades.CreateGradeRequest{
-		StudentID: studentID, Subject: "Math", Value: 80,
+		StudentID: studentID, Subject: "Math", Value: v(80),
 	})
 	err := svc.DeleteGrade(context.Background(), g.ID, uuid.New())
 	assert.ErrorIs(t, err, domain.ErrForbidden)

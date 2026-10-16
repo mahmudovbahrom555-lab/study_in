@@ -239,15 +239,37 @@ func (r *AssignmentRepository) SubmissionStats(ctx context.Context, assignmentID
 	return out, nil
 }
 
+// GradeSubmission ставит оценку работе и в той же транзакции кладёт её в общий
+// журнал (grades, kind=homework): журнал и экран работы не расходятся.
+// Повторная проверка обновляет ту же запись журнала.
 func (r *AssignmentRepository) GradeSubmission(ctx context.Context, id uuid.UUID, grade int16, note string) error {
-	now := time.Now()
-	_, err := r.db.ExecContext(ctx,
-		`UPDATE submissions SET grade=$1, teacher_note=$2, graded_at=$3 WHERE id=$4`,
-		grade, note, now, id)
+	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
+		return fmt.Errorf("AssignmentRepository.GradeSubmission begin: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }() // после Commit — no-op
+
+	now := time.Now()
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE submissions SET grade=$1, teacher_note=$2, graded_at=$3 WHERE id=$4`,
+		grade, note, now, id); err != nil {
 		return fmt.Errorf("AssignmentRepository.GradeSubmission: %w", err)
 	}
-	return nil
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO grades (id, group_id, student_id, teacher_id, subject, value, max_value,
+		                    comment, kind, assignment_id, graded_at, created_at)
+		SELECT gen_random_uuid(), a.group_id, s.student_id, a.teacher_id, LEFT(a.title, 100),
+		       $1::numeric, 100, NULLIF($2::text, ''), 'homework', a.id, $3, $3
+		FROM submissions s
+		JOIN assignments a ON a.id = s.assignment_id
+		WHERE s.id = $4
+		ON CONFLICT (assignment_id, student_id) WHERE assignment_id IS NOT NULL
+		DO UPDATE SET subject = EXCLUDED.subject, value = EXCLUDED.value,
+		              comment = EXCLUDED.comment, graded_at = EXCLUDED.graded_at`,
+		grade, note, now, id); err != nil {
+		return fmt.Errorf("AssignmentRepository.GradeSubmission journal: %w", err)
+	}
+	return tx.Commit()
 }
 
 // ListSubmissionFiles — файлы нескольких сдач одним запросом, по порядку прикрепления.

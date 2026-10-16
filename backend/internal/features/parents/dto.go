@@ -46,6 +46,7 @@ type ChildGradeResponse struct {
 	Value     float64   `json:"value"`
 	MaxValue  float64   `json:"max_value"`
 	Comment   *string   `json:"comment,omitempty"`
+	Kind      string    `json:"kind"` // class | homework
 	GradedAt  time.Time `json:"graded_at"`
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -84,6 +85,7 @@ func toChildGrade(g *domain.Grade) ChildGradeResponse {
 		Value:     g.Value,
 		MaxValue:  g.MaxValue,
 		Comment:   g.Comment,
+		Kind:      string(g.Kind),
 		GradedAt:  g.GradedAt,
 		CreatedAt: g.CreatedAt,
 	}

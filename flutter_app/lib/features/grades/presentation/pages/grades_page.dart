@@ -3,12 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/localization/l10n.dart';
+import '../../../../core/network/error_message.dart';
+import '../../../../core/theme/colors.dart';
+import '../../../../core/widgets/error_view.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../groups/domain/entities/group.dart';
+import '../../../groups/presentation/providers/groups_provider.dart';
 import '../../domain/entities/grade.dart';
 import '../providers/grades_provider.dart';
 import '../widgets/add_grade_sheet.dart';
-import '../../../../core/widgets/error_view.dart';
-import '../../../../core/localization/l10n.dart';
 
 class GradesPage extends ConsumerStatefulWidget {
   const GradesPage({
@@ -64,6 +68,7 @@ class _TeacherView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(groupGradesProvider(groupId));
+    final notifier = ref.read(groupGradesProvider(groupId).notifier);
 
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.gradebook)),
@@ -77,21 +82,26 @@ class _TeacherView extends ConsumerWidget {
           if (state.isLoading && state.grades.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
+          if (state.error != null && state.grades.isEmpty) {
+            return ErrorView(message: state.error, onRetry: notifier.load);
+          }
           if (state.grades.isEmpty) {
             return Center(child: Text(context.l10n.noGrades));
           }
           return RefreshIndicator(
-            onRefresh: () =>
-                ref.read(groupGradesProvider(groupId).notifier).load(),
+            onRefresh: notifier.load,
             child: ListView.builder(
+              padding: const EdgeInsets.only(bottom: 88), // не под кнопкой «+»
               itemCount: state.grades.length,
-              itemBuilder: (_, i) => _GradeTile(
-                grade: state.grades[i],
-                showStudent: true,
-                onDelete: () => ref
-                    .read(groupGradesProvider(groupId).notifier)
-                    .deleteGrade(state.grades[i].id),
-              ),
+              itemBuilder: (_, i) {
+                final g = state.grades[i];
+                return _GradeTile(
+                  grade: g,
+                  showStudent: true,
+                  // Оценку за ДЗ меняют в проверке работы, не в журнале.
+                  onDelete: g.isHomework ? null : () => _confirmDelete(context, ref, g),
+                );
+              },
             ),
           );
         },
@@ -99,30 +109,70 @@ class _TeacherView extends ConsumerWidget {
     );
   }
 
-  void _showAdd(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet<void>(
+  Future<void> _showAdd(BuildContext context, WidgetRef ref) async {
+    // Ученики для выбора — из списка группы (обычно уже загружен на её странице).
+    if (ref.read(membersProvider(groupId)).valueOrNull == null) {
+      await ref.read(membersProvider(groupId).notifier).load();
+    }
+    if (!context.mounted) return;
+    final membersState = ref.read(membersProvider(groupId));
+    final members = membersState.valueOrNull ?? const <GroupMember>[];
+    if (members.isEmpty) {
+      final text = membersState.hasError
+          ? userErrorMessage(membersState.error!)
+          : context.l10n.noStudentsToGrade;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+      return;
+    }
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (_) => AddGradeSheet(
-        onSubmit: ({
-          required String studentId,
-          required String subject,
-          required double value,
-          double maxValue = 100,
-          String? comment,
-        }) {
-          ref.read(groupGradesProvider(groupId).notifier).createGrade(
-                studentId: studentId,
-                subject: subject,
-                value: value,
-                maxValue: maxValue,
-                comment: comment,
-              );
-        },
+        students: members,
+        onSubmit: ref.read(groupGradesProvider(groupId).notifier).createGrade,
       ),
     );
   }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, Grade g) async {
+    final l10n = context.l10n;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.deleteGradeQ),
+        content: Text(
+          l10n.deleteGradeBody(
+            g.studentName.isEmpty ? '—' : g.studentName,
+            '${formatScore(g.value, l10n.localeName)} / ${formatScore(g.maxValue, l10n.localeName)}',
+            g.subject,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              l10n.delete,
+              style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final error = await ref.read(groupGradesProvider(groupId).notifier).deleteGrade(g.id);
+    if (error != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
 }
+
+/// Балл без лишних нулей и с десятичным разделителем языка: «4,5», «85».
+String formatScore(double v, String locale) =>
+    NumberFormat.decimalPattern(locale).format(double.parse(v.toStringAsFixed(2)));
 
 // ─── Grade history (student, parent) ─────────────────────────────────────────
 
@@ -189,7 +239,10 @@ class _SummaryBar extends StatelessWidget {
           const Icon(LucideIcons.chartColumn),
           const SizedBox(width: 8),
           Text(
-            context.l10n.gradesSummary(avg.toStringAsFixed(1), grades.length),
+            context.l10n.gradesSummary(
+              formatScore(double.parse(avg.toStringAsFixed(1)), context.l10n.localeName),
+              grades.length,
+            ),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
@@ -213,48 +266,79 @@ class _GradeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = DateFormat('dd.MM.yyyy');
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final locale = l10n.localeName;
     final pct = grade.percentage;
     final color = pct >= 80
-        ? Colors.green
+        ? AppColors.success
         : pct >= 60
-            ? Colors.orange
-            : Colors.red;
+            ? AppColors.warning
+            : AppColors.error;
+    final score = '${formatScore(grade.value, locale)} / ${formatScore(grade.maxValue, locale)}';
+    final date = DateFormat('dd.MM.yyyy').format(grade.gradedAt.toLocal());
+
+    // В журнале репетитора строка — ученик, у ученика и родителя — за что оценка.
+    final title = showStudent
+        ? (grade.studentName.isEmpty ? '—' : grade.studentName)
+        : grade.subject;
+    final details = showStudent ? '${grade.subject} · $score · $date' : '$score · $date';
 
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: color.withOpacity(0.15),
+        backgroundColor: color.withValues(alpha: 0.15),
         child: Text(
-          grade.value.toStringAsFixed(0),
+          formatScore(grade.value, locale),
           style: TextStyle(color: color, fontWeight: FontWeight.bold),
         ),
       ),
-      title: Text(grade.subject),
+      title: Row(
+        children: [
+          Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
+          if (grade.isHomework) ...[
+            const SizedBox(width: 8),
+            _KindChip(label: l10n.homeworkShort),
+          ],
+        ],
+      ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-              '${grade.value} / ${grade.maxValue}  •  ${fmt.format(grade.gradedAt)}',),
-          if (showStudent)
-            Text(
-              context.l10n.studentLabel(grade.studentId),
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
+          Text(details),
           if (grade.comment != null)
-            Text(
-              grade.comment!,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            Text(grade.comment!, style: theme.textTheme.bodySmall),
         ],
       ),
-      isThreeLine: showStudent || grade.comment != null,
+      isThreeLine: grade.comment != null,
       trailing: onDelete != null
           ? IconButton(
-            tooltip: context.l10n.deleteGrade,
-              icon: const Icon(LucideIcons.trash2, color: Colors.red),
+              tooltip: l10n.deleteGrade,
+              icon: Icon(LucideIcons.trash2, color: theme.colorScheme.error),
               onPressed: onDelete,
             )
           : null,
+    );
+  }
+}
+
+class _KindChip extends StatelessWidget {
+  const _KindChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSecondaryContainer),
+      ),
     );
   }
 }

@@ -57,14 +57,15 @@ class GroupGradesNotifier extends StateNotifier<GradesState> {
     }
   }
 
-  Future<void> createGrade({
+  /// Возвращает текст ошибки или null при успехе — форма остаётся открытой
+  /// и показывает ошибку, а не закрывается молча.
+  Future<String?> createGrade({
     required String studentId,
     required String subject,
     required double value,
     double maxValue = 100,
     String? comment,
   }) async {
-    state = state.copyWith(isLoading: true, clearError: true);
     try {
       final g = await _repo.createGrade(
         groupId: _groupId,
@@ -74,23 +75,23 @@ class GroupGradesNotifier extends StateNotifier<GradesState> {
         maxValue: maxValue,
         comment: comment,
       );
-      state = state.copyWith(
-        isLoading: false,
-        grades: [g, ...state.grades],
-      );
+      state = state.copyWith(grades: [g, ...state.grades]);
+      return null;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
+      return userErrorMessage(e);
     }
   }
 
-  Future<void> deleteGrade(String gradeId) async {
+  /// Возвращает текст ошибки или null при успехе.
+  Future<String?> deleteGrade(String gradeId) async {
     try {
-      await _repo.deleteGrade(gradeId);
+      await _repo.deleteGrade(_groupId, gradeId);
       state = state.copyWith(
         grades: state.grades.where((g) => g.id != gradeId).toList(),
       );
+      return null;
     } catch (e) {
-      state = state.copyWith(error: userErrorMessage(e));
+      return userErrorMessage(e);
     }
   }
 }

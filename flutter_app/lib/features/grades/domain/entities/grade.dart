@@ -12,17 +12,23 @@ class Grade {
     required this.maxValue,
     required this.gradedAt,
     required this.createdAt,
+    this.studentName = '',
+    this.isHomework = false,
     this.comment,
   });
 
   final String id;
   final String groupId;
   final String studentId;
+  final String studentName;
   final String teacherId;
   final String subject;
   final double value;
   final double maxValue;
   final String? comment;
+
+  /// Оценка за ДЗ: ставится и меняется при проверке работы, в журнале — только чтение.
+  final bool isHomework;
   final DateTime gradedAt;
   final DateTime createdAt;
 

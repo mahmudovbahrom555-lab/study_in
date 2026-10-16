@@ -48,6 +48,9 @@ String? _byCode(AppLocalizations l10n, String? code) => switch (code) {
       'ALREADY_GRADED' => l10n.errAlreadyGraded,
       'SUBMISSION_EMPTY' => l10n.errSubmissionEmpty,
       'FILE_IN_USE' || 'FILE_NOT_FOUND' || 'FILE_MISSING' => l10n.errFileUnavailable,
+      'GRADE_ABOVE_MAX' => l10n.errGradeAboveMax,
+      'STUDENT_NOT_IN_GROUP' => l10n.errStudentNotInGroup,
+      'HOMEWORK_GRADE_READONLY' => l10n.homeworkGradeReadonly,
       _ => null,
     };
 
