@@ -159,6 +159,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState();
   }
 
+  /// Удаляет аккаунт. Возвращает текст ошибки или null при успехе
+  /// (тогда пользователь разлогинен).
+  Future<String?> deleteAccount() async {
+    try {
+      await _repo.deleteAccount();
+      state = const AuthState();
+      return null;
+    } catch (e) {
+      return _message(e);
+    }
+  }
+
   /// Сервер отверг сессию посреди работы (токены уже стёрты) — на вход.
   void sessionExpired() {
     if (state.isAuthenticated) state = const AuthState();

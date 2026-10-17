@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -75,6 +76,8 @@ func (h *Handler) verify(w http.ResponseWriter, r *http.Request) {
 		response.ErrorWithDetails(w, domain.ErrValidation, validationDetails(err))
 		return
 	}
+	req.IP = clientIP(r)
+	req.UserAgent = r.UserAgent()
 	result, err := h.service.Verify(r.Context(), &req)
 	if err != nil {
 		response.Error(w, err)
@@ -191,6 +194,14 @@ func (h *Handler) addDeviceToken(w http.ResponseWriter, r *http.Request) {
 }
 
 // --- helpers ---
+
+// clientIP — адрес клиента без порта (middleware RealIP уже учёл X-Real-IP / X-Forwarded-For).
+func clientIP(r *http.Request) string {
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
+	}
+	return r.RemoteAddr
+}
 
 func decode(r *http.Request, v any) error {
 	return json.NewDecoder(r.Body).Decode(v)

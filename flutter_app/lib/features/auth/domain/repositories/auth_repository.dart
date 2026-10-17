@@ -19,5 +19,8 @@ abstract class AuthRepository {
 
   Future<User> updateMe({String? name, String? language});
 
+  /// Удаляет аккаунт со всеми данными и стирает вход на устройстве.
+  Future<void> deleteAccount();
+
   Future<void> addDeviceToken(String token, String platform);
 }

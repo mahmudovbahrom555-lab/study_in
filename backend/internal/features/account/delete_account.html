@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>MaMu Learn — удаление аккаунта</title>
+<style>
+  :root { --brand: #2563EB; --text: #0F172A; --muted: #64748B; --bg: #F8FAFC; --card: #fff; --err: #DC2626; --ok: #16A34A; --line: #E2E8F0; }
+  @media (prefers-color-scheme: dark) {
+    :root { --text: #F1F5F9; --muted: #94A3B8; --bg: #0F172A; --card: #1E293B; --line: #334155; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  main { max-width: 440px; margin: 0 auto; padding: 32px 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; }
+  h1 { font-size: 22px; margin: 0 0 8px; }
+  p { margin: 0 0 16px; color: var(--muted); }
+  ul { margin: 0 0 16px; padding-left: 20px; color: var(--muted); }
+  label { display: block; font-size: 14px; margin: 0 0 6px; }
+  .phone { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .phone span { padding: 12px; color: var(--muted); border-right: 1px solid var(--line); }
+  input[type=tel], input[type=text] { width: 100%; padding: 12px; font-size: 16px; border: 0; background: transparent; color: var(--text); outline: none; }
+  .field { border: 1px solid var(--line); border-radius: 10px; }
+  .check { display: flex; gap: 8px; align-items: flex-start; margin: 16px 0; font-size: 14px; }
+  button { width: 100%; margin-top: 16px; padding: 14px; font-size: 16px; font-weight: 600; border: 0; border-radius: 12px; color: #fff; background: var(--brand); cursor: pointer; }
+  button.danger { background: var(--err); }
+  button:disabled { opacity: .5; cursor: default; }
+  .msg { margin-top: 12px; font-size: 14px; }
+  .msg.err { color: var(--err); }
+  .msg.ok { color: var(--ok); }
+  .lang { text-align: right; margin-bottom: 12px; font-size: 14px; }
+  .lang a { color: var(--brand); cursor: pointer; margin-left: 8px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="lang"><a data-lang="ru">Русский</a><a data-lang="en">English</a></div>
+  <div class="card">
+    <h1 data-t="title"></h1>
+    <p data-t="intro"></p>
+    <ul>
+      <li data-t="what1"></li>
+      <li data-t="what2"></li>
+      <li data-t="what3"></li>
+    </ul>
+
+    <form id="step1">
+      <label for="phone" data-t="phone"></label>
+      <div class="phone"><span>+998</span><input id="phone" type="tel" inputmode="numeric" maxlength="9" autocomplete="tel-national" placeholder="90 123 45 67"></div>
+      <button type="submit" data-t="getCode"></button>
+    </form>
+
+    <form id="step2" hidden>
+      <label for="code" data-t="code"></label>
+      <div class="field"><input id="code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code"></div>
+      <label class="check"><input id="agree" type="checkbox"> <span data-t="agree"></span></label>
+      <button type="submit" class="danger" id="del" disabled data-t="delete"></button>
+    </form>
+
+    <div id="msg" class="msg" role="status"></div>
+  </div>
+</main>
+<script>
+const T = {
+  ru: {
+    title: "Удаление аккаунта MaMu Learn",
+    intro: "Здесь можно удалить аккаунт без приложения. Удаление безвозвратно:",
+    what1: "имя, номер телефона и настройки;",
+    what2: "задания, сданные работы и файлы, оценки, посещаемость;",
+    what3: "если вы репетитор — ваши группы со всем содержимым.",
+    phone: "Номер телефона аккаунта", getCode: "Получить код по SMS", code: "Код из SMS",
+    agree: "Я понимаю, что аккаунт и данные будут удалены безвозвратно",
+    delete: "Удалить аккаунт", sent: "Код отправлен на номер +998 ",
+    done: "Аккаунт удалён. Если аккаунта с этим номером не было, ничего не изменилось.",
+    badPhone: "Введите 9 цифр номера", badCode: "Неверный код", expired: "Код истёк — запросите новый",
+    wait: "Подождите минуту и попробуйте снова", fail: "Не получилось. Проверьте интернет и попробуйте снова."
+  },
+  en: {
+    title: "Delete your MaMu Learn account",
+    intro: "You can delete your account here without the app. Deletion is permanent:",
+    what1: "your name, phone number and settings;",
+    what2: "assignments, submitted work and files, grades, attendance;",
+    what3: "if you are a tutor — your groups with everything in them.",
+    phone: "Account phone number", getCode: "Get SMS code", code: "SMS code",
+    agree: "I understand that my account and data will be permanently deleted",
+    delete: "Delete account", sent: "Code sent to +998 ",
+    done: "Account deleted. If there was no account with this number, nothing changed.",
+    badPhone: "Enter the 9 digits of the number", badCode: "Wrong code", expired: "The code has expired — request a new one",
+    wait: "Please wait a minute and try again", fail: "Something went wrong. Check your connection and try again."
+  }
+};
+let lang = (navigator.language || "ru").toLowerCase().startsWith("ru") || (navigator.language || "").toLowerCase().startsWith("uz") ? "ru" : "en";
+const $ = (id) => document.getElementById(id);
+const msg = (text, cls) => { $("msg").textContent = text || ""; $("msg").className = "msg " + (cls || ""); };
+function render() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = T[lang][el.dataset.t]; });
+}
+document.querySelectorAll("[data-lang]").forEach((a) => a.onclick = () => { lang = a.dataset.lang; render(); });
+render();
+
+const phone = () => "+998" + $("phone").value.replace(/\D/g, "");
+async function api(method, path, body, token) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = "Bearer " + token;
+  const r = await fetch("/api/v1" + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const data = r.status === 204 ? null : await r.json().catch(() => null);
+  if (!r.ok) { const e = new Error("api"); e.code = data && data.error && data.error.code; e.status = r.status; throw e; }
+  return data && data.data;
+}
+function explain(e) {
+  if (e.code === "INVALID_CODE") return T[lang].badCode;
+  if (e.code === "CODE_EXPIRED") return T[lang].expired;
+  if (e.status === 429) return T[lang].wait;
+  return T[lang].fail;
+}
+
+$("step1").onsubmit = async (ev) => {
+  ev.preventDefault();
+  if ($("phone").value.replace(/\D/g, "").length !== 9) return msg(T[lang].badPhone, "err");
+  const btn = ev.submitter; btn.disabled = true; msg("");
+  try {
+    await api("POST", "/auth/send-code", { phone: phone() });
+    $("step2").hidden = false; $("step1").hidden = true;
+    msg(T[lang].sent + $("phone").value, "ok"); $("code").focus();
+  } catch (e) { msg(explain(e), "err"); }
+  btn.disabled = false;
+};
+$("agree").onchange = () => { $("del").disabled = !$("agree").checked; };
+$("step2").onsubmit = async (ev) => {
+  ev.preventDefault();
+  $("del").disabled = true; msg("");
+  try {
+    const auth = await api("POST", "/auth/verify", { phone: phone(), code: $("code").value.trim() });
+    await api("DELETE", "/me", null, auth.access_token);
+    $("step2").hidden = true; msg(T[lang].done, "ok");
+  } catch (e) { msg(explain(e), "err"); $("del").disabled = !$("agree").checked; }
+};
+</script>
+</body>
+</html>

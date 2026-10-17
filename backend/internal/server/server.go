@@ -20,6 +20,7 @@ import (
 
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/config"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/domain"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/account"
 	aifeature "github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/ai"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/appconfig"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/assignments"
@@ -117,7 +118,8 @@ func (s *Server) setupRouter() {
 	rateLimiter := redisinfra.NewRateLimiter(s.redis)
 	authRepo := postgres.NewAuthRepository(s.db)
 	authService := auth.NewService(authRepo, smsSender, jwtManager, rateLimiter).
-		WithDevCode(s.cfg.SMS.DevCode)
+		WithDevCode(s.cfg.SMS.DevCode).
+		WithConsentRecorder(postgres.NewConsentRepository(s.db))
 	if s.cfg.SMS.DevCode != "" {
 		s.log.Warn("SMS_DEV_CODE enabled: fixed verification code for all phones (dev only)")
 	}
@@ -152,6 +154,8 @@ func (s *Server) setupRouter() {
 	}
 	s.filesSvc = files.NewService(fileRepo, fileStore, minioSigner)
 	filesHandler := files.NewHandler(s.filesSvc)
+
+	accountHandler := account.NewHandler(account.NewService(postgres.NewAccountRepository(s.db), fileStore))
 
 	assignRepo := postgres.NewAssignmentRepository(s.db)
 	assignService := assignments.NewService(assignRepo, groupRepo, minioSigner, minioStore, fileRepo)
@@ -233,6 +237,7 @@ func (s *Server) setupRouter() {
 
 	// --- Маршруты ---
 	r.Handle("/metrics", promhttp.Handler())
+	accountHandler.RegisterPage(r)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", s.handleHealth)
@@ -247,6 +252,7 @@ func (s *Server) setupRouter() {
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtManager))
 			r.Use(middleware.Metrics)
+			accountHandler.RegisterRoutes(r)
 			groupHandler.RegisterRoutes(r)
 			feedHandler.RegisterRoutes(r)
 			filesHandler.RegisterRoutes(r)

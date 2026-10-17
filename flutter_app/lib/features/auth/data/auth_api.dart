@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../../core/config/app_config.dart';
 import 'models/user_dto.dart';
 
 class AuthApi {
@@ -18,7 +19,13 @@ class AuthApi {
   }) async {
     final resp = await _dio.post<Map<String, dynamic>>(
       '/auth/verify',
-      data: {'phone': phone, 'code': code, 'device_info': deviceInfo},
+      data: {
+        'phone': phone,
+        'code': code,
+        'device_info': deviceInfo,
+        // Экран входа показывает согласие с этой версией политики.
+        'privacy_version': AppConfig.privacyVersion,
+      },
     );
     return AuthResponseDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }
@@ -62,6 +69,9 @@ class AuthApi {
     final resp = await _dio.patch<Map<String, dynamic>>('/me', data: body);
     return UserDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }
+
+  /// Безвозвратно удаляет аккаунт со всеми данными.
+  Future<void> deleteMe() => _dio.delete<void>('/me');
 
   Future<void> addDeviceToken(String token, String platform) async {
     await _dio.post<void>(

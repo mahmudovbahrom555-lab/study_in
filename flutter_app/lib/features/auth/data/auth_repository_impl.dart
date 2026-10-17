@@ -74,6 +74,12 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> deleteAccount() async {
+    await _api.deleteMe();
+    await _storage.clearTokens();
+  }
+
+  @override
   Future<void> addDeviceToken(String token, String platform) =>
       _api.addDeviceToken(token, platform);
 }

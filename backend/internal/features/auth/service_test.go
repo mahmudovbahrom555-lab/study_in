@@ -149,6 +149,40 @@ func TestSendCode_RateLimited(t *testing.T) {
 	assert.Empty(t, smsMock.sent)
 }
 
+type memConsents struct{ events []*domain.ConsentEvent }
+
+func (m *memConsents) RecordConsent(_ context.Context, e *domain.ConsentEvent) error {
+	m.events = append(m.events, e)
+	return nil
+}
+
+func TestVerify_RecordsPrivacyConsentForNewUserOnly(t *testing.T) {
+	repo, smsMock := newMockRepo(), &mockSMS{}
+	consents := &memConsents{}
+	svc := buildService(repo, smsMock, allowLimiter{}).WithConsentRecorder(consents)
+	phone := "+998901234567"
+	login := func() {
+		_ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
+		_, err := svc.Verify(context.Background(), &auth.VerifyRequest{
+			Phone: phone, Code: repo.codes[phone].Code,
+			PrivacyVersion: "2026-10-17", IP: "203.0.113.7", UserAgent: "MaMuLearn/0.1",
+		})
+		require.NoError(t, err)
+	}
+
+	login()
+	require.Len(t, consents.events, 1)
+	e := consents.events[0]
+	assert.Equal(t, auth.ConsentPrivacyPolicy, e.ConsentType)
+	assert.Equal(t, "2026-10-17", e.ConsentVersion)
+	assert.True(t, e.Granted)
+	require.NotNil(t, e.IPAddress)
+	assert.Equal(t, "203.0.113.7", *e.IPAddress)
+
+	login() // повторный вход — аккаунт уже есть, согласие уже записано
+	assert.Len(t, consents.events, 1)
+}
+
 func TestVerify_NewUser(t *testing.T) {
 	repo, smsMock := newMockRepo(), &mockSMS{}
 	svc := buildService(repo, smsMock, allowLimiter{})

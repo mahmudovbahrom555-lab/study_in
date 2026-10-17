@@ -6,7 +6,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"math/big"
+	"net"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,13 +31,28 @@ type Service struct {
 	repo    Repository
 	sms     sms.Sender
 	jwt     *jwt.Manager
-	limiter Limiter
-	devCode string // если задан — вместо случайного кода (только dev, см. config.validate)
+	limiter  Limiter
+	devCode  string // если задан — вместо случайного кода (только dev, см. config.validate)
+	consents ConsentRecorder
 }
+
+// ConsentRecorder пишет журнал согласий (consent_events).
+type ConsentRecorder interface {
+	RecordConsent(ctx context.Context, e *domain.ConsentEvent) error
+}
+
+// ConsentPrivacyPolicy — согласие с политикой конфиденциальности при регистрации.
+const ConsentPrivacyPolicy = "privacy_policy"
 
 // WithDevCode включает фиксированный код подтверждения для разработки.
 func (s *Service) WithDevCode(code string) *Service {
 	s.devCode = code
+	return s
+}
+
+// WithConsentRecorder включает запись согласия с политикой при регистрации.
+func (s *Service) WithConsentRecorder(c ConsentRecorder) *Service {
+	s.consents = c
 	return s
 }
 
@@ -114,6 +131,7 @@ func (s *Service) Verify(ctx context.Context, req *VerifyRequest) (*AuthResponse
 		if err := s.repo.CreateUser(ctx, user); err != nil {
 			return nil, fmt.Errorf("create user: %w", err)
 		}
+		s.recordPrivacyConsent(ctx, user.ID, req)
 	}
 
 	accessToken, refreshToken, err := s.issueTokenPair(ctx, user, req.DeviceInfo)
@@ -127,6 +145,33 @@ func (s *Service) Verify(ctx context.Context, req *VerifyRequest) (*AuthResponse
 		User:         userToResponse(user),
 		IsNewUser:    isNewUser,
 	}, nil
+}
+
+// recordPrivacyConsent сохраняет, с какой версией политики человек согласился
+// при регистрации. Сбой записи не мешает входу — пишем в лог.
+func (s *Service) recordPrivacyConsent(ctx context.Context, userID uuid.UUID, req *VerifyRequest) {
+	if s.consents == nil || req.PrivacyVersion == "" {
+		return
+	}
+	e := &domain.ConsentEvent{
+		ID:             uuid.New(),
+		UserID:         userID,
+		ConsentType:    ConsentPrivacyPolicy,
+		ConsentVersion: req.PrivacyVersion,
+		Granted:        true,
+		CreatedAt:      time.Now(),
+	}
+	if ip := net.ParseIP(req.IP); ip != nil {
+		v := ip.String()
+		e.IPAddress = &v
+	}
+	if req.UserAgent != "" {
+		ua := req.UserAgent
+		e.UserAgent = &ua
+	}
+	if err := s.consents.RecordConsent(ctx, e); err != nil {
+		slog.Error("record privacy consent", slog.String("err", err.Error()))
+	}
 }
 
 // Refresh обменивает refresh-токен на новую пару токенов.

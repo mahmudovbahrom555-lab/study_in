@@ -20,4 +20,15 @@ class AppConfig {
 
   /// Включён ли подробный логгинг.
   static bool get isDev => env == 'development';
+
+  /// Политика конфиденциальности (docs/legal/privacy-policy.ru.md). Страница
+  /// публикуется на домене; до этого ссылка не откроется.
+  static const String privacyUrl = String.fromEnvironment(
+    'PRIVACY_URL',
+    defaultValue: 'https://mamulearn.uz/privacy',
+  );
+
+  /// Версия политики, с которой человек соглашается на экране входа.
+  /// Меняется вместе с текстом политики — сервер хранит её в журнале согласий.
+  static const String privacyVersion = '2026-10-17';
 }

@@ -16,6 +16,13 @@ type VerifyRequest struct {
 	Phone      string `json:"phone"      validate:"required"`
 	Code       string `json:"code"       validate:"required,len=6"`
 	DeviceInfo string `json:"device_info"`
+	// PrivacyVersion — версия политики конфиденциальности, с которой человек
+	// согласился на экране входа. Сохраняется при создании аккаунта.
+	PrivacyVersion string `json:"privacy_version" validate:"max=20"`
+
+	// Заполняет обработчик — для журнала согласий.
+	IP        string `json:"-"`
+	UserAgent string `json:"-"`
 }
 
 type RefreshRequest struct {

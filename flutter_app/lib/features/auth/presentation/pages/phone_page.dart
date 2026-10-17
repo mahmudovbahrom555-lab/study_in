@@ -1,12 +1,60 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/localization/language_switcher.dart';
 import '../../../../core/router/routes.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/phone_input.dart';
 import '../../../../core/localization/l10n.dart';
+
+/// Согласие с политикой: вход = регистрация, поэтому согласие стоит здесь.
+/// Его версию приложение отправляет при входе (AppConfig.privacyVersion).
+class _ConsentNote extends StatefulWidget {
+  const _ConsentNote();
+
+  @override
+  State<_ConsentNote> createState() => _ConsentNoteState();
+}
+
+class _ConsentNoteState extends State<_ConsentNote> {
+  final _tap = TapGestureRecognizer()
+    ..onTap = () => launchUrl(
+          Uri.parse(AppConfig.privacyUrl),
+          mode: LaunchMode.externalApplication,
+        );
+
+  @override
+  void dispose() {
+    _tap.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text.rich(
+      TextSpan(
+        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        children: [
+          TextSpan(text: context.l10n.loginConsent),
+          TextSpan(
+            text: context.l10n.privacyPolicyLink,
+            style: TextStyle(
+              color: theme.colorScheme.primary,
+              decoration: TextDecoration.underline,
+            ),
+            recognizer: _tap,
+          ),
+        ],
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+}
 
 class PhonePage extends ConsumerStatefulWidget {
   const PhonePage({super.key});
@@ -93,6 +141,8 @@ class _PhonePageState extends ConsumerState<PhonePage> {
                       : Text(context.l10n.getCode),
                 ),
               ),
+              const SizedBox(height: 16),
+              const _ConsentNote(),
             ],
           ),
         ),
