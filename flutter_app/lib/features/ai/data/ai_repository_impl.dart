@@ -44,9 +44,6 @@ class AiRepositoryImpl implements AiRepository {
   Future<String> explainRecommendation(String recId) => _api.explainRecommendation(recId);
 
   @override
-  Future<String> createDemoGroup() => _api.createDemoGroup();
-
-  @override
   Future<Gamification> myGamification() async {
     final dto = await _api.myGamification();
     return dto.toDomain();

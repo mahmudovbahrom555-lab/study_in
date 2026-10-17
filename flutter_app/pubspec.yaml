@@ -47,6 +47,9 @@ dependencies:
   # Версия приложения — сверка с минимальной версией с сервера (app-config)
   package_info_plus: ^9.0.1
 
+  # Краши и ошибки с телефонов (без персональных данных); выключен без SENTRY_DSN
+  sentry_flutter: ^9.30.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

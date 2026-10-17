@@ -21,6 +21,9 @@ class AppConfig {
   /// Включён ли подробный логгинг.
   static bool get isDev => env == 'development';
 
+  /// Куда слать краши (Sentry). Пусто — сбор выключен.
+  static const String sentryDsn = String.fromEnvironment('SENTRY_DSN');
+
   /// Политика конфиденциальности (docs/legal/privacy-policy.ru.md). Страница
   /// публикуется на домене; до этого ссылка не откроется.
   static const String privacyUrl = String.fromEnvironment(

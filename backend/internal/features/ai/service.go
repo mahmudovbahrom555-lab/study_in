@@ -31,7 +31,6 @@ type Service struct {
 	feedback    QuizFeedbackRepository
 	genSess     GenerationSessionRepository
 	recRepo     RecommendationRepository
-	demoCreator DemoGroupCreator
 	ai          *oai.Client
 	cfg         ServiceConfig
 }
@@ -57,7 +56,6 @@ func NewService(
 	feedback QuizFeedbackRepository,
 	genSess GenerationSessionRepository,
 	recRepo RecommendationRepository,
-	demoCreator DemoGroupCreator,
 	ai *oai.Client,
 	cfg ServiceConfig,
 ) *Service {
@@ -66,7 +64,6 @@ func NewService(
 		tokens: tokens, mastery: mastery, gamif: gamif,
 		topics: topics, quiz: quiz, store: store,
 		insights: insights, feedback: feedback, genSess: genSess, recRepo: recRepo,
-		demoCreator: demoCreator,
 		ai: ai, cfg: cfg,
 	}
 }
@@ -676,16 +673,6 @@ func (s *Service) failJob(ctx context.Context, jobID uuid.UUID, err error) error
 func (s *Service) GetClassInsights(ctx context.Context, groupID, teacherID uuid.UUID) (*domain.ClassInsights, error) {
 	if s.insights == nil {
 		return nil, fmt.Errorf("insights not configured")
-	}
-
-	// Demo groups return hardcoded rich insights — no DB queries needed.
-	isDemoGroup, err := s.insights.IsDemo(ctx, groupID)
-	if err != nil {
-		fmt.Printf("GetClassInsights: IsDemo check failed for group %s: %v\n", groupID, err)
-		// fail-open: treat as non-demo and continue with real queries
-	}
-	if isDemoGroup {
-		return DemoInsights(groupID), nil
 	}
 
 	ins, err := s.insights.ClassInsights(ctx, groupID)

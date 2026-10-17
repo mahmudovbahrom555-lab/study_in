@@ -32,10 +32,12 @@ class _HomeTab {
 }
 
 final _tabs = [
+  // Родитель в группах не состоит: группы ребёнка он видит в «Детях».
   _HomeTab(
     icon: LucideIcons.users,
     label: (l10n) => l10n.navGroups,
     page: const GroupsPage(),
+    roles: {'teacher', 'student'},
   ),
   _HomeTab(
     icon: LucideIcons.heartHandshake,

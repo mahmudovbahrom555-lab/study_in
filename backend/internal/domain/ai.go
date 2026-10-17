@@ -242,7 +242,6 @@ type ClassInsights struct {
 	QuizStats       QuizStats               `json:"quiz_stats"`
 	Recommendations []TeacherRecommendation `json:"recommendations"`
 	CourseCoverage  CourseCoverage          `json:"course_coverage"`
-	IsDemo          bool                    `json:"is_demo"`
 }
 
 type TopicWeakness struct {

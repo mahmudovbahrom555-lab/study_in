@@ -27,14 +27,13 @@ func TestChildGroup_SnakeCaseWithoutInviteCode(t *testing.T) {
 	subject := "English"
 	m := keys(t, toChildGroup(&domain.Group{
 		ID: uuid.New(), TeacherID: uuid.New(), Name: "B1", Subject: &subject,
-		InviteCode: "SECRET12", IsDemo: true, CreatedAt: time.Now(),
+		InviteCode: "SECRET12", CreatedAt: time.Now(),
 	}))
 	for _, k := range []string{"id", "teacher_id", "name", "subject", "is_archived", "created_at"} {
 		assert.Contains(t, m, k)
 	}
 	assert.NotContains(t, m, "invite_code")
 	assert.NotContains(t, m, "ID")
-	assert.NotContains(t, m, "IsDemo")
 }
 
 func TestChildGrade_SnakeCase(t *testing.T) {

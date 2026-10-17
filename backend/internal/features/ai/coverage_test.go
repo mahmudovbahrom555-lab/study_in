@@ -41,10 +41,6 @@ func (r *groupScopedInsightsRepo) StudentProgress(_ context.Context, _, studentI
 	return &domain.StudentProgress{StudentID: studentID}, nil
 }
 
-func (r *groupScopedInsightsRepo) IsDemo(_ context.Context, _ uuid.UUID) (bool, error) {
-	return false, nil
-}
-
 // TestCourseCoverage_IsolatedByGroup is the primary regression test for the
 // cross-group data leak. A student enrolled in two groups should contribute
 // their coverage only to the group whose quizzes they answered.
@@ -84,7 +80,7 @@ func TestCourseCoverage_IsolatedByGroup(t *testing.T) {
 		newMockDocRepo(), newMockJobRepo(), newMockSessionRepo(), &mockTokenRepo{},
 		newMockMasteryRepo(), newMockGamifRepo(), &mockTopicRepo{}, &mockQuizCreator{},
 		&mockObjectStore{data: map[string][]byte{}},
-		repo, nil, nil, nil, nil, nil,
+		repo, nil, nil, nil, nil,
 		ai.ServiceConfig{},
 	)
 
@@ -135,7 +131,7 @@ func TestCourseCoverage_UnknownCEFR(t *testing.T) {
 		newMockDocRepo(), newMockJobRepo(), newMockSessionRepo(), &mockTokenRepo{},
 		newMockMasteryRepo(), newMockGamifRepo(), &mockTopicRepo{}, &mockQuizCreator{},
 		&mockObjectStore{data: map[string][]byte{}},
-		repo, nil, nil, nil, nil, nil,
+		repo, nil, nil, nil, nil,
 		ai.ServiceConfig{},
 	)
 

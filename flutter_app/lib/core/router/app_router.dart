@@ -18,7 +18,6 @@ import '../../features/attendance/presentation/pages/attendance_page.dart';
 import '../../features/assignments/presentation/pages/assignment_page.dart';
 import '../../features/assignments/presentation/pages/assignments_page.dart';
 import '../../features/home/presentation/pages/home_shell.dart';
-import '../../features/parents/presentation/pages/parents_page.dart';
 import '../../features/ai/presentation/pages/ai_insights_page.dart';
 import '../../features/ai/presentation/pages/student_progress_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
@@ -145,10 +144,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           groupId: state.pathParameters['id']!,
           isTeacher: (state.uri.queryParameters['role'] ?? '') == 'teacher',
         ),
-      ),
-      GoRoute(
-        path: Routes.parentChildren,
-        builder: (_, __) => const ParentsPage(),
       ),
       GoRoute(
         path: '/groups/:groupId/ai-insights',

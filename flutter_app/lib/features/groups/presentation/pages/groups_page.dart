@@ -5,7 +5,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/router/routes.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../ai/presentation/providers/ai_insights_provider.dart';
 import '../providers/groups_provider.dart';
 import '../widgets/group_card.dart';
 import '../widgets/group_form_sheet.dart';
@@ -21,8 +20,6 @@ class GroupsPage extends ConsumerStatefulWidget {
 }
 
 class _GroupsPageState extends ConsumerState<GroupsPage> {
-  bool _demoLoading = false;
-
   @override
   void initState() {
     super.initState();
@@ -70,7 +67,7 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
     }
     if (state.groups.isEmpty) {
       return isTeacher
-          ? _TeacherEmptyState(onDemo: _openDemo, demoLoading: _demoLoading)
+          ? const _TeacherEmptyState()
           : _StudentEmptyState(onJoin: () => _showJoinSheet(context));
     }
 
@@ -91,23 +88,6 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
     );
   }
 
-  Future<void> _openDemo() async {
-    setState(() => _demoLoading = true);
-    try {
-      final groupId =
-          await ref.read(aiRepositoryProvider).createDemoGroup();
-      if (mounted) context.push('/groups/$groupId/ai-insights');
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.demoOpenFailed)),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _demoLoading = false);
-    }
-  }
-
   void _showCreateSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
@@ -126,10 +106,7 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
 }
 
 class _TeacherEmptyState extends StatelessWidget {
-  const _TeacherEmptyState({required this.onDemo, this.demoLoading = false});
-
-  final VoidCallback onDemo;
-  final bool demoLoading;
+  const _TeacherEmptyState();
 
   @override
   Widget build(BuildContext context) {
@@ -168,18 +145,6 @@ class _TeacherEmptyState extends StatelessWidget {
                 isScrollControlled: true,
                 builder: (_) => const GroupFormSheet(),
               ),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              icon: demoLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(LucideIcons.circlePlay),
-              label: Text(context.l10n.viewDemo),
-              onPressed: demoLoading ? null : onDemo,
             ),
           ],
         ),

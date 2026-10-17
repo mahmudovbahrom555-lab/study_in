@@ -82,9 +82,6 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		// Recommendations (Phase 3)
 		r.Post("/recommendations/{recID}/action", h.recommendationAction)
 		r.Get("/recommendations/{recID}/explain", h.recommendationExplain)
-
-		// Demo group seeder (Phase 4)
-		r.Post("/me/demo", h.createDemoGroup)
 	})
 
 	// Teacher Dashboard — mounted under /groups/:groupID/ai-insights
@@ -518,12 +515,6 @@ func (h *Handler) studentProgress(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = callerID // access control delegated to service layer in full impl
 
-	// Demo student IDs are synthetic — no real DB records exist for them.
-	if IsDemoStudentID(studentID) {
-		response.OK(w, demoProgress(studentID))
-		return
-	}
-
 	progress, err := h.svc.GetStudentProgress(r.Context(), groupID, studentID)
 	if err != nil {
 		response.Error(w, domain.NewError("INTERNAL", "fetch progress failed", domain.ErrInternal))
@@ -555,11 +546,6 @@ func (h *Handler) recommendationAction(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, domain.NewError("VALIDATION", "status must be accepted|dismissed|snoozed", domain.ErrValidation))
 		return
 	}
-	// Demo recommendation IDs are synthetic — no DB record to update.
-	if IsDemoRecID(recID) {
-		response.OK(w, map[string]string{"status": body.Status})
-		return
-	}
 	if err = h.svc.RecordRecommendationAction(r.Context(), recID, teacherID, body.Status, body.Action); err != nil {
 		response.Error(w, domain.NewError("INTERNAL", "record action failed", domain.ErrInternal))
 		return
@@ -578,70 +564,10 @@ func (h *Handler) recommendationExplain(w http.ResponseWriter, r *http.Request) 
 		response.Error(w, domain.NewError("VALIDATION", "invalid recommendation id", domain.ErrValidation))
 		return
 	}
-	// Demo recommendations have no DB record — return the hardcoded reason directly.
-	if IsDemoRecID(recID) {
-		response.OK(w, map[string]string{"explanation": demoRecExplanation(recID)})
-		return
-	}
 	text, err := h.svc.ExplainRecommendation(r.Context(), recID, teacherID)
 	if err != nil {
 		response.Error(w, domain.NewError("INTERNAL", "explain failed", domain.ErrInternal))
 		return
 	}
 	response.OK(w, map[string]string{"explanation": text})
-}
-
-func (h *Handler) createDemoGroup(w http.ResponseWriter, r *http.Request) {
-	teacherID := mw.UserIDFromCtx(r.Context())
-	if mw.RoleFromCtx(r.Context()) != domain.RoleTeacher {
-		response.Error(w, domain.NewError("FORBIDDEN", "only teachers", domain.ErrForbidden))
-		return
-	}
-	groupID, err := h.svc.SeedDemoGroup(r.Context(), teacherID)
-	if err != nil {
-		response.Error(w, domain.NewError("INTERNAL", "demo group creation failed", domain.ErrInternal))
-		return
-	}
-	response.OK(w, map[string]string{"group_id": groupID.String()})
-}
-
-// ─── Demo helpers ─────────────────────────────────────────────────────────────
-
-// demoProgress returns a stub StudentProgress for a demo student so that the
-// detail page doesn't 500 when a teacher clicks through from the demo group.
-func demoProgress(studentID uuid.UUID) *domain.StudentProgress {
-	names := map[uuid.UUID]string{
-		demoStudentIDs[0]: "Алибек Жумаев",
-		demoStudentIDs[1]: "Малика Рашидова",
-		demoStudentIDs[2]: "Дилноза Каримова",
-		demoStudentIDs[3]: "Жасурбек Ибрагимов",
-		demoStudentIDs[4]: "Нилуфар Юсупова",
-		demoStudentIDs[5]: "Отабек Хасанов",
-	}
-	return &domain.StudentProgress{
-		StudentID: studentID,
-		Name:      names[studentID],
-	}
-}
-
-// demoRecExplanation returns a static explanation for each demo recommendation.
-func demoRecExplanation(recID uuid.UUID) string {
-	explanations := map[uuid.UUID]string{
-		demoRecIDs[0]: "Passive Voice — самая распространённая грамматическая ошибка на уровне B2. " +
-			"4 из 6 учеников показывают точность ниже 40% при стабильно низкой уверенности (31%). " +
-			"Рекомендуем создать короткий тест из 10 вопросов с фокусом на Present/Past Passive.",
-		demoRecIDs[1]: "2 ученика не открывали приложение более 4 дней подряд. " +
-			"По данным платформы, пропуск более 3 дней увеличивает вероятность отчисления на 40%. " +
-			"Простое сообщение с поддержкой возвращает 60% неактивных студентов.",
-		demoRecIDs[2]: "Conditionals показывают нестабильный прогресс: 3 ученика знают правило, " +
-			"но делают ошибки в использовании (consistency 40%). " +
-			"Разбор в классе с практическими примерами из реальной речи даст быстрый результат.",
-		demoRecIDs[3]: "TAR (Teacher Acceptance Rate) 71% означает, что каждый 3-й вопрос AI " +
-			"не соответствует вашим стандартам. Оценка вопросов помогает AI обучиться " +
-			"вашему стилю и улучшить качество до 85%+ за 2-3 недели.",
-	}
-	if exp, ok := explanations[recID]; ok {
-		return exp
-	}
-	return "Это демонстрационная рекомендация. В реальной группе здесь появится персональный анализ от AI."
 }

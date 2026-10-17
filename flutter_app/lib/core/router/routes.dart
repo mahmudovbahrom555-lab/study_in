@@ -23,7 +23,6 @@ abstract class Routes {
       '/groups/$groupId/assignments/$assignmentId';
   static const notifications = '/notifications';
   static const account = '/account';
-  static const parentChildren = '/parent/children';
   static String aiInsights(String groupId) => '/groups/$groupId/ai-insights';
   static String studentProgress(String groupId, String studentId) =>
       '/groups/$groupId/students/$studentId/progress';

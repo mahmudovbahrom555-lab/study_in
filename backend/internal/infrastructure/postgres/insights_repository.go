@@ -373,20 +373,6 @@ func (r *InsightsRepository) StudentProgress(ctx context.Context, groupID, stude
 	return out, nil
 }
 
-// IsDemo returns true when the group is flagged as a demo group.
-// Propagates real DB errors so the caller can log and decide; ErrNoRows → false, nil.
-func (r *InsightsRepository) IsDemo(ctx context.Context, groupID uuid.UUID) (bool, error) {
-	var isDemo bool
-	err := r.db.GetContext(ctx, &isDemo, `SELECT is_demo FROM groups WHERE id = $1`, groupID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil // group not found — treat as non-demo
-	}
-	if err != nil {
-		return false, fmt.Errorf("IsDemo: %w", err)
-	}
-	return isDemo, nil
-}
-
 // ─── QuizFeedbackRepository ───────────────────────────────────────────────────
 
 type QuizFeedbackRepository struct{ db *sqlx.DB }
