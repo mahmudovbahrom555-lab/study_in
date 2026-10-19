@@ -140,6 +140,16 @@ func (r *GroupRepository) GetMember(ctx context.Context, groupID, studentID uuid
 	return &m, nil
 }
 
+func (r *GroupRepository) IsBanned(ctx context.Context, groupID, userID uuid.UUID) (bool, error) {
+	var banned bool
+	err := r.db.GetContext(ctx, &banned,
+		`SELECT EXISTS (SELECT 1 FROM group_bans WHERE group_id = $1 AND user_id = $2)`, groupID, userID)
+	if err != nil {
+		return false, fmt.Errorf("GroupRepository.IsBanned: %w", err)
+	}
+	return banned, nil
+}
+
 func (r *GroupRepository) ListMembers(ctx context.Context, groupID uuid.UUID) ([]*domain.GroupMemberDetail, error) {
 	var ms []*domain.GroupMemberDetail
 	err := r.db.SelectContext(ctx, &ms, `
@@ -148,6 +158,7 @@ func (r *GroupRepository) ListMembers(ctx context.Context, groupID uuid.UUID) ([
 			gm.student_id,
 			gm.joined_at,
 			gm.payment_status,
+			gm.chat_muted,
 			u.name,
 			u.phone,
 			u.avatar_url

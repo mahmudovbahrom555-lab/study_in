@@ -50,6 +50,7 @@ type User struct {
 	Language       Language   `db:"language"`
 	OrganizationID *uuid.UUID `db:"organization_id"`
 	IsActive       bool       `db:"is_active"`
+	ChatBanned     bool       `db:"chat_banned"` // запрет писать во всех чатах (по жалобе)
 	CreatedAt      time.Time  `db:"created_at"`
 	UpdatedAt      time.Time  `db:"updated_at"`
 	DeletedAt      *time.Time `db:"deleted_at"`

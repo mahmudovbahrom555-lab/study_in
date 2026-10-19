@@ -18,12 +18,14 @@ import (
 type memRepo struct {
 	groups  map[uuid.UUID]*domain.Group
 	members map[string]*domain.GroupMember // "groupID:studentID" → member
+	bans    map[string]bool
 }
 
 func newMemRepo() *memRepo {
 	return &memRepo{
 		groups:  make(map[uuid.UUID]*domain.Group),
 		members: make(map[string]*domain.GroupMember),
+		bans:    make(map[string]bool),
 	}
 }
 
@@ -139,6 +141,10 @@ func (r *memRepo) UpdateMemberPayment(_ context.Context, groupID, studentID uuid
 	return nil
 }
 
+func (r *memRepo) IsBanned(_ context.Context, groupID, userID uuid.UUID) (bool, error) {
+	return r.bans[memberKey(groupID, userID)], nil
+}
+
 // --- helpers ---
 
 func buildSvc() *groups.Service {
@@ -221,6 +227,35 @@ func TestJoinGroup_AlreadyMember(t *testing.T) {
 	_, _ = svc.JoinGroup(context.Background(), studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
 	_, err := svc.JoinGroup(context.Background(), studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
 	assert.ErrorIs(t, err, domain.ErrAlreadyMember)
+}
+
+func TestJoinGroup_BannedCannotRejoin(t *testing.T) {
+	repo := newMemRepo()
+	svc := groups.NewService(repo)
+	g, _ := svc.CreateGroup(context.Background(), teacherID, groups.CreateGroupRequest{Name: "Bio"})
+	repo.bans[memberKey(g.ID, studentID)] = true
+
+	_, err := svc.JoinGroup(context.Background(), studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
+	var de *domain.Error
+	require.ErrorAs(t, err, &de)
+	assert.Equal(t, "BANNED_FROM_GROUP", de.Code)
+}
+
+type fixedUnread map[uuid.UUID]int
+
+func (f fixedUnread) UnreadCounts(_ context.Context, _ uuid.UUID, _ []uuid.UUID) (map[uuid.UUID]int, error) {
+	return f, nil
+}
+
+func TestListMyGroups_UnreadCount(t *testing.T) {
+	repo := newMemRepo()
+	g, _ := groups.NewService(repo).CreateGroup(context.Background(), teacherID, groups.CreateGroupRequest{Name: "Bio"})
+	svc := groups.NewService(repo).WithUnread(fixedUnread{g.ID: 3})
+
+	list, err := svc.ListMyGroups(context.Background(), teacherID, domain.RoleTeacher)
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	assert.Equal(t, 3, list[0].UnreadCount)
 }
 
 func TestJoinGroup_InvalidCode(t *testing.T) {

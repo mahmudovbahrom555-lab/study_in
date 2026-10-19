@@ -28,6 +28,9 @@ type Group struct {
 	// Добавлена миграцией 000016. Нужна здесь, т.к. репозиторий делает SELECT *,
 	// а sqlx падает на колонках без соответствующего поля.
 	CEFRLevel *string `db:"cefr_level"`
+	// Чат класса (миграция 000026).
+	ChatTTLSeconds int      `db:"chat_ttl_seconds"`
+	ChatMode       ChatMode `db:"chat_mode"`
 }
 
 type GroupMember struct {
@@ -35,6 +38,7 @@ type GroupMember struct {
 	StudentID     uuid.UUID     `db:"student_id"`
 	JoinedAt      time.Time     `db:"joined_at"`
 	PaymentStatus PaymentStatus `db:"payment_status"`
+	ChatMuted     bool          `db:"chat_muted"` // репетитор запретил писать в чат класса
 }
 
 // GroupMemberDetail — GroupMember + данные пользователя (для списка участников).

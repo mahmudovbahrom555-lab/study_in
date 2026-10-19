@@ -11,6 +11,7 @@ import (
 
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/domain"
 	apimw "github.com/mahmudovbahrom555-lab/study_in/backend/internal/middleware"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/pkg/response"
 )
 
 type Handler struct {
@@ -342,6 +343,13 @@ func writeValidationError(w http.ResponseWriter, err error) {
 }
 
 func writeServiceError(w http.ResponseWriter, err error) {
+	// Ошибка с конкретным кодом (BANNED_FROM_GROUP…) — отдаём код как есть,
+	// чтобы приложение показало точную причину.
+	var de *domain.Error
+	if errors.As(err, &de) && de.Code != "" {
+		response.Error(w, err)
+		return
+	}
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "not found")

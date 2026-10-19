@@ -41,7 +41,11 @@ type GroupResponse struct {
 	InviteCode  string    `json:"invite_code"`
 	IsArchived  bool      `json:"is_archived"`
 	MemberCount int       `json:"member_count,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
+	// Чат класса (docs/design/CHAT.md): непрочитанные — только в списке своих классов.
+	UnreadCount    int       `json:"unread_count"`
+	ChatTTLSeconds int       `json:"chat_ttl_seconds"`
+	ChatMode       string    `json:"chat_mode"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type MemberResponse struct {
@@ -51,18 +55,21 @@ type MemberResponse struct {
 	AvatarURL     *string              `json:"avatar_url"`
 	JoinedAt      time.Time            `json:"joined_at"`
 	PaymentStatus domain.PaymentStatus `json:"payment_status,omitempty"` // только репетитору группы
+	ChatMuted     bool                 `json:"chat_muted,omitempty"`     // только репетитору группы
 }
 
 func groupToResponse(g *domain.Group) GroupResponse {
 	return GroupResponse{
-		ID:          g.ID,
-		TeacherID:   g.TeacherID,
-		Name:        g.Name,
-		Subject:     g.Subject,
-		Description: g.Description,
-		InviteCode:  g.InviteCode,
-		IsArchived:  g.IsArchived,
-		CreatedAt:   g.CreatedAt,
+		ID:             g.ID,
+		TeacherID:      g.TeacherID,
+		Name:           g.Name,
+		Subject:        g.Subject,
+		Description:    g.Description,
+		InviteCode:     g.InviteCode,
+		IsArchived:     g.IsArchived,
+		ChatTTLSeconds: g.ChatTTLSeconds,
+		ChatMode:       string(g.ChatMode),
+		CreatedAt:      g.CreatedAt,
 	}
 }
 
@@ -74,5 +81,6 @@ func memberToResponse(m *domain.GroupMemberDetail) MemberResponse {
 		AvatarURL:     m.AvatarURL,
 		JoinedAt:      m.JoinedAt,
 		PaymentStatus: m.PaymentStatus,
+		ChatMuted:     m.ChatMuted,
 	}
 }

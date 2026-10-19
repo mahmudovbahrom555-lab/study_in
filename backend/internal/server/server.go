@@ -26,6 +26,7 @@ import (
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/assignments"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/attendance"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/auth"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/chat"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/feed"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/files"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/grades"
@@ -55,6 +56,7 @@ type Server struct {
 	server *http.Server
 	aiSvc    *aifeature.Service
 	filesSvc *files.Service
+	chatSvc  *chat.Service
 }
 
 // New создаёт сервер с подключёнными middleware и роутами.
@@ -125,8 +127,12 @@ func (s *Server) setupRouter() {
 	}
 	authHandler := auth.NewHandler(authService, jwtManager)
 
+	// Чат класса (docs/design/CHAT.md). Рассылка через WebSocket — следующей частью.
+	s.chatSvc = chat.NewService(postgres.NewChatRepository(s.db), rateLimiter)
+	chatHandler := chat.NewHandler(s.chatSvc)
+
 	groupRepo := postgres.NewGroupRepository(s.db)
-	groupService := groups.NewService(groupRepo)
+	groupService := groups.NewService(groupRepo).WithUnread(s.chatSvc)
 	groupHandler := groups.NewHandler(groupService)
 
 	feedRepo := postgres.NewFeedRepository(s.db)
@@ -252,6 +258,7 @@ func (s *Server) setupRouter() {
 			r.Use(middleware.Auth(jwtManager))
 			r.Use(middleware.Metrics)
 			accountHandler.RegisterRoutes(r)
+			chatHandler.RegisterRoutes(r)
 			groupHandler.RegisterRoutes(r)
 			feedHandler.RegisterRoutes(r)
 			filesHandler.RegisterRoutes(r)
@@ -303,6 +310,27 @@ func (s *Server) RunFileCleanup(ctx context.Context) {
 			s.log.Error("file cleanup failed", slog.String("err", err.Error()))
 		} else if n > 0 {
 			s.log.Info("file cleanup", slog.Int("removed", n))
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+	}
+}
+
+// RunChatCleanup раз в минуту удаляет истёкшие сообщения чата (срок жизни —
+// настройка класса). Чтение и так не показывает истёкшее — очистка убирает
+// данные физически. Блокирует до отмены ctx.
+func (s *Server) RunChatCleanup(ctx context.Context) {
+	t := time.NewTicker(time.Minute)
+	defer t.Stop()
+	for {
+		n, err := s.chatSvc.DeleteExpired(ctx)
+		if err != nil {
+			s.log.Error("chat cleanup failed", slog.String("err", err.Error()))
+		} else if n > 0 {
+			s.log.Info("chat cleanup", slog.Int("removed", n))
 		}
 		select {
 		case <-ctx.Done():

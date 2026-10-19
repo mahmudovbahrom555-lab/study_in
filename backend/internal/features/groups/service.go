@@ -20,12 +20,26 @@ const safeAlphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 const inviteCodeLen = 8
 
 type Service struct {
-	repo Repository
+	repo   Repository
+	unread UnreadCounter
+}
+
+// UnreadCounter — непрочитанные сообщения чата по классам (модуль chat).
+type UnreadCounter interface {
+	UnreadCounts(ctx context.Context, userID uuid.UUID, groupIDs []uuid.UUID) (map[uuid.UUID]int, error)
 }
 
 func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
+
+// WithUnread добавляет число непрочитанных сообщений в список классов.
+func (s *Service) WithUnread(u UnreadCounter) *Service {
+	s.unread = u
+	return s
+}
+
+var errBannedFromGroup = domain.NewError("BANNED_FROM_GROUP", "you were removed from this class", domain.ErrForbidden)
 
 // CreateGroup creates a new group owned by the calling teacher.
 func (s *Service) CreateGroup(ctx context.Context, teacherID uuid.UUID, req CreateGroupRequest) (*GroupResponse, error) {
@@ -45,6 +59,9 @@ func (s *Service) CreateGroup(ctx context.Context, teacherID uuid.UUID, req Crea
 		IsArchived:  false,
 		CreatedAt:   now,
 		UpdatedAt:   now,
+		// Те же значения, что DEFAULT в БД, — чтобы ответ совпадал с сохранённым.
+		ChatTTLSeconds: domain.DefaultChatTTL,
+		ChatMode:       domain.ChatModeOpen,
 	}
 
 	if err := s.repo.CreateGroup(ctx, g); err != nil {
@@ -74,8 +91,18 @@ func (s *Service) ListMyGroups(ctx context.Context, userID uuid.UUID, role domai
 	}
 
 	out := make([]GroupResponse, len(gs))
+	ids := make([]uuid.UUID, len(gs))
 	for i, g := range gs {
 		out[i] = groupToResponse(g)
+		ids[i] = g.ID
+	}
+	if s.unread != nil && len(ids) > 0 {
+		// Счётчик — подсказка: если он не посчитался, список всё равно нужен.
+		if counts, err := s.unread.UnreadCounts(ctx, userID, ids); err == nil {
+			for i := range out {
+				out[i].UnreadCount = counts[out[i].ID]
+			}
+		}
 	}
 	return out, nil
 }
@@ -195,6 +222,13 @@ func (s *Service) JoinGroup(ctx context.Context, studentID uuid.UUID, req JoinGr
 	if existing != nil {
 		return nil, domain.ErrAlreadyMember
 	}
+	banned, err := s.repo.IsBanned(ctx, g.ID, studentID)
+	if err != nil {
+		return nil, fmt.Errorf("groups.JoinGroup check ban: %w", err)
+	}
+	if banned {
+		return nil, errBannedFromGroup
+	}
 
 	m := &domain.GroupMember{
 		GroupID:       g.ID,
@@ -238,6 +272,7 @@ func (s *Service) ListMembers(ctx context.Context, groupID, callerID uuid.UUID, 
 		if !isOwner {
 			out[i].Phone = ""
 			out[i].PaymentStatus = ""
+			out[i].ChatMuted = false
 		}
 	}
 	return out, nil

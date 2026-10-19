@@ -26,4 +26,6 @@ type Repository interface {
 	GetMember(ctx context.Context, groupID, studentID uuid.UUID) (*domain.GroupMember, error)
 	ListMembers(ctx context.Context, groupID uuid.UUID) ([]*domain.GroupMemberDetail, error)
 	UpdateMemberPayment(ctx context.Context, groupID, studentID uuid.UUID, status domain.PaymentStatus) error
+	// IsBanned — репетитор заблокировал пользователя в классе (вступить снова нельзя).
+	IsBanned(ctx context.Context, groupID, userID uuid.UUID) (bool, error)
 }
