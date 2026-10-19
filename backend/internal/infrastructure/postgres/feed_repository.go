@@ -91,23 +91,3 @@ func (r *FeedRepository) PinPost(ctx context.Context, id uuid.UUID, pinned bool)
 	}
 	return nil
 }
-
-func (r *FeedRepository) AddAttachment(ctx context.Context, a *domain.PostAttachment) error {
-	_, err := r.db.NamedExecContext(ctx, `
-		INSERT INTO post_attachments (id, post_id, object_key, filename, mime_type, size_bytes, created_at)
-		VALUES (:id, :post_id, :object_key, :filename, :mime_type, :size_bytes, :created_at)`, a)
-	if err != nil {
-		return fmt.Errorf("FeedRepository.AddAttachment: %w", err)
-	}
-	return nil
-}
-
-func (r *FeedRepository) ListAttachments(ctx context.Context, postID uuid.UUID) ([]*domain.PostAttachment, error) {
-	var atts []*domain.PostAttachment
-	err := r.db.SelectContext(ctx, &atts,
-		`SELECT * FROM post_attachments WHERE post_id=$1 ORDER BY created_at ASC`, postID)
-	if err != nil {
-		return nil, fmt.Errorf("FeedRepository.ListAttachments: %w", err)
-	}
-	return atts, nil
-}

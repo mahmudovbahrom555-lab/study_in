@@ -14,25 +14,13 @@ import (
 	apimw "github.com/mahmudovbahrom555-lab/study_in/backend/internal/middleware"
 )
 
-// URLSigner generates a signed URL for a MinIO object key.
-// In Etap 4, this will be replaced by the real MinIO implementation.
-type URLSigner interface {
-	SignURL(ctx interface{}, objectKey string) (string, error)
-}
-
-// noopSigner returns the object key as-is until MinIO is wired in Etap 4.
-type noopSigner struct{}
-
-func (noopSigner) SignURL(_ interface{}, key string) (string, error) { return key, nil }
-
 type Handler struct {
 	svc      *Service
 	validate *validator.Validate
-	signer   URLSigner
 }
 
 func NewHandler(svc *Service) *Handler {
-	return &Handler{svc: svc, validate: validator.New(), signer: noopSigner{}}
+	return &Handler{svc: svc, validate: validator.New()}
 }
 
 // RegisterRoutes mounts feed routes.
@@ -71,8 +59,7 @@ func (h *Handler) listPosts(w http.ResponseWriter, r *http.Request) {
 
 	out := make([]PostResponse, len(posts))
 	for i, p := range posts {
-		atts, _ := h.svc.ListAttachments(r.Context(), p.ID)
-		out[i] = postToResponse(p, h.buildAttachments(r, atts))
+		out[i] = postToResponse(p)
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -106,7 +93,7 @@ func (h *Handler) createPost(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, postToResponse(p, nil))
+	writeJSON(w, http.StatusCreated, postToResponse(p))
 }
 
 // GET /groups/{groupID}/feed/{postID}
@@ -123,12 +110,12 @@ func (h *Handler) getPost(w http.ResponseWriter, r *http.Request) {
 	callerID := apimw.UserIDFromCtx(r.Context())
 	role := apimw.RoleFromCtx(r.Context())
 
-	p, atts, err := h.svc.GetPost(r.Context(), postID, callerID, role)
+	p, err := h.svc.GetPost(r.Context(), postID, callerID, role)
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, postToResponse(p, h.buildAttachments(r, atts)))
+	writeJSON(w, http.StatusOK, postToResponse(p))
 }
 
 // PATCH /groups/{groupID}/feed/{postID}
@@ -154,7 +141,7 @@ func (h *Handler) updatePost(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, postToResponse(p, nil))
+	writeJSON(w, http.StatusOK, postToResponse(p))
 }
 
 // DELETE /groups/{groupID}/feed/{postID}
@@ -194,26 +181,7 @@ func (h *Handler) setPinned(w http.ResponseWriter, r *http.Request, pinned bool)
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, postToResponse(p, nil))
-}
-
-// buildAttachments converts domain attachments into response DTOs with signed URLs.
-func (h *Handler) buildAttachments(r *http.Request, atts []*domain.PostAttachment) []AttachmentResponse {
-	if len(atts) == 0 {
-		return nil
-	}
-	out := make([]AttachmentResponse, len(atts))
-	for i, a := range atts {
-		url, _ := h.signer.SignURL(r.Context(), a.ObjectKey)
-		out[i] = AttachmentResponse{
-			ID:        a.ID,
-			Filename:  a.Filename,
-			MimeType:  a.MimeType,
-			SizeBytes: a.SizeBytes,
-			URL:       url,
-		}
-	}
-	return out
+	writeJSON(w, http.StatusOK, postToResponse(p))
 }
 
 // --- helpers (same pattern as groups/handler.go) ---

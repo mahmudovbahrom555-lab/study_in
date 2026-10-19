@@ -132,6 +132,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Меняет имя в профиле. Возвращает текст ошибки или null при успехе.
+  Future<String?> rename(String name) async {
+    try {
+      final user = await _repo.updateMe(name: name);
+      state = state.copyWith(user: user);
+      return null;
+    } catch (e) {
+      return _message(e);
+    }
+  }
+
   /// Тихо сохраняет язык интерфейса в профиле: по нему сервер выбирает язык
   /// push. Ошибка не мешает работе — повторим при следующем входе или смене языка.
   Future<void> syncLanguage(String language) async {

@@ -5,6 +5,10 @@
 abstract final class Feature {
   /// Тесты — скрыты в MVP до создания теста ИИ (DECISIONS.md, 2026-10-15).
   static const quizzes = 'quizzes';
+
+  /// Отчёты замороженного ИИ: «Риски» у репетитора, «ROI» у родителя —
+  /// скрыты до этапа ИИ (release-strategy, DECISIONS.md 2026-10-19).
+  static const reports = 'reports';
 }
 
 /// Настройки с сервера (`GET /app-config`): минимальная версия и флаги фич.

@@ -259,7 +259,7 @@ class _QuickActions extends ConsumerWidget {
           label: context.l10n.tabQuizzes,
           onTap: () => context.push(Routes.groupQuizzes(groupId)),
         ),
-      if (isTeacher)
+      if (isTeacher && config.isEnabled(Feature.reports))
         _ActionTile(
           icon: LucideIcons.triangleAlert,
           label: context.l10n.tabRisks,

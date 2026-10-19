@@ -17,19 +17,8 @@ type Post struct {
 	DeletedAt *time.Time `db:"deleted_at"`
 }
 
-type PostAttachment struct {
-	ID        uuid.UUID `db:"id"`
-	PostID    uuid.UUID `db:"post_id"`
-	ObjectKey string    `db:"object_key"`
-	Filename  string    `db:"filename"`
-	MimeType  string    `db:"mime_type"`
-	SizeBytes int64     `db:"size_bytes"`
-	CreatedAt time.Time `db:"created_at"`
-}
-
-// PostWithMeta — пост плюс имя автора и вложения (для ответа API).
+// PostWithMeta — пост плюс имя автора (для ответа API).
 type PostWithMeta struct {
 	Post
-	AuthorName string            `db:"author_name"`
-	Attachments []PostAttachment `db:"-"`
+	AuthorName string `db:"author_name"`
 }

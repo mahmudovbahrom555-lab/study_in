@@ -316,6 +316,7 @@
   "updateAction": "Обновить",
   "roleLabel": "Роль",
   "nameLabel": "Имя",
+  "editName": "Изменить имя",
   "childCodeLabel": "Код от ребёнка",
   "childCodeHint": "Например: K7M2QX",
   "childCodeHelp": "Попросите ребёнка открыть «Аккаунт» → «Код для родителя».",

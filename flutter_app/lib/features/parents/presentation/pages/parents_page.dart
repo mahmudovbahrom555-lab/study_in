@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/remote_config/remote_config.dart';
+import '../../../../core/remote_config/remote_config_provider.dart';
 import '../../../attendance/presentation/pages/attendance_page.dart';
 import '../../../grades/presentation/pages/grades_page.dart';
 import '../../../reports/presentation/pages/parent_roi_page.dart';
@@ -205,7 +207,10 @@ class _ChildCard extends ConsumerWidget {
 // ─── Child groups section ─────────────────────────────────────────────────────
 
 class _ChildGroupsSection extends ConsumerWidget {
-  const _ChildGroupsSection({required this.studentId, required this.studentName});
+  const _ChildGroupsSection({
+    required this.studentId,
+    required this.studentName,
+  });
 
   final String studentId;
   final String studentName;
@@ -240,7 +245,9 @@ class _ChildGroupsSection extends ConsumerWidget {
                 (g) => ListTile(
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-                  title: Text(g.subject == null ? g.name : '${g.name} · ${g.subject}'),
+                  title: Text(
+                    g.subject == null ? g.name : '${g.name} · ${g.subject}',
+                  ),
                   subtitle: Wrap(
                     children: [
                       TextButton.icon(
@@ -256,7 +263,8 @@ class _ChildGroupsSection extends ConsumerWidget {
                                 return GradeHistoryView(
                                   title: _title(context.l10n.tabGrades),
                                   grades: ref.watch(childGradesProvider(p)),
-                                  onRetry: () => ref.invalidate(childGradesProvider(p)),
+                                  onRetry: () =>
+                                      ref.invalidate(childGradesProvider(p)),
                                 );
                               },
                             ),
@@ -274,28 +282,33 @@ class _ChildGroupsSection extends ConsumerWidget {
                                 final p = (studentId: studentId, groupId: g.id);
                                 return AttendanceHistoryView(
                                   title: _title(context.l10n.attendance),
-                                  records: ref.watch(childAttendanceProvider(p)),
-                                  onRetry: () => ref.invalidate(childAttendanceProvider(p)),
+                                  records:
+                                      ref.watch(childAttendanceProvider(p)),
+                                  onRetry: () => ref
+                                      .invalidate(childAttendanceProvider(p)),
                                 );
                               },
                             ),
                           ),
                         ),
                       ),
-                      TextButton.icon(
-                        icon: const Icon(LucideIcons.chartColumn, size: 18),
-                        label: const Text('ROI'),
-                        onPressed: () => Navigator.push<void>(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ParentRoiPage(
-                              studentId: studentId,
-                              groupId: g.id,
-                              studentName: studentName,
+                      if (ref
+                          .watch(remoteConfigProvider)
+                          .isEnabled(Feature.reports))
+                        TextButton.icon(
+                          icon: const Icon(LucideIcons.chartColumn, size: 18),
+                          label: const Text('ROI'),
+                          onPressed: () => Navigator.push<void>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ParentRoiPage(
+                                studentId: studentId,
+                                groupId: g.id,
+                                studentName: studentName,
+                              ),
                             ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),

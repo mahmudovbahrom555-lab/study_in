@@ -358,6 +358,7 @@
   "updateAction": "Update",
   "roleLabel": "Role",
   "nameLabel": "Name",
+  "editName": "Edit name",
   "childCodeLabel": "Code from your child",
   "childCodeHint": "For example: K7M2QX",
   "childCodeHelp": "Ask your child to open Account → Code for parent.",

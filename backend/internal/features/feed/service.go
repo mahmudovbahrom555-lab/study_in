@@ -56,26 +56,19 @@ func (s *Service) CreatePost(ctx context.Context, authorID, groupID uuid.UUID, r
 }
 
 // GetPost returns a single post if the caller can see it.
-func (s *Service) GetPost(ctx context.Context, postID, callerID uuid.UUID, role domain.Role) (*domain.PostWithMeta, []*domain.PostAttachment, error) {
+func (s *Service) GetPost(ctx context.Context, postID, callerID uuid.UUID, role domain.Role) (*domain.PostWithMeta, error) {
 	p, err := s.repo.GetPostByID(ctx, postID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("feed.GetPost: %w", err)
+		return nil, fmt.Errorf("feed.GetPost: %w", err)
 	}
 	if p == nil {
-		return nil, nil, domain.ErrNotFound
+		return nil, domain.ErrNotFound
 	}
 
 	if err := s.assertVisible(ctx, p.GroupID, callerID, role); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	atts, err := s.repo.ListAttachments(ctx, postID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("feed.GetPost attachments: %w", err)
-	}
-
-	meta := &domain.PostWithMeta{Post: *p}
-	return meta, atts, nil
+	return &domain.PostWithMeta{Post: *p}, nil
 }
 
 // ListPosts returns paginated posts for a group.
@@ -192,15 +185,6 @@ func (s *Service) assertVisible(ctx context.Context, groupID, callerID uuid.UUID
 		return domain.ErrForbidden
 	}
 	return nil
-}
-
-// ListAttachments returns attachments for a single post (no auth check — caller must own the post).
-func (s *Service) ListAttachments(ctx context.Context, postID uuid.UUID) ([]*domain.PostAttachment, error) {
-	atts, err := s.repo.ListAttachments(ctx, postID)
-	if err != nil {
-		return nil, fmt.Errorf("feed.ListAttachments: %w", err)
-	}
-	return atts, nil
 }
 
 func clampLimit(l int) int {

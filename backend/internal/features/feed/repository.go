@@ -8,7 +8,7 @@ import (
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/domain"
 )
 
-// Repository — хранилище постов и вложений.
+// Repository — хранилище постов.
 type Repository interface {
 	CreatePost(ctx context.Context, p *domain.Post) error
 	GetPostByID(ctx context.Context, id uuid.UUID) (*domain.Post, error)
@@ -16,10 +16,6 @@ type Repository interface {
 	UpdatePost(ctx context.Context, p *domain.Post) error
 	SoftDeletePost(ctx context.Context, id uuid.UUID) error
 	PinPost(ctx context.Context, id uuid.UUID, pinned bool) error
-
-	// Attachments — созданы вместе с постом, удаляются каскадно.
-	AddAttachment(ctx context.Context, a *domain.PostAttachment) error
-	ListAttachments(ctx context.Context, postID uuid.UUID) ([]*domain.PostAttachment, error)
 }
 
 // GroupChecker — минимальный интерфейс для проверки членства,

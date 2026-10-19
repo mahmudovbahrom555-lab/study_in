@@ -17,14 +17,10 @@ import (
 
 type memFeedRepo struct {
 	posts map[uuid.UUID]*domain.Post
-	atts  map[uuid.UUID][]*domain.PostAttachment // postID → attachments
 }
 
 func newMemFeedRepo() *memFeedRepo {
-	return &memFeedRepo{
-		posts: make(map[uuid.UUID]*domain.Post),
-		atts:  make(map[uuid.UUID][]*domain.PostAttachment),
-	}
+	return &memFeedRepo{posts: make(map[uuid.UUID]*domain.Post)}
 }
 
 func (r *memFeedRepo) CreatePost(_ context.Context, p *domain.Post) error {
@@ -82,16 +78,6 @@ func (r *memFeedRepo) PinPost(_ context.Context, id uuid.UUID, pinned bool) erro
 		p.Pinned = pinned
 	}
 	return nil
-}
-
-func (r *memFeedRepo) AddAttachment(_ context.Context, a *domain.PostAttachment) error {
-	cp := *a
-	r.atts[a.PostID] = append(r.atts[a.PostID], &cp)
-	return nil
-}
-
-func (r *memFeedRepo) ListAttachments(_ context.Context, postID uuid.UUID) ([]*domain.PostAttachment, error) {
-	return r.atts[postID], nil
 }
 
 // --- in-memory group checker ---

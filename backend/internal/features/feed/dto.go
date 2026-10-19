@@ -22,43 +22,28 @@ type UpdatePostRequest struct {
 
 // --- Responses ---
 
-type AttachmentResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Filename  string    `json:"filename"`
-	MimeType  string    `json:"mime_type"`
-	SizeBytes int64     `json:"size_bytes"`
-	URL       string    `json:"url"` // signed URL, filled by handler
-}
-
+// PostResponse — запись ленты. Файлы к записям появятся через модуль files
+// (как у ДЗ), когда понадобятся материалы в ленте.
 type PostResponse struct {
-	ID          uuid.UUID            `json:"id"`
-	GroupID     uuid.UUID            `json:"group_id"`
-	AuthorID    uuid.UUID            `json:"author_id"`
-	AuthorName  string               `json:"author_name"`
-	Body        string               `json:"body"`
-	Pinned      bool                 `json:"pinned"`
-	Attachments []AttachmentResponse `json:"attachments"`
-	CreatedAt   time.Time            `json:"created_at"`
-	UpdatedAt   time.Time            `json:"updated_at"`
+	ID         uuid.UUID `json:"id"`
+	GroupID    uuid.UUID `json:"group_id"`
+	AuthorID   uuid.UUID `json:"author_id"`
+	AuthorName string    `json:"author_name"`
+	Body       string    `json:"body"`
+	Pinned     bool      `json:"pinned"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
-type ListResponse struct {
-	Posts  []PostResponse `json:"posts"`
-	Total  int            `json:"total"`
-	Limit  int            `json:"limit"`
-	Offset int            `json:"offset"`
-}
-
-func postToResponse(p *domain.PostWithMeta, attachments []AttachmentResponse) PostResponse {
+func postToResponse(p *domain.PostWithMeta) PostResponse {
 	return PostResponse{
-		ID:          p.ID,
-		GroupID:     p.GroupID,
-		AuthorID:    p.AuthorID,
-		AuthorName:  p.AuthorName,
-		Body:        p.Body,
-		Pinned:      p.Pinned,
-		Attachments: attachments,
-		CreatedAt:   p.CreatedAt,
-		UpdatedAt:   p.UpdatedAt,
+		ID:         p.ID,
+		GroupID:    p.GroupID,
+		AuthorID:   p.AuthorID,
+		AuthorName: p.AuthorName,
+		Body:       p.Body,
+		Pinned:     p.Pinned,
+		CreatedAt:  p.CreatedAt,
+		UpdatedAt:  p.UpdatedAt,
 	}
 }

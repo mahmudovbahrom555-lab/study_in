@@ -25,7 +25,7 @@ class PostCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Card(
       color: post.pinned
-          ? theme.colorScheme.primaryContainer.withOpacity(0.3)
+          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
           : null,
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -79,15 +79,6 @@ class PostCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(post.body),
-            if (post.attachments.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: post.attachments
-                    .map((a) => _AttachmentChip(attachment: a))
-                    .toList(),
-              ),
-            ],
           ],
         ),
       ),
@@ -101,26 +92,5 @@ class PostCard extends StatelessWidget {
     if (diff.inHours < 1) return l10n.minutesAgo(diff.inMinutes);
     if (diff.inDays < 1) return l10n.hoursAgo(diff.inHours);
     return '${dt.day}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
-  }
-}
-
-class _AttachmentChip extends StatelessWidget {
-  const _AttachmentChip({required this.attachment});
-
-  final PostAttachment attachment;
-
-  @override
-  Widget build(BuildContext context) {
-    return ActionChip(
-      avatar: const Icon(LucideIcons.paperclip, size: 14),
-      label: Text(
-        attachment.filename,
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
-      ),
-      onPressed: () {
-        // In Etap 4, this will open/download the file via signed URL.
-      },
-    );
   }
 }

@@ -32,6 +32,8 @@ class AccountPage extends ConsumerWidget {
             leading: const Icon(LucideIcons.user),
             title: Text(user?.name.isNotEmpty == true ? user!.name : '—'),
             subtitle: Text(l10n.nameLabel),
+            trailing: Icon(LucideIcons.pencil, size: 18, semanticLabel: l10n.editName),
+            onTap: () => _editName(context, ref, user?.name ?? ''),
           ),
           ListTile(
             leading: const Icon(LucideIcons.phone),
@@ -82,6 +84,14 @@ class AccountPage extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// Имя видят ученики, родители и репетиторы — опечатку нужно уметь исправить.
+  void _editName(BuildContext context, WidgetRef ref, String current) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => _EditNameDialog(initial: current),
     );
   }
 
@@ -178,6 +188,79 @@ class AccountPage extends ConsumerWidget {
     // Полный перезапуск: следующий аккаунт не увидит закэшированные
     // группы, оценки и уведомления предыдущего.
     AppRestartScope.restart(context);
+  }
+}
+
+/// Диалог имени. Контроллер живёт в State: если освободить его сразу после
+/// закрытия диалога, анимация закрытия ещё рисует поле и приложение падает.
+class _EditNameDialog extends ConsumerStatefulWidget {
+  const _EditNameDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  ConsumerState<_EditNameDialog> createState() => _EditNameDialogState();
+}
+
+class _EditNameDialogState extends ConsumerState<_EditNameDialog> {
+  late final _ctrl = TextEditingController(text: widget.initial);
+  String? _error;
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final l10n = context.l10n;
+    final name = _ctrl.text.trim();
+    if (_busy) return;
+    if (name.length < 2) {
+      setState(() => _error = name.isEmpty ? l10n.enterName : l10n.nameTooShort);
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final err = await ref.read(authProvider.notifier).rename(name);
+    if (!mounted) return;
+    if (err != null) {
+      setState(() {
+        _busy = false;
+        _error = err;
+      });
+      return;
+    }
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return AlertDialog(
+      title: Text(l10n.editName),
+      content: TextField(
+        controller: _ctrl,
+        autofocus: true,
+        maxLength: 100,
+        textCapitalization: TextCapitalization.words,
+        decoration: InputDecoration(labelText: l10n.fullName, errorText: _error),
+        onSubmitted: (_) => _save(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: _busy ? null : _save,
+          child: Text(l10n.save),
+        ),
+      ],
+    );
   }
 }
 
