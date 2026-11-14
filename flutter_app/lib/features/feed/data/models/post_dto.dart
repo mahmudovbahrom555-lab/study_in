@@ -43,7 +43,7 @@ class PostDto {
         pinned: json['pinned'] as bool? ?? false,
         attachments: (json['attachments'] as List<dynamic>?)
                 ?.map((e) =>
-                    PostAttachmentDto.fromJson(e as Map<String, dynamic>))
+                    PostAttachmentDto.fromJson(e as Map<String, dynamic>),)
                 .toList() ??
             [],
         createdAt: DateTime.parse(json['created_at'] as String),

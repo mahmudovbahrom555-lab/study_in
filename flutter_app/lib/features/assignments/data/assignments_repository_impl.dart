@@ -31,7 +31,7 @@ class AssignmentsRepositoryImpl implements AssignmentsRepository {
 
   @override
   Future<void> submitAssignment(String groupId, String assignmentId,
-          {String? comment}) =>
+          {String? comment,}) =>
       _api.submitAssignment(groupId, assignmentId, comment: comment);
 
   @override

@@ -59,7 +59,7 @@ class _AssignmentsPageState extends ConsumerState<AssignmentsPage> {
             ),
           ),
         );
-      }),
+      },),
     );
   }
 
@@ -142,7 +142,7 @@ class _AssignmentCard extends ConsumerWidget {
               Text(
                 'Оценка: ${assignment.submissionGrade}',
                 style: const TextStyle(
-                    color: Colors.green, fontWeight: FontWeight.bold),
+                    color: Colors.green, fontWeight: FontWeight.bold,),
               ),
           ],
         ),
@@ -238,7 +238,7 @@ class _CreateAssignmentSheetState extends State<_CreateAssignmentSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('Новое задание',
-              style: Theme.of(context).textTheme.titleLarge),
+              style: Theme.of(context).textTheme.titleLarge,),
           const SizedBox(height: 16),
           TextField(
             controller: _titleCtrl,
@@ -261,7 +261,7 @@ class _CreateAssignmentSheetState extends State<_CreateAssignmentSheet> {
             icon: const Icon(Icons.calendar_today),
             label: Text(_dueDate == null
                 ? 'Срок сдачи (необязательно)'
-                : fmt.format(_dueDate!)),
+                : fmt.format(_dueDate!),),
             onPressed: () async {
               final date = await showDatePicker(
                 context: context,

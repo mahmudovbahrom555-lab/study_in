@@ -42,7 +42,7 @@ class _CreateGroupSheetState extends ConsumerState<CreateGroupSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text('Новая группа',
-                style: Theme.of(context).textTheme.titleLarge),
+                style: Theme.of(context).textTheme.titleLarge,),
             const SizedBox(height: 16),
             TextFormField(
               controller: _nameCtrl,

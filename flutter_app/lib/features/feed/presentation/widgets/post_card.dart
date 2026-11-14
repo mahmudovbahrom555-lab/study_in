@@ -34,7 +34,7 @@ class PostCard extends StatelessWidget {
               children: [
                 if (post.pinned) ...[
                   Icon(Icons.push_pin,
-                      size: 14, color: theme.colorScheme.primary),
+                      size: 14, color: theme.colorScheme.primary,),
                   const SizedBox(width: 4),
                 ],
                 Text(
@@ -65,7 +65,7 @@ class PostCard extends StatelessWidget {
                         const PopupMenuItem(
                           value: 'delete',
                           child: Text('Удалить',
-                              style: TextStyle(color: Colors.red)),
+                              style: TextStyle(color: Colors.red),),
                         ),
                     ],
                   ),

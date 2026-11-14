@@ -31,11 +31,11 @@ class AssignmentsApi {
       },
     );
     return AssignmentDto.fromJson(
-        resp.data!['data'] as Map<String, dynamic>);
+        resp.data!['data'] as Map<String, dynamic>,);
   }
 
   Future<void> submitAssignment(String groupId, String assignmentId,
-      {String? comment}) async {
+      {String? comment,}) async {
     await _dio.post<void>(
       '/groups/$groupId/assignments/$assignmentId/submit',
       data: {if (comment != null) 'comment': comment},

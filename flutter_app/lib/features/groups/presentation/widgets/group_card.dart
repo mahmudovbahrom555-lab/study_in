@@ -24,7 +24,7 @@ class GroupCard extends StatelessWidget {
                 label: const Text('Архив'),
                 visualDensity: VisualDensity.compact,
                 backgroundColor:
-                    theme.colorScheme.surfaceVariant,
+                    theme.colorScheme.surfaceContainerHighest,
               )
             : null,
         leading: CircleAvatar(

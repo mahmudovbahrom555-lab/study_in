@@ -65,7 +65,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(feedState.error.toString(),
-                style: const TextStyle(color: Colors.red)),
+                style: const TextStyle(color: Colors.red),),
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: () =>

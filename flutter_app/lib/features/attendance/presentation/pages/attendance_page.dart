@@ -82,7 +82,7 @@ class _TeacherAttendancePage extends ConsumerWidget {
   }
 
   Future<void> _pickDate(
-      BuildContext context, WidgetRef ref, DateTime? current) async {
+      BuildContext context, WidgetRef ref, DateTime? current,) async {
     final picked = await showDatePicker(
       context: context,
       initialDate: current ?? DateTime.now(),
@@ -111,7 +111,7 @@ class _TeacherAttendancePage extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text('Отметить посещаемость',
-                    style: Theme.of(ctx).textTheme.titleLarge),
+                    style: Theme.of(ctx).textTheme.titleLarge,),
                 const SizedBox(height: 16),
                 TextField(
                   controller: studentIdCtrl,
@@ -125,7 +125,7 @@ class _TeacherAttendancePage extends ConsumerWidget {
                       .map((s) => DropdownMenuItem(
                             value: s,
                             child: Text(s.label),
-                          ))
+                          ),)
                       .toList(),
                   onChanged: (v) => setState(() => selected = v!),
                 ),
@@ -152,7 +152,7 @@ class _TeacherAttendancePage extends ConsumerWidget {
 
 class _StudentAttendancePage extends ConsumerWidget {
   const _StudentAttendancePage(
-      {required this.groupId, required this.studentId});
+      {required this.groupId, required this.studentId,});
 
   final String groupId;
   final String studentId;
@@ -234,7 +234,7 @@ class _StatsBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Theme.of(context).colorScheme.surfaceVariant,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -243,9 +243,9 @@ class _StatsBanner extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('${stats[s] ?? 0}',
-                  style: Theme.of(context).textTheme.titleMedium),
+                  style: Theme.of(context).textTheme.titleMedium,),
               Text(s.label,
-                  style: Theme.of(context).textTheme.labelSmall),
+                  style: Theme.of(context).textTheme.labelSmall,),
             ],
           );
         }).toList(),
@@ -296,7 +296,7 @@ class _AttendanceTile extends StatelessWidget {
                         .map((s) => PopupMenuItem(
                               value: s,
                               child: Text(s.label),
-                            ))
+                            ),)
                         .toList(),
                   ),
                 IconButton(

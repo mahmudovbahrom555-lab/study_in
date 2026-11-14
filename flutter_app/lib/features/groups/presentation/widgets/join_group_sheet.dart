@@ -38,7 +38,7 @@ class _JoinGroupSheetState extends ConsumerState<JoinGroupSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text('Вступить в группу',
-                style: Theme.of(context).textTheme.titleLarge),
+                style: Theme.of(context).textTheme.titleLarge,),
             const SizedBox(height: 16),
             TextFormField(
               controller: _codeCtrl,

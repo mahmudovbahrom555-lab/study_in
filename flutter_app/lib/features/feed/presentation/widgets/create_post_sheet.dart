@@ -38,7 +38,7 @@ class _CreatePostSheetState extends ConsumerState<CreatePostSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('Новая публикация',
-              style: Theme.of(context).textTheme.titleLarge),
+              style: Theme.of(context).textTheme.titleLarge,),
           const SizedBox(height: 16),
           TextField(
             controller: _bodyCtrl,

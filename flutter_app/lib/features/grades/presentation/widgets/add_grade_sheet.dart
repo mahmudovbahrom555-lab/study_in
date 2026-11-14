@@ -59,7 +59,7 @@ class _AddGradeSheetState extends State<AddGradeSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text('Добавить оценку',
-                style: Theme.of(context).textTheme.titleLarge),
+                style: Theme.of(context).textTheme.titleLarge,),
             const SizedBox(height: 16),
             TextFormField(
               controller: _studentCtrl,
@@ -84,7 +84,7 @@ class _AddGradeSheetState extends State<AddGradeSheet> {
                     controller: _valueCtrl,
                     decoration: const InputDecoration(labelText: 'Оценка *'),
                     keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
+                        decimal: true,),
                     validator: (v) {
                       final n = double.tryParse(v ?? '');
                       if (n == null) return 'Число';
@@ -100,7 +100,7 @@ class _AddGradeSheetState extends State<AddGradeSheet> {
                     controller: _maxValueCtrl,
                     decoration: const InputDecoration(labelText: 'Макс.'),
                     keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
+                        decimal: true,),
                   ),
                 ),
               ],

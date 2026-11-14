@@ -85,7 +85,7 @@ class _TeacherView extends ConsumerWidget {
             ),
           ),
         );
-      }),
+      },),
     );
   }
 
