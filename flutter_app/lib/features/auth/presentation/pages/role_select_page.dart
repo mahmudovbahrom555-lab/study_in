@@ -19,8 +19,9 @@ class RoleSelectPage extends ConsumerWidget {
       if (!context.mounted) return;
       final error = ref.read(authProvider).error;
       if (error != null) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error)));
         return;
       }
       context.go(Routes.profileSetup);
@@ -37,16 +38,15 @@ class RoleSelectPage extends ConsumerWidget {
               Text(
                 context.l10n.whoAreYou,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 context.l10n.roleWarning,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: Colors.grey),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
               ),
               const SizedBox(height: 48),
               _RoleCard(

@@ -23,7 +23,8 @@ Dio createDio([Ref? ref]) {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      validateStatus: (status) => status != null && status >= 200 && status < 300,
+      validateStatus: (status) =>
+          status != null && status >= 200 && status < 300,
     ),
   );
 
@@ -37,7 +38,8 @@ Dio createDio([Ref? ref]) {
       AuthInterceptor(
         storage,
         dio,
-        onSessionExpired: () => ref.read(sessionExpiredProvider.notifier).state++,
+        onSessionExpired: () =>
+            ref.read(sessionExpiredProvider.notifier).state++,
       ),
     );
   }

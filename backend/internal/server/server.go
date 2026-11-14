@@ -186,7 +186,7 @@ func (s *Server) setupRouter() {
 
 	reportRepo := postgres.NewReportRepository(s.db)
 	reportService := reports.NewService(reportRepo)
-	reportHandler := reports.NewHandler(reportService, reportRepo)
+	reportHandler := reports.NewHandler(reportService, reportRepo, parentRepo)
 
 	notifRepo := postgres.NewNotificationRepository(s.db)
 	notifService := notifications.NewService(notifRepo, &pushEnqueuer{q: queueClient})

@@ -2,19 +2,19 @@ import '../../domain/entities/report.dart';
 
 class ParentReportDto {
   factory ParentReportDto.fromJson(Map<String, dynamic> j) => ParentReportDto(
-        studentId: j['student_id'] as String,
-        groupId: j['group_id'] as String,
-        periodStart: j['period_start'] as String,
-        periodEnd: j['period_end'] as String,
-        attendancePct: (j['attendance_pct'] as num).toDouble(),
-        quizScoreAvg: (j['quiz_score_avg'] as num).toDouble(),
-        quizScoreDelta: (j['quiz_score_delta'] as num).toDouble(),
-        masteryAvg: (j['mastery_avg'] as num).toDouble(),
-        masteryDelta: (j['mastery_delta'] as num).toDouble(),
-        homeworkCompletionPct: (j['homework_completion_pct'] as num).toDouble(),
-        quizAttemptsCount: j['quiz_attempts_count'] as int,
-        aiSummary: j['ai_summary'] as String?,
-      );
+    studentId: j['student_id'] as String,
+    groupId: j['group_id'] as String,
+    periodStart: j['period_start'] as String,
+    periodEnd: j['period_end'] as String,
+    attendancePct: (j['attendance_pct'] as num).toDouble(),
+    quizScoreAvg: (j['quiz_score_avg'] as num).toDouble(),
+    quizScoreDelta: (j['quiz_score_delta'] as num).toDouble(),
+    masteryAvg: (j['mastery_avg'] as num).toDouble(),
+    masteryDelta: (j['mastery_delta'] as num).toDouble(),
+    homeworkCompletionPct: (j['homework_completion_pct'] as num).toDouble(),
+    quizAttemptsCount: j['quiz_attempts_count'] as int,
+    aiSummary: j['ai_summary'] as String?,
+  );
 
   const ParentReportDto({
     required this.studentId,
@@ -45,34 +45,34 @@ class ParentReportDto {
   final String? aiSummary;
 
   ParentReport toDomain() => ParentReport(
-        studentId: studentId,
-        groupId: groupId,
-        periodStart: periodStart,
-        periodEnd: periodEnd,
-        attendancePct: attendancePct,
-        quizScoreAvg: quizScoreAvg,
-        quizScoreDelta: quizScoreDelta,
-        masteryAvg: masteryAvg,
-        masteryDelta: masteryDelta,
-        homeworkCompletionPct: homeworkCompletionPct,
-        quizAttemptsCount: quizAttemptsCount,
-        aiSummary: aiSummary,
-      );
+    studentId: studentId,
+    groupId: groupId,
+    periodStart: periodStart,
+    periodEnd: periodEnd,
+    attendancePct: attendancePct,
+    quizScoreAvg: quizScoreAvg,
+    quizScoreDelta: quizScoreDelta,
+    masteryAvg: masteryAvg,
+    masteryDelta: masteryDelta,
+    homeworkCompletionPct: homeworkCompletionPct,
+    quizAttemptsCount: quizAttemptsCount,
+    aiSummary: aiSummary,
+  );
 }
 
 class RiskAlertDto {
   factory RiskAlertDto.fromJson(Map<String, dynamic> j) => RiskAlertDto(
-        id: j['id'] as String,
-        studentId: j['student_id'] as String,
-        studentName: j['student_name'] as String,
-        groupId: j['group_id'] as String,
-        groupName: j['group_name'] as String,
-        riskLevel: j['risk_level'] as String,
-        triggerReason: j['trigger_reason'] as String,
-        recommendation: j['recommendation'] as String,
-        status: j['status'] as String,
-        createdAt: DateTime.parse(j['created_at'] as String),
-      );
+    id: j['id'] as String,
+    studentId: j['student_id'] as String,
+    studentName: j['student_name'] as String,
+    groupId: j['group_id'] as String,
+    groupName: j['group_name'] as String,
+    riskLevel: j['risk_level'] as String,
+    triggerReason: j['trigger_reason'] as String,
+    recommendation: j['recommendation'] as String,
+    status: j['status'] as String,
+    createdAt: DateTime.parse(j['created_at'] as String),
+  );
 
   const RiskAlertDto({
     required this.id,
@@ -99,15 +99,15 @@ class RiskAlertDto {
   final DateTime createdAt;
 
   RiskAlert toDomain() => RiskAlert(
-        id: id,
-        studentId: studentId,
-        studentName: studentName,
-        groupId: groupId,
-        groupName: groupName,
-        riskLevel: riskLevel,
-        triggerReason: triggerReason,
-        recommendation: recommendation,
-        status: status,
-        createdAt: createdAt,
-      );
+    id: id,
+    studentId: studentId,
+    studentName: studentName,
+    groupId: groupId,
+    groupName: groupName,
+    riskLevel: riskLevel,
+    triggerReason: triggerReason,
+    recommendation: recommendation,
+    status: status,
+    createdAt: createdAt,
+  );
 }

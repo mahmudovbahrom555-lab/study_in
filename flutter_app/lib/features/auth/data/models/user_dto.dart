@@ -32,14 +32,14 @@ class UserDto {
   final bool isActive;
 
   User toEntity() => User(
-        id: id,
-        phone: phone,
-        name: name,
-        role: role,
-        avatarUrl: avatarUrl,
-        language: language,
-        isActive: isActive,
-      );
+    id: id,
+    phone: phone,
+    name: name,
+    role: role,
+    avatarUrl: avatarUrl,
+    language: language,
+    isActive: isActive,
+  );
 }
 
 class AuthResponseDto {

@@ -28,7 +28,7 @@ class AppConfig {
   /// публикуется на домене; до этого ссылка не откроется.
   static const String privacyUrl = String.fromEnvironment(
     'PRIVACY_URL',
-    defaultValue: 'https://mamulearn.uz/privacy',
+    defaultValue: 'https://mamu.education/privacy',
   );
 
   /// Версия политики, с которой человек соглашается на экране входа.

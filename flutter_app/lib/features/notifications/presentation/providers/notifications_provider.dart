@@ -7,7 +7,9 @@ import '../../domain/entities/notification.dart';
 import '../../domain/repositories/notifications_repository.dart';
 import '../../../../core/network/error_message.dart';
 
-final notificationsRepositoryProvider = Provider<NotificationsRepository>((ref) {
+final notificationsRepositoryProvider = Provider<NotificationsRepository>((
+  ref,
+) {
   return NotificationsRepositoryImpl(NotificationsApi(ref.watch(dioProvider)));
 });
 
@@ -29,12 +31,11 @@ class NotificationsState {
     bool? isLoading,
     String? error,
     bool clearError = false,
-  }) =>
-      NotificationsState(
-        notifications: notifications ?? this.notifications,
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => NotificationsState(
+    notifications: notifications ?? this.notifications,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 class NotificationsNotifier extends StateNotifier<NotificationsState> {
@@ -67,8 +68,9 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
     try {
       await _repo.markAllRead();
       state = state.copyWith(
-        notifications:
-            state.notifications.map((n) => n.copyWith(isRead: true)).toList(),
+        notifications: state.notifications
+            .map((n) => n.copyWith(isRead: true))
+            .toList(),
       );
     } catch (_) {}
   }
@@ -76,8 +78,8 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
 
 final notificationsProvider =
     StateNotifierProvider<NotificationsNotifier, NotificationsState>((ref) {
-  return NotificationsNotifier(ref.watch(notificationsRepositoryProvider));
-});
+      return NotificationsNotifier(ref.watch(notificationsRepositoryProvider));
+    });
 
 final unreadCountProvider = Provider<int>((ref) {
   return ref.watch(notificationsProvider).unreadCount;

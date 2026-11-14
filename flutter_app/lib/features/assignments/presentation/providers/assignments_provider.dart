@@ -29,19 +29,18 @@ class AssignmentsState {
     bool? isLoading,
     String? error,
     bool clearError = false,
-  }) =>
-      AssignmentsState(
-        assignments: assignments ?? this.assignments,
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => AssignmentsState(
+    assignments: assignments ?? this.assignments,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 // ─── Notifier ─────────────────────────────────────────────────────────────────
 
 class AssignmentsNotifier extends StateNotifier<AssignmentsState> {
   AssignmentsNotifier(this._repo, this._groupId)
-      : super(const AssignmentsState());
+    : super(const AssignmentsState());
 
   final AssignmentsRepository _repo;
   final String _groupId;
@@ -68,9 +67,7 @@ class AssignmentsNotifier extends StateNotifier<AssignmentsState> {
         description: description,
         dueDate: dueDate,
       );
-      state = state.copyWith(
-        assignments: [item, ...state.assignments],
-      );
+      state = state.copyWith(assignments: [item, ...state.assignments]);
     } catch (e) {
       state = state.copyWith(error: userErrorMessage(e));
     }
@@ -90,10 +87,12 @@ class AssignmentsNotifier extends StateNotifier<AssignmentsState> {
   }
 }
 
-final assignmentsProvider = StateNotifierProvider.family<AssignmentsNotifier,
-    AssignmentsState, String>((ref, groupId) {
-  return AssignmentsNotifier(
-    ref.watch(assignmentsRepositoryProvider),
-    groupId,
-  );
-});
+final assignmentsProvider =
+    StateNotifierProvider.family<AssignmentsNotifier, AssignmentsState, String>(
+      (ref, groupId) {
+        return AssignmentsNotifier(
+          ref.watch(assignmentsRepositoryProvider),
+          groupId,
+        );
+      },
+    );

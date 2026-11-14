@@ -7,8 +7,10 @@ import '../../domain/entities/grade.dart';
 import '../../domain/repositories/grades_repository.dart';
 import '../../../../core/network/error_message.dart';
 
-final gradesRepositoryProvider =
-    Provider.family<GradesRepository, String>((ref, groupId) {
+final gradesRepositoryProvider = Provider.family<GradesRepository, String>((
+  ref,
+  groupId,
+) {
   final dio = ref.watch(dioProvider);
   return GradesRepositoryImpl(GradesApi(dio));
 });
@@ -31,12 +33,11 @@ class GradesState {
     bool? isLoading,
     String? error,
     bool clearError = false,
-  }) =>
-      GradesState(
-        grades: grades ?? this.grades,
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => GradesState(
+    grades: grades ?? this.grades,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 // ─── Group-level grades (teacher view) ───────────────────────────────────────
@@ -96,19 +97,22 @@ class GroupGradesNotifier extends StateNotifier<GradesState> {
   }
 }
 
-final groupGradesProvider = StateNotifierProvider.family<GroupGradesNotifier,
-    GradesState, String>((ref, groupId) {
-  return GroupGradesNotifier(
-    ref.watch(gradesRepositoryProvider(groupId)),
-    groupId,
-  );
-});
+final groupGradesProvider =
+    StateNotifierProvider.family<GroupGradesNotifier, GradesState, String>((
+      ref,
+      groupId,
+    ) {
+      return GroupGradesNotifier(
+        ref.watch(gradesRepositoryProvider(groupId)),
+        groupId,
+      );
+    });
 
 // ─── Student grades (student self-view) ───────────────────────────────────────
 
 class StudentGradesNotifier extends StateNotifier<AsyncValue<List<Grade>>> {
   StudentGradesNotifier(this._repo, this._groupId, this._studentId)
-      : super(const AsyncValue.loading()) {
+    : super(const AsyncValue.loading()) {
     load();
   }
 
@@ -127,11 +131,15 @@ class StudentGradesNotifier extends StateNotifier<AsyncValue<List<Grade>>> {
   }
 }
 
-final studentGradesProvider = StateNotifierProvider.family<StudentGradesNotifier,
-    AsyncValue<List<Grade>>, ({String groupId, String studentId})>(
-  (ref, params) => StudentGradesNotifier(
-    ref.watch(gradesRepositoryProvider(params.groupId)),
-    params.groupId,
-    params.studentId,
-  ),
-);
+final studentGradesProvider =
+    StateNotifierProvider.family<
+      StudentGradesNotifier,
+      AsyncValue<List<Grade>>,
+      ({String groupId, String studentId})
+    >(
+      (ref, params) => StudentGradesNotifier(
+        ref.watch(gradesRepositoryProvider(params.groupId)),
+        params.groupId,
+        params.studentId,
+      ),
+    );

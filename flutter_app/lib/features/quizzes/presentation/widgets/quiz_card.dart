@@ -32,10 +32,7 @@ class QuizCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      quiz.title,
-                      style: theme.textTheme.titleMedium,
-                    ),
+                    Text(quiz.title, style: theme.textTheme.titleMedium),
                     if (quiz.description != null) ...[
                       const SizedBox(height: 4),
                       Text(
@@ -50,7 +47,9 @@ class QuizCard extends StatelessWidget {
                       children: [
                         _Chip(
                           icon: LucideIcons.repeat,
-                          label: context.l10n.attemptsShortChip(quiz.maxAttempts),
+                          label: context.l10n.attemptsShortChip(
+                            quiz.maxAttempts,
+                          ),
                         ),
                         if (quiz.timeLimit != null) ...[
                           const SizedBox(width: 8),
@@ -77,7 +76,9 @@ class QuizCard extends StatelessWidget {
                             icon: quiz.isPublished
                                 ? LucideIcons.eye
                                 : LucideIcons.eyeOff,
-                            label: quiz.isPublished ? context.l10n.publishedShort : context.l10n.draft,
+                            label: quiz.isPublished
+                                ? context.l10n.publishedShort
+                                : context.l10n.draft,
                             color: quiz.isPublished
                                 ? Colors.green
                                 : Colors.orange,
@@ -93,7 +94,9 @@ class QuizCard extends StatelessWidget {
                     quiz.isPublished ? LucideIcons.eyeOff : LucideIcons.send,
                     color: quiz.isPublished ? Colors.orange : Colors.green,
                   ),
-                  tooltip: quiz.isPublished ? context.l10n.unpublish : context.l10n.publish,
+                  tooltip: quiz.isPublished
+                      ? context.l10n.unpublish
+                      : context.l10n.publish,
                   onPressed: onTogglePublish,
                 ),
             ],
@@ -119,10 +122,7 @@ class _Chip extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: c),
         const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: c),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: c)),
       ],
     );
   }

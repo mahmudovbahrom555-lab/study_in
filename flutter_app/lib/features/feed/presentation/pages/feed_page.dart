@@ -50,7 +50,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
       appBar: AppBar(title: Text(context.l10n.tabFeed)),
       floatingActionButton: isTeacher
           ? FloatingActionButton(
-            tooltip: context.l10n.newPostTooltip,
+              tooltip: context.l10n.newPostTooltip,
               onPressed: () => _showCreateSheet(context),
               child: const Icon(LucideIcons.squarePen),
             )
@@ -91,13 +91,13 @@ class _FeedPageState extends ConsumerState<FeedPage> {
             isTeacher: isTeacher,
             onDelete: isTeacher || post.authorId == userId
                 ? () => ref
-                    .read(feedProvider(widget.groupId).notifier)
-                    .deletePost(post.id)
+                      .read(feedProvider(widget.groupId).notifier)
+                      .deletePost(post.id)
                 : null,
             onPin: isTeacher
                 ? () => ref
-                    .read(feedProvider(widget.groupId).notifier)
-                    .pinPost(post.id, pinned: !post.pinned)
+                      .read(feedProvider(widget.groupId).notifier)
+                      .pinPost(post.id, pinned: !post.pinned)
                 : null,
           );
         },

@@ -14,7 +14,10 @@ class GradesRepositoryImpl implements GradesRepository {
   }
 
   @override
-  Future<List<Grade>> listStudentGrades(String groupId, String studentId) async {
+  Future<List<Grade>> listStudentGrades(
+    String groupId,
+    String studentId,
+  ) async {
     final dtos = await _api.listStudentGrades(groupId, studentId);
     return dtos.map((d) => d.toDomain()).toList();
   }

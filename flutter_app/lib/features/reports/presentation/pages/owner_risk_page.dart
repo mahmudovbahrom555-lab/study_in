@@ -126,10 +126,7 @@ class _AlertCard extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 10),
-            Text(
-              alert.triggerReason,
-              style: const TextStyle(fontSize: 13),
-            ),
+            Text(alert.triggerReason, style: const TextStyle(fontSize: 13)),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(10),
@@ -140,12 +137,19 @@ class _AlertCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(LucideIcons.lightbulb, size: 15, color: Colors.blue),
+                  const Icon(
+                    LucideIcons.lightbulb,
+                    size: 15,
+                    color: Colors.blue,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       alert.recommendation,
-                      style: TextStyle(fontSize: 12, color: Colors.blue.shade800),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue.shade800,
+                      ),
                     ),
                   ),
                 ],
@@ -160,7 +164,10 @@ class _AlertCard extends StatelessWidget {
                 onPressed: onResolve,
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.green,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                 ),
               ),
             ),
@@ -179,7 +186,9 @@ class _RiskChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = level == 'high' ? context.l10n.riskHigh : context.l10n.riskMedium;
+    final label = level == 'high'
+        ? context.l10n.riskHigh
+        : context.l10n.riskMedium;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -188,7 +197,11 @@ class _RiskChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          fontSize: 11,
+          color: color,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

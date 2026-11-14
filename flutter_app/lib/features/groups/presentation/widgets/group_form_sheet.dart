@@ -55,7 +55,9 @@ class _GroupFormSheetState extends ConsumerState<GroupFormSheet> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _nameCtrl,
-              decoration: InputDecoration(labelText: context.l10n.titleRequired),
+              decoration: InputDecoration(
+                labelText: context.l10n.titleRequired,
+              ),
               validator: (v) => (v == null || v.trim().length < 2)
                   ? context.l10n.minTwoChars
                   : null,

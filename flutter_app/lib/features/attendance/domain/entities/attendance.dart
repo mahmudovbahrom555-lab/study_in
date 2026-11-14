@@ -7,11 +7,11 @@ enum AttendanceStatus {
   excused;
 
   static AttendanceStatus fromJson(String v) => switch (v) {
-        'absent' => absent,
-        'late' => late,
-        'excused' => excused,
-        _ => present,
-      };
+    'absent' => absent,
+    'late' => late,
+    'excused' => excused,
+    _ => present,
+  };
 
   String toJson() => name;
 }

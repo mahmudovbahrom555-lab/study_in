@@ -6,12 +6,12 @@ Go backend + Flutter мобильное приложение: домашние �
 
 | Слой | Технологии |
 |------|-----------|
-| Backend | Go 1.22, Chi v5, sqlx + pgx/v5, golang-migrate |
+| Backend | Go 1.25, Chi v5, sqlx + pgx/v5, golang-migrate |
 | Хранилища | PostgreSQL 16, Redis 7, MinIO (private bucket, signed URLs) |
 | Async | **Asynq** (SMS + push через очередь, retry ×3) |
 | Push | Firebase Cloud Messaging (FCM) |
 | Мониторинг | Prometheus `/metrics`, Grafana, Loki, Sentry |
-| Mobile | Flutter 3.24+, Riverpod (StateNotifier), go_router, Dio |
+| Mobile | Flutter 3.38+, Riverpod (StateNotifier), go_router, Dio |
 | Инфраструктура | Docker Compose, GitHub Actions CI |
 
 ## Быстрый старт (dev)

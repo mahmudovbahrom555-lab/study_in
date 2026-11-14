@@ -8,8 +8,10 @@ import '../../domain/repositories/feed_repository.dart';
 import '../../../../core/network/error_message.dart';
 
 // Per-group feed provider family.
-final feedRepositoryProvider =
-    Provider.family<FeedRepository, String>((ref, groupId) {
+final feedRepositoryProvider = Provider.family<FeedRepository, String>((
+  ref,
+  groupId,
+) {
   final dio = ref.watch(dioProvider);
   return FeedRepositoryImpl(FeedApi(dio), groupId);
 });
@@ -35,13 +37,12 @@ class FeedState {
     bool? hasMore,
     String? error,
     bool clearError = false,
-  }) =>
-      FeedState(
-        posts: posts ?? this.posts,
-        isLoading: isLoading ?? this.isLoading,
-        hasMore: hasMore ?? this.hasMore,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => FeedState(
+    posts: posts ?? this.posts,
+    isLoading: isLoading ?? this.isLoading,
+    hasMore: hasMore ?? this.hasMore,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 // ─── Notifier ─────────────────────────────────────────────────────────────────
@@ -59,7 +60,11 @@ class FeedNotifier extends StateNotifier<FeedState> {
   Future<void> load() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final posts = await _repo.listPosts(_groupId, limit: _pageSize, offset: 0);
+      final posts = await _repo.listPosts(
+        _groupId,
+        limit: _pageSize,
+        offset: 0,
+      );
       state = state.copyWith(
         isLoading: false,
         posts: posts,
@@ -123,6 +128,6 @@ class FeedNotifier extends StateNotifier<FeedState> {
 
 final feedProvider =
     StateNotifierProvider.family<FeedNotifier, FeedState, String>(
-  (ref, groupId) =>
-      FeedNotifier(ref.watch(feedRepositoryProvider(groupId)), groupId),
-);
+      (ref, groupId) =>
+          FeedNotifier(ref.watch(feedRepositoryProvider(groupId)), groupId),
+    );

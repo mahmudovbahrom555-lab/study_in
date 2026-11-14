@@ -2,12 +2,12 @@ import '../../domain/entities/parent_link.dart';
 
 class ParentLinkDto {
   factory ParentLinkDto.fromJson(Map<String, dynamic> json) => ParentLinkDto(
-        id: json['id'] as String,
-        parentId: json['parent_id'] as String,
-        studentId: json['student_id'] as String,
-        studentName: json['student_name'] as String? ?? '',
-        createdAt: DateTime.parse(json['created_at'] as String),
-      );
+    id: json['id'] as String,
+    parentId: json['parent_id'] as String,
+    studentId: json['student_id'] as String,
+    studentName: json['student_name'] as String? ?? '',
+    createdAt: DateTime.parse(json['created_at'] as String),
+  );
 
   const ParentLinkDto({
     required this.id,
@@ -24,10 +24,10 @@ class ParentLinkDto {
   final DateTime createdAt;
 
   ParentLink toDomain() => ParentLink(
-        id: id,
-        parentId: parentId,
-        studentId: studentId,
-        studentName: studentName,
-        createdAt: createdAt,
-      );
+    id: id,
+    parentId: parentId,
+    studentId: studentId,
+    studentName: studentName,
+    createdAt: createdAt,
+  );
 }

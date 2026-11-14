@@ -1,6 +1,7 @@
 package reports
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -14,12 +15,17 @@ import (
 
 // Handler exposes Parent ROI and Owner Risk endpoints.
 type Handler struct {
-	svc  *Service
-	repo Repository
+	svc     *Service
+	repo    Repository
+	parents ParentLinks
 }
 
-func NewHandler(svc *Service, repo Repository) *Handler {
-	return &Handler{svc: svc, repo: repo}
+type ParentLinks interface {
+	GetLink(ctx context.Context, parentID, studentID uuid.UUID) (*domain.ParentLink, error)
+}
+
+func NewHandler(svc *Service, repo Repository, parents ParentLinks) *Handler {
+	return &Handler{svc: svc, repo: repo, parents: parents}
 }
 
 // RegisterRoutes mounts the reports endpoints.
@@ -61,13 +67,31 @@ func (h *Handler) getParentROI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Teachers may also pull this report (for their own students).
-	// Parents must own the child link — simplified: we just verify student is in group.
-	_ = callerID
-	_ = role
+	ctx := r.Context()
+	var allowed bool
+	switch role {
+	case domain.RoleParent:
+		var link *domain.ParentLink
+		link, err = h.parents.GetLink(ctx, callerID, studentID)
+		allowed = link != nil
+	case domain.RoleTeacher:
+		allowed, err = h.repo.IsGroupTeacher(ctx, groupID, callerID)
+	}
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+	if !allowed {
+		response.Error(w, domain.ErrForbidden)
+		return
+	}
 
-	ok, err := h.repo.IsGroupMember(r.Context(), groupID, studentID)
-	if err != nil || !ok {
+	ok, err := h.repo.IsGroupMember(ctx, groupID, studentID)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+	if !ok {
 		response.Error(w, domain.ErrNotFound)
 		return
 	}

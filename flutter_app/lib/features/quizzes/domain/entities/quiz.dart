@@ -30,11 +30,9 @@ class Quiz {
   final DateTime createdAt;
   final List<Question> questions;
 
-  bool get isClosed =>
-      closeAt != null && closeAt!.isBefore(DateTime.now());
+  bool get isClosed => closeAt != null && closeAt!.isBefore(DateTime.now());
 
-  bool get isNotYetOpen =>
-      openAt != null && openAt!.isAfter(DateTime.now());
+  bool get isNotYetOpen => openAt != null && openAt!.isAfter(DateTime.now());
 }
 
 @immutable
@@ -125,10 +123,7 @@ class QuestionResult {
 
 @immutable
 class QuizResult {
-  const QuizResult({
-    required this.attempt,
-    required this.questionResults,
-  });
+  const QuizResult({required this.attempt, required this.questionResults});
 
   final QuizAttempt attempt;
   final List<QuestionResult> questionResults;

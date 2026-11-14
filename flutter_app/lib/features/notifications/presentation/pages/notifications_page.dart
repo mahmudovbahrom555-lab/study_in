@@ -51,7 +51,10 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           children: [
             const Icon(LucideIcons.bell, size: 64, color: Colors.grey),
             const SizedBox(height: 12),
-            Text(context.l10n.noNotifications, style: const TextStyle(color: Colors.grey)),
+            Text(
+              context.l10n.noNotifications,
+              style: const TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       );
@@ -98,8 +101,7 @@ class _NotificationTile extends StatelessWidget {
       title: Text(
         notification.title,
         style: TextStyle(
-          fontWeight:
-              notification.isRead ? FontWeight.normal : FontWeight.bold,
+          fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
         ),
       ),
       subtitle: Column(
@@ -128,11 +130,11 @@ class _NotificationTile extends StatelessWidget {
   }
 
   IconData _iconForType(String? type) => switch (type) {
-        'quiz_published' => LucideIcons.clipboardCheck,
-        'assignment_due' => LucideIcons.fileCheck,
-        'grade_posted' => LucideIcons.chartColumn,
-        'at_risk' => LucideIcons.triangleAlert,
-        'celebrate' => LucideIcons.partyPopper,
-        _ => LucideIcons.bell,
-      };
+    'quiz_published' => LucideIcons.clipboardCheck,
+    'assignment_due' => LucideIcons.fileCheck,
+    'grade_posted' => LucideIcons.chartColumn,
+    'at_risk' => LucideIcons.triangleAlert,
+    'celebrate' => LucideIcons.partyPopper,
+    _ => LucideIcons.bell,
+  };
 }

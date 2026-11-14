@@ -69,10 +69,7 @@ class AssignmentsApi {
   }) async {
     final resp = await _dio.post<Map<String, dynamic>>(
       '${_base(groupId)}/$assignmentId/submit',
-      data: {
-        if (comment != null) 'comment': comment,
-        'file_ids': fileIds,
-      },
+      data: {if (comment != null) 'comment': comment, 'file_ids': fileIds},
     );
     return submissionFromJson(resp.data!['data'] as Map<String, dynamic>);
   }
@@ -109,9 +106,8 @@ class AssignmentsApi {
     String submissionId, {
     required int grade,
     String? note,
-  }) =>
-      _dio.post<void>(
-        '${_base(groupId)}/$assignmentId/submissions/$submissionId/grade',
-        data: {'grade': grade, if (note != null) 'note': note},
-      );
+  }) => _dio.post<void>(
+    '${_base(groupId)}/$assignmentId/submissions/$submissionId/grade',
+    data: {'grade': grade, if (note != null) 'note': note},
+  );
 }

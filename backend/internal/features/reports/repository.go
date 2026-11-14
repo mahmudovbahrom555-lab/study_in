@@ -11,7 +11,7 @@ import (
 
 // Repository abstracts all data access for the reports feature.
 type Repository interface {
-	// ComputeMetrics computes raw metrics for a student in a group for [from, to].
+	// ComputeMetrics computes raw metrics for a student in a group for [from, to).
 	ComputeMetrics(ctx context.Context, studentID, groupID uuid.UUID, from, to time.Time) (*RawMetrics, error)
 	// SaveReport persists a generated report (upserts by student+group+period_start).
 	SaveReport(ctx context.Context, r *domain.ParentReport) error

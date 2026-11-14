@@ -41,10 +41,9 @@ class _CodeInputState extends State<CodeInput> {
             LengthLimitingTextInputFormatter(6),
           ],
           textAlign: TextAlign.center,
-          style: Theme.of(context)
-              .textTheme
-              .headlineMedium
-              ?.copyWith(letterSpacing: 16),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(letterSpacing: 16),
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             hintText: '------',

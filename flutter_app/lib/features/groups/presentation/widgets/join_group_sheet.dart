@@ -50,8 +50,9 @@ class _JoinGroupSheetState extends ConsumerState<JoinGroupSheet> {
                 hintText: context.l10n.inviteCodeHint,
               ),
               textCapitalization: TextCapitalization.characters,
-              validator: (v) =>
-                  (v == null || v.trim().length < 4) ? context.l10n.enterCode : null,
+              validator: (v) => (v == null || v.trim().length < 4)
+                  ? context.l10n.enterCode
+                  : null,
             ),
             const SizedBox(height: 20),
             ElevatedButton(

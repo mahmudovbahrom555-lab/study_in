@@ -2,16 +2,16 @@ import '../../domain/entities/attendance.dart';
 
 class AttendanceDto {
   factory AttendanceDto.fromJson(Map<String, dynamic> json) => AttendanceDto(
-        id: json['id'] as String,
-        groupId: json['group_id'] as String,
-        studentId: json['student_id'] as String,
-        teacherId: json['teacher_id'] as String,
-        lessonDate: json['lesson_date'] as String,
-        status: AttendanceStatus.fromJson(json['status'] as String),
-        note: json['note'] as String?,
-        createdAt: DateTime.parse(json['created_at'] as String),
-        updatedAt: DateTime.parse(json['updated_at'] as String),
-      );
+    id: json['id'] as String,
+    groupId: json['group_id'] as String,
+    studentId: json['student_id'] as String,
+    teacherId: json['teacher_id'] as String,
+    lessonDate: json['lesson_date'] as String,
+    status: AttendanceStatus.fromJson(json['status'] as String),
+    note: json['note'] as String?,
+    createdAt: DateTime.parse(json['created_at'] as String),
+    updatedAt: DateTime.parse(json['updated_at'] as String),
+  );
 
   const AttendanceDto({
     required this.id,
@@ -36,23 +36,23 @@ class AttendanceDto {
   final DateTime updatedAt;
 
   static RosterEntry rosterFromJson(Map<String, dynamic> json) => RosterEntry(
-        studentId: json['student_id'] as String,
-        studentName: json['student_name'] as String,
-        attendanceId: json['attendance_id'] as String?,
-        status: json['status'] == null
-            ? null
-            : AttendanceStatus.fromJson(json['status'] as String),
-      );
+    studentId: json['student_id'] as String,
+    studentName: json['student_name'] as String,
+    attendanceId: json['attendance_id'] as String?,
+    status: json['status'] == null
+        ? null
+        : AttendanceStatus.fromJson(json['status'] as String),
+  );
 
   Attendance toDomain() => Attendance(
-        id: id,
-        groupId: groupId,
-        studentId: studentId,
-        teacherId: teacherId,
-        lessonDate: lessonDate,
-        status: status,
-        note: note,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-      );
+    id: id,
+    groupId: groupId,
+    studentId: studentId,
+    teacherId: teacherId,
+    lessonDate: lessonDate,
+    status: status,
+    note: note,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+  );
 }

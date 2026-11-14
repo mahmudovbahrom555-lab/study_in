@@ -13,11 +13,8 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> sendCode(String phone) => _api.sendCode(phone);
 
   @override
-  Future<({String accessToken, String refreshToken, User user, bool isNewUser})> verify(
-    String phone,
-    String code, {
-    String deviceInfo = '',
-  }) async {
+  Future<({String accessToken, String refreshToken, User user, bool isNewUser})>
+  verify(String phone, String code, {String deviceInfo = ''}) async {
     final dto = await _api.verify(phone, code, deviceInfo: deviceInfo);
     await _storage.saveTokens(
       accessToken: dto.accessToken,

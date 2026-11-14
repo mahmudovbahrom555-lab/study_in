@@ -11,6 +11,7 @@ class _FakeRepo implements AttendanceRepository {
   final marks = <String, AttendanceStatus>{}; // studentId → статус за день
   bool fail = false;
   Completer<void>? gate; // держит mark(), чтобы проверить повторный тап
+  Future<List<RosterEntry>> Function(String date)? loadRoster;
   int markCalls = 0;
 
   static const names = {'s1': 'Aziza', 's2': 'Bekzod'};
@@ -25,18 +26,20 @@ class _FakeRepo implements AttendanceRepository {
   }
 
   Attendance _rec(String sid) => Attendance(
-        id: 'a-$sid',
-        groupId: 'g',
-        studentId: sid,
-        teacherId: 't',
-        lessonDate: '2026-10-14',
-        status: marks[sid]!,
-        createdAt: DateTime(2026),
-        updatedAt: DateTime(2026),
-      );
+    id: 'a-$sid',
+    groupId: 'g',
+    studentId: sid,
+    teacherId: 't',
+    lessonDate: '2026-10-14',
+    status: marks[sid]!,
+    createdAt: DateTime(2026),
+    updatedAt: DateTime(2026),
+  );
 
   @override
-  Future<List<RosterEntry>> roster(String groupId, String date) async => [
+  Future<List<RosterEntry>> roster(String groupId, String date) async =>
+      loadRoster?.call(date) ??
+      [
         for (final e in names.entries)
           RosterEntry(
             studentId: e.key,
@@ -78,11 +81,15 @@ class _FakeRepo implements AttendanceRepository {
   }
 
   @override
-  Future<List<Attendance>> listStudent(String groupId, String studentId) async => [];
+  Future<List<Attendance>> listStudent(
+    String groupId,
+    String studentId,
+  ) async => [];
 }
 
 Future<RosterNotifier> _notifier(_FakeRepo repo) async {
   final n = RosterNotifier(repo, 'g');
+  addTearDown(n.dispose);
   await Future<void>.delayed(Duration.zero); // первая загрузка
   return n;
 }
@@ -131,7 +138,11 @@ void main() {
     await n.toggle('s1', AttendanceStatus.absent);
 
     await n.markRestPresent();
-    expect(_status(n, 's1'), AttendanceStatus.absent, reason: 'чужую отметку не трогаем');
+    expect(
+      _status(n, 's1'),
+      AttendanceStatus.absent,
+      reason: 'чужую отметку не трогаем',
+    );
     expect(_status(n, 's2'), AttendanceStatus.present);
     expect(_st(n).hasUnmarked, isFalse);
   });
@@ -168,5 +179,58 @@ void main() {
     expect(_st(n).date, today);
     n.shiftDay(-1);
     expect(_st(n).date, today.subtract(const Duration(days: 1)));
+  });
+
+  test(
+    'новый день очищает старые отметки и блокирует запись до загрузки',
+    () async {
+      final repo = _FakeRepo();
+      repo.marks['s1'] = AttendanceStatus.absent;
+      final n = await _notifier(repo);
+      final nextRoster = Completer<List<RosterEntry>>();
+      repo.loadRoster = (_) => nextRoster.future;
+
+      final loading = n.load(_st(n).date.subtract(const Duration(days: 1)));
+      expect(_st(n).entries, isEmpty);
+      await n.toggle('s1', AttendanceStatus.present);
+      await n.markRestPresent();
+      expect(repo.markCalls, 0);
+      expect(repo.marks, {'s1': AttendanceStatus.absent});
+
+      nextRoster.completeError(StateError('offline'));
+      await loading;
+      expect(_st(n).entries, isEmpty);
+      expect(_st(n).loadError, isA<StateError>());
+    },
+  );
+
+  test('запоздавший ответ для той же даты не заменяет свежий список', () async {
+    final repo = _FakeRepo();
+    final n = await _notifier(repo);
+    final older = Completer<List<RosterEntry>>();
+    final newer = Completer<List<RosterEntry>>();
+    final date = _st(n).date;
+    repo.loadRoster = (_) => older.future;
+    final first = n.load(date);
+    repo.loadRoster = (_) => newer.future;
+    final second = n.load(date);
+    newer.complete([const RosterEntry(studentId: 's3', studentName: 'Madina')]);
+    await second;
+    older.complete([]);
+    await first;
+    expect(_st(n).entries.single.studentId, 's3');
+  });
+
+  test('дата остаётся прежней, пока сохраняется отметка', () async {
+    final repo = _FakeRepo()..gate = Completer<void>();
+    final n = await _notifier(repo);
+    final date = _st(n).date;
+
+    final saving = n.toggle('s1', AttendanceStatus.present);
+    n.shiftDay(-1);
+    expect(_st(n).date, date);
+    repo.gate!.complete();
+    await saving;
+    expect(_status(n, 's1'), AttendanceStatus.present);
   });
 }

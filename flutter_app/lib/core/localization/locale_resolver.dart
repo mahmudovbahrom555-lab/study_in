@@ -56,7 +56,9 @@ Locale resolveAppLocale({
   }
 
   // Решает основной язык телефона — тот, что пользователь поставил первым.
-  final primary = deviceLocales.isEmpty ? null : deviceLocales.first.languageCode;
+  final primary = deviceLocales.isEmpty
+      ? null
+      : deviceLocales.first.languageCode;
   if (primary == 'en') return enLocale;
   if (ruByDefaultLanguages.contains(primary)) return ruLocale;
   return enLocale;

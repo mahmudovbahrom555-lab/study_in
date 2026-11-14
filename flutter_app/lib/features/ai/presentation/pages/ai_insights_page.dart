@@ -47,7 +47,10 @@ class _InsightsBody extends StatelessWidget {
         _StatRow(insights: insights),
         if (insights.recommendations.isNotEmpty) ...[
           const SizedBox(height: 20),
-          _NextBestActionPanel(recommendations: insights.recommendations, groupId: groupId),
+          _NextBestActionPanel(
+            recommendations: insights.recommendations,
+            groupId: groupId,
+          ),
         ],
         const SizedBox(height: 20),
         Text(context.l10n.weakTopicsClass, style: theme.textTheme.titleMedium),
@@ -63,12 +66,9 @@ class _InsightsBody extends StatelessWidget {
         Text(context.l10n.leaderboard, style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         ...insights.students.asMap().entries.map(
-              (e) => _StudentTile(
-                rank: e.key + 1,
-                student: e.value,
-                groupId: groupId,
-              ),
-            ),
+          (e) =>
+              _StudentTile(rank: e.key + 1, student: e.value, groupId: groupId),
+        ),
       ],
     );
   }
@@ -77,7 +77,10 @@ class _InsightsBody extends StatelessWidget {
 // ─── Next Best Action ─────────────────────────────────────────────────────────
 
 class _NextBestActionPanel extends StatelessWidget {
-  const _NextBestActionPanel({required this.recommendations, required this.groupId});
+  const _NextBestActionPanel({
+    required this.recommendations,
+    required this.groupId,
+  });
 
   final List<TeacherRecommendation> recommendations;
   final String groupId;
@@ -90,7 +93,9 @@ class _NextBestActionPanel extends StatelessWidget {
       children: [
         Text(context.l10n.recommendations, style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
-        ...recommendations.map((r) => _RecommendationCard(rec: r, groupId: groupId)),
+        ...recommendations.map(
+          (r) => _RecommendationCard(rec: r, groupId: groupId),
+        ),
       ],
     );
   }
@@ -103,7 +108,8 @@ class _RecommendationCard extends ConsumerStatefulWidget {
   final String groupId;
 
   @override
-  ConsumerState<_RecommendationCard> createState() => _RecommendationCardState();
+  ConsumerState<_RecommendationCard> createState() =>
+      _RecommendationCardState();
 }
 
 class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
@@ -122,7 +128,9 @@ class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
   }
 
   Future<void> _explain() async {
-    final text = await ref.read(aiRepositoryProvider).explainRecommendation(widget.rec.id);
+    final text = await ref
+        .read(aiRepositoryProvider)
+        .explainRecommendation(widget.rec.id);
     if (!mounted) return;
     showModalBottomSheet<void>(
       context: context,
@@ -132,7 +140,10 @@ class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(context.l10n.aiExplanation, style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              context.l10n.aiExplanation,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 12),
             Text(text),
             const SizedBox(height: 16),
@@ -154,7 +165,9 @@ class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(
-          color: _accepted ? Colors.green.withValues(alpha: 0.6) : color.withValues(alpha: 0.4),
+          color: _accepted
+              ? Colors.green.withValues(alpha: 0.6)
+              : color.withValues(alpha: 0.4),
         ),
       ),
       child: Column(
@@ -169,7 +182,9 @@ class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
               widget.rec.topic != null
                   ? '${_labelFor(context.l10n, widget.rec.action)}: ${widget.rec.topic}'
                   : _labelFor(context.l10n, widget.rec.action),
-              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             subtitle: Text(widget.rec.reason, style: theme.textTheme.bodySmall),
             trailing: _PriorityBadge(priority: widget.rec.priority),
@@ -206,9 +221,18 @@ class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
               child: Row(
                 children: [
-                  const Icon(LucideIcons.circleCheck, color: Colors.green, size: 16),
+                  const Icon(
+                    LucideIcons.circleCheck,
+                    color: Colors.green,
+                    size: 16,
+                  ),
                   const SizedBox(width: 4),
-                  Text(context.l10n.accepted, style: theme.textTheme.bodySmall?.copyWith(color: Colors.green)),
+                  Text(
+                    context.l10n.accepted,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.green,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -218,22 +242,22 @@ class _RecommendationCardState extends ConsumerState<_RecommendationCard> {
   }
 
   (IconData, Color) _iconFor(String action) => switch (action) {
-        'create_quiz' => (LucideIcons.clipboardCheck, Colors.blue),
-        'schedule_review' => (LucideIcons.calendarSync, Colors.orange),
-        'check_students' => (LucideIcons.userSearch, Colors.red),
-        'rate_questions' => (LucideIcons.messageSquare, Colors.purple),
-        'celebrate' => (LucideIcons.partyPopper, Colors.green),
-        _ => (LucideIcons.lightbulb, Colors.grey),
-      };
+    'create_quiz' => (LucideIcons.clipboardCheck, Colors.blue),
+    'schedule_review' => (LucideIcons.calendarSync, Colors.orange),
+    'check_students' => (LucideIcons.userSearch, Colors.red),
+    'rate_questions' => (LucideIcons.messageSquare, Colors.purple),
+    'celebrate' => (LucideIcons.partyPopper, Colors.green),
+    _ => (LucideIcons.lightbulb, Colors.grey),
+  };
 
   String _labelFor(AppLocalizations l10n, String action) => switch (action) {
-        'create_quiz' => l10n.recCreateQuiz,
-        'schedule_review' => l10n.recScheduleReview,
-        'check_students' => l10n.recCheckStudents,
-        'rate_questions' => l10n.recRateQuestions,
-        'celebrate' => l10n.recCelebrate,
-        _ => l10n.recDefault,
-      };
+    'create_quiz' => l10n.recCreateQuiz,
+    'schedule_review' => l10n.recScheduleReview,
+    'check_students' => l10n.recCheckStudents,
+    'rate_questions' => l10n.recRateQuestions,
+    'celebrate' => l10n.recCelebrate,
+    _ => l10n.recDefault,
+  };
 }
 
 class _PriorityBadge extends StatelessWidget {
@@ -252,10 +276,17 @@ class _PriorityBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }
@@ -323,7 +354,10 @@ class _StatCard extends StatelessWidget {
             children: [
               Icon(icon, color: color ?? theme.colorScheme.primary),
               const SizedBox(height: 4),
-              Text(value, style: theme.textTheme.titleLarge?.copyWith(color: color)),
+              Text(
+                value,
+                style: theme.textTheme.titleLarge?.copyWith(color: color),
+              ),
               Text(label, style: theme.textTheme.bodySmall),
             ],
           ),
@@ -345,10 +379,18 @@ class _WeakTopicTile extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       leading: CircleAvatar(
         backgroundColor: Colors.red.shade50,
-        child: Text('$pct%', style: const TextStyle(fontSize: 12, color: Colors.red)),
+        child: Text(
+          '$pct%',
+          style: const TextStyle(fontSize: 12, color: Colors.red),
+        ),
       ),
       title: Text(topic.topic),
-      subtitle: Text(context.l10n.studentsStruggling(topic.studentsStruggling, topic.totalStudents)),
+      subtitle: Text(
+        context.l10n.studentsStruggling(
+          topic.studentsStruggling,
+          topic.totalStudents,
+        ),
+      ),
       trailing: SizedBox(
         width: 60,
         child: LinearProgressIndicator(
@@ -362,7 +404,11 @@ class _WeakTopicTile extends StatelessWidget {
 }
 
 class _StudentTile extends StatelessWidget {
-  const _StudentTile({required this.rank, required this.student, required this.groupId});
+  const _StudentTile({
+    required this.rank,
+    required this.student,
+    required this.groupId,
+  });
 
   final int rank;
   final StudentSummary student;
@@ -377,7 +423,11 @@ class _StudentTile extends StatelessWidget {
         children: [
           Expanded(child: Text(student.name)),
           if (student.isAtRisk)
-            const Icon(LucideIcons.triangleAlert, color: Colors.orange, size: 18),
+            const Icon(
+              LucideIcons.triangleAlert,
+              color: Colors.orange,
+              size: 18,
+            ),
         ],
       ),
       subtitle: Text(
@@ -387,7 +437,8 @@ class _StudentTile extends StatelessWidget {
                 : ''),
       ),
       trailing: const Icon(LucideIcons.chevronRight),
-      onTap: () => context.push(Routes.studentProgress(groupId, student.studentId)),
+      onTap: () =>
+          context.push(Routes.studentProgress(groupId, student.studentId)),
     );
   }
 }
@@ -411,4 +462,3 @@ class _RankBadge extends StatelessWidget {
     );
   }
 }
-

@@ -46,7 +46,7 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
       ),
       floatingActionButton: isTeacher
           ? FloatingActionButton(
-            tooltip: context.l10n.createGroup,
+              tooltip: context.l10n.createGroup,
               onPressed: () => _showCreateSheet(context),
               child: const Icon(LucideIcons.plus),
             )
@@ -119,7 +119,9 @@ class _TeacherEmptyState extends StatelessWidget {
             Icon(
               LucideIcons.presentation,
               size: 72,
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 20),
             Text(
@@ -130,10 +132,9 @@ class _TeacherEmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               context.l10n.welcomeTeacherBody,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: Colors.grey.shade600),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -169,7 +170,9 @@ class _StudentEmptyState extends StatelessWidget {
             Icon(
               LucideIcons.users,
               size: 72,
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 20),
             Text(
@@ -180,10 +183,9 @@ class _StudentEmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               context.l10n.noGroupsStudentBody,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: Colors.grey.shade600),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),

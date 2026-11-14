@@ -27,7 +27,11 @@ class ParentRoiPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(studentName != null ? context.l10n.progressFor(studentName!) : context.l10n.progress),
+        title: Text(
+          studentName != null
+              ? context.l10n.progressFor(studentName!)
+              : context.l10n.progress,
+        ),
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -176,12 +180,13 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor = color ??
+    final effectiveColor =
+        color ??
         (delta == null
             ? Theme.of(context).colorScheme.primary
             : delta! >= 0
-                ? Colors.green
-                : Colors.red);
+            ? Colors.green
+            : Colors.red);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -218,7 +223,9 @@ class _MetricCard extends StatelessWidget {
           if (delta != null) ...[
             const SizedBox(height: 4),
             Text(
-              context.l10n.vsPrevMonth('${delta! >= 0 ? '+' : ''}${delta!.toStringAsFixed(1)}'),
+              context.l10n.vsPrevMonth(
+                '${delta! >= 0 ? '+' : ''}${delta!.toStringAsFixed(1)}',
+              ),
               style: TextStyle(
                 fontSize: 11,
                 color: delta! >= 0 ? Colors.green : Colors.red,

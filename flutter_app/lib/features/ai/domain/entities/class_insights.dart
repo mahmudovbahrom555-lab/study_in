@@ -161,7 +161,11 @@ class QuizAttemptSummary {
 }
 
 class SkillLevel {
-  const SkillLevel({required this.cefr, required this.score, required this.lastAssessed});
+  const SkillLevel({
+    required this.cefr,
+    required this.score,
+    required this.lastAssessed,
+  });
 
   final String cefr;
   final double score;

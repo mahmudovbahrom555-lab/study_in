@@ -45,25 +45,25 @@ class RosterState {
     Object? loadError,
     bool clearLoadError = false,
     String? saveError,
-  }) =>
-      RosterState(
-        date: date ?? this.date,
-        entries: entries ?? this.entries,
-        saving: saving ?? this.saving,
-        isLoading: isLoading ?? this.isLoading,
-        loadError: clearLoadError ? null : (loadError ?? this.loadError),
-        saveError: saveError,
-      );
+  }) => RosterState(
+    date: date ?? this.date,
+    entries: entries ?? this.entries,
+    saving: saving ?? this.saving,
+    isLoading: isLoading ?? this.isLoading,
+    loadError: clearLoadError ? null : (loadError ?? this.loadError),
+    saveError: saveError,
+  );
 }
 
 class RosterNotifier extends StateNotifier<RosterState> {
   RosterNotifier(this._repo, this._groupId)
-      : super(RosterState(date: _today())) {
+    : super(RosterState(date: _today())) {
     load(state.date);
   }
 
   final AttendanceRepository _repo;
   final String _groupId;
+  int _loadRequest = 0;
 
   static DateTime _today() {
     final n = DateTime.now();
@@ -71,21 +71,29 @@ class RosterNotifier extends StateNotifier<RosterState> {
   }
 
   Future<void> load(DateTime date) async {
+    if (state.saving.isNotEmpty) return;
     final day = DateTime(date.year, date.month, date.day);
-    state = state.copyWith(date: day, isLoading: true, clearLoadError: true);
+    final sameDay = day == state.date;
+    final request = ++_loadRequest;
+    state = state.copyWith(
+      date: day,
+      entries: sameDay ? state.entries : const [],
+      isLoading: true,
+      clearLoadError: true,
+    );
     try {
       final entries = await _repo.roster(_groupId, _fmt(day));
-      // Пока грузили, могли переключить день — старый ответ не нужен.
-      if (state.date != day) return;
+      if (!mounted || request != _loadRequest) return;
       state = state.copyWith(entries: entries, isLoading: false);
     } catch (e) {
-      if (state.date != day) return;
+      if (!mounted || request != _loadRequest) return;
       state = state.copyWith(isLoading: false, loadError: e);
     }
   }
 
   void shiftDay(int days) {
-    final next = state.date.add(Duration(days: days));
+    final date = state.date;
+    final next = DateTime(date.year, date.month, date.day + days);
     if (next.isAfter(_today())) return;
     load(next);
   }
@@ -93,7 +101,7 @@ class RosterNotifier extends StateNotifier<RosterState> {
   /// Тап по статусу: ставит его, а повторный тап по тому же статусу снимает
   /// отметку. Экран меняется сразу; при ошибке отметка откатывается.
   Future<void> toggle(String studentId, AttendanceStatus status) async {
-    if (state.saving.contains(studentId)) return;
+    if (state.isLoading || state.saving.contains(studentId)) return;
     final before = _entry(studentId);
     if (before == null) return;
     final clearing = before.status == status;
@@ -119,17 +127,20 @@ class RosterNotifier extends StateNotifier<RosterState> {
       }
     } catch (e) {
       _apply(day, studentId, (_) => before);
-      if (state.date == day) error = userErrorMessage(e);
+      if (mounted && state.date == day) error = userErrorMessage(e);
     } finally {
-      state = state.copyWith(
-        saving: {...state.saving}..remove(studentId),
-        saveError: error,
-      );
+      if (mounted) {
+        state = state.copyWith(
+          saving: {...state.saving}..remove(studentId),
+          saveError: error,
+        );
+      }
     }
   }
 
   /// «Остальные были»: всем неотмеченным — «присутствовал», одним запросом.
   Future<void> markRestPresent() async {
+    if (state.isLoading) return;
     final rest = state.entries
         .where((e) => e.status == null && !state.saving.contains(e.studentId))
         .toList();
@@ -160,12 +171,14 @@ class RosterNotifier extends StateNotifier<RosterState> {
       for (final r in rest) {
         _apply(day, r.studentId, (_) => r);
       }
-      if (state.date == day) error = userErrorMessage(e);
+      if (mounted && state.date == day) error = userErrorMessage(e);
     } finally {
-      state = state.copyWith(
-        saving: {...state.saving}..removeAll(ids),
-        saveError: error,
-      );
+      if (mounted) {
+        state = state.copyWith(
+          saving: {...state.saving}..removeAll(ids),
+          saveError: error,
+        );
+      }
     }
   }
 
@@ -182,8 +195,12 @@ class RosterNotifier extends StateNotifier<RosterState> {
   }
 
   /// Применяет результат сохранения, только если на экране всё ещё тот же день.
-  void _apply(DateTime day, String studentId, RosterEntry Function(RosterEntry) f) {
-    if (state.date != day) return;
+  void _apply(
+    DateTime day,
+    String studentId,
+    RosterEntry Function(RosterEntry) f,
+  ) {
+    if (!mounted || state.date != day) return;
     final e = _entry(studentId);
     if (e != null) _replace(f(e));
   }
@@ -196,26 +213,28 @@ class RosterNotifier extends StateNotifier<RosterState> {
 
 final rosterProvider = StateNotifierProvider.autoDispose
     .family<RosterNotifier, RosterState, String>((ref, groupId) {
-  return RosterNotifier(ref.watch(attendanceRepositoryProvider), groupId);
-});
+      return RosterNotifier(ref.watch(attendanceRepositoryProvider), groupId);
+    });
 
 // ─── История ученика ──────────────────────────────────────────────────────────
 
-final studentAttendanceProvider = StateNotifierProvider.autoDispose.family<
-    _StudentAttendanceNotifier,
-    AsyncValue<List<Attendance>>,
-    ({String groupId, String studentId})>((ref, params) {
-  return _StudentAttendanceNotifier(
-    ref.watch(attendanceRepositoryProvider),
-    params.groupId,
-    params.studentId,
-  );
-});
+final studentAttendanceProvider = StateNotifierProvider.autoDispose
+    .family<
+      _StudentAttendanceNotifier,
+      AsyncValue<List<Attendance>>,
+      ({String groupId, String studentId})
+    >((ref, params) {
+      return _StudentAttendanceNotifier(
+        ref.watch(attendanceRepositoryProvider),
+        params.groupId,
+        params.studentId,
+      );
+    });
 
 class _StudentAttendanceNotifier
     extends StateNotifier<AsyncValue<List<Attendance>>> {
   _StudentAttendanceNotifier(this._repo, this._groupId, this._studentId)
-      : super(const AsyncValue.loading()) {
+    : super(const AsyncValue.loading()) {
     _load();
   }
 

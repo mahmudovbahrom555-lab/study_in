@@ -4,13 +4,14 @@ import '../../../../core/localization/l10n.dart';
 import '../../../groups/domain/entities/group.dart';
 
 /// Сохраняет оценку; возвращает текст ошибки или null при успехе.
-typedef SubmitGrade = Future<String?> Function({
-  required String studentId,
-  required String subject,
-  required double value,
-  required double maxValue,
-  String? comment,
-});
+typedef SubmitGrade =
+    Future<String?> Function({
+      required String studentId,
+      required String subject,
+      required double value,
+      required double maxValue,
+      String? comment,
+    });
 
 /// «4,5» и «4.5» — одно и то же: на русской клавиатуре десятичная запятая.
 double? parseScore(String? text) =>
@@ -19,7 +20,11 @@ double? parseScore(String? text) =>
 /// Форма оценки: ученик из списка группы, «за что», балл и максимум.
 /// Закрывается только после успешного сохранения.
 class AddGradeSheet extends StatefulWidget {
-  const AddGradeSheet({super.key, required this.students, required this.onSubmit});
+  const AddGradeSheet({
+    super.key,
+    required this.students,
+    required this.onSubmit,
+  });
 
   final List<GroupMember> students;
   final SubmitGrade onSubmit;
@@ -85,7 +90,9 @@ class _AddGradeSheetState extends State<AddGradeSheet> {
     if (n == null) return l10n.mustBeNumber;
     if (n < 0) return '≥ 0';
     final max = parseScore(_maxValueCtrl.text);
-    if (max != null && n > max) return l10n.gradeAboveMax(_maxValueCtrl.text.trim());
+    if (max != null && n > max) {
+      return l10n.gradeAboveMax(_maxValueCtrl.text.trim());
+    }
     return null;
   }
 
@@ -146,7 +153,9 @@ class _AddGradeSheetState extends State<AddGradeSheet> {
                     controller: _valueCtrl,
                     enabled: !_saving,
                     decoration: InputDecoration(labelText: l10n.gradeRequired),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     validator: _validateValue,
                     textInputAction: TextInputAction.next,
                   ),
@@ -157,7 +166,9 @@ class _AddGradeSheetState extends State<AddGradeSheet> {
                     controller: _maxValueCtrl,
                     enabled: !_saving,
                     decoration: InputDecoration(labelText: l10n.maxShort),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     validator: _validateMax,
                   ),
                 ),

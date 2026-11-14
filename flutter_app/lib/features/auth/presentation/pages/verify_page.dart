@@ -22,7 +22,9 @@ class _VerifyPageState extends ConsumerState<VerifyPage> {
   Future<void> _verify() async {
     if (_code.length != 6) return;
 
-    final isNewUser = await ref.read(authProvider.notifier).verify(widget.phone, _code);
+    final isNewUser = await ref
+        .read(authProvider.notifier)
+        .verify(widget.phone, _code);
     if (!mounted) return;
 
     final error = ref.read(authProvider).error;
@@ -62,16 +64,15 @@ class _VerifyPageState extends ConsumerState<VerifyPage> {
               Text(
                 context.l10n.enterCodeTitle,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 context.l10n.smsSentTo(widget.phone),
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: Colors.grey),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
               ),
               const SizedBox(height: 40),
               CodeInput(

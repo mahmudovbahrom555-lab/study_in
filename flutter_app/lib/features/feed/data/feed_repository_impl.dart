@@ -30,7 +30,12 @@ class FeedRepositoryImpl implements FeedRepository {
 
   @override
   Future<Post> updatePost(String postId, {String? body, bool? pinned}) async {
-    final dto = await _api.updatePost(postId, _groupId, body: body, pinned: pinned);
+    final dto = await _api.updatePost(
+      postId,
+      _groupId,
+      body: body,
+      pinned: pinned,
+    );
     return dto.toDomain();
   }
 

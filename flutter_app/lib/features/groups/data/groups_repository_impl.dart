@@ -82,6 +82,5 @@ class GroupsRepositoryImpl implements GroupsRepository {
     String groupId,
     String studentId,
     PaymentStatus status,
-  ) =>
-      _api.updatePayment(groupId, studentId, status.toJson());
+  ) => _api.updatePayment(groupId, studentId, status.toJson());
 }

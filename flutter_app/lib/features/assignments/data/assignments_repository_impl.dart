@@ -20,13 +20,12 @@ class AssignmentsRepositoryImpl implements AssignmentsRepository {
     required String title,
     String? description,
     DateTime? dueDate,
-  }) =>
-      _api.createAssignment(
-        groupId: groupId,
-        title: title,
-        description: description,
-        dueDate: dueDate,
-      );
+  }) => _api.createAssignment(
+    groupId: groupId,
+    title: title,
+    description: description,
+    dueDate: dueDate,
+  );
 
   @override
   Future<void> deleteAssignment(String groupId, String assignmentId) =>
@@ -38,13 +37,12 @@ class AssignmentsRepositoryImpl implements AssignmentsRepository {
     required String name,
     void Function(int sent, int total)? onProgress,
     CancelToken? cancelToken,
-  }) =>
-      _api.uploadFile(
-        path: path,
-        name: name,
-        onProgress: onProgress,
-        cancelToken: cancelToken,
-      );
+  }) => _api.uploadFile(
+    path: path,
+    name: name,
+    onProgress: onProgress,
+    cancelToken: cancelToken,
+  );
 
   @override
   Future<Submission> submit(
@@ -52,8 +50,7 @@ class AssignmentsRepositoryImpl implements AssignmentsRepository {
     String assignmentId, {
     String? comment,
     required List<String> fileIds,
-  }) =>
-      _api.submit(groupId, assignmentId, comment: comment, fileIds: fileIds);
+  }) => _api.submit(groupId, assignmentId, comment: comment, fileIds: fileIds);
 
   @override
   Future<Submission?> mySubmission(String groupId, String assignmentId) =>
@@ -63,8 +60,7 @@ class AssignmentsRepositoryImpl implements AssignmentsRepository {
   Future<List<Submission>> listSubmissions(
     String groupId,
     String assignmentId,
-  ) =>
-      _api.listSubmissions(groupId, assignmentId);
+  ) => _api.listSubmissions(groupId, assignmentId);
 
   @override
   Future<void> grade(

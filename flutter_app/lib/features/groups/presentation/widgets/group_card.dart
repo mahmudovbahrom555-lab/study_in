@@ -15,10 +15,7 @@ class GroupCard extends StatelessWidget {
     return Card(
       child: ListTile(
         onTap: onTap,
-        title: Text(
-          group.name,
-          style: theme.textTheme.titleMedium,
-        ),
+        title: Text(group.name, style: theme.textTheme.titleMedium),
         subtitle: group.subject != null ? Text(group.subject!) : null,
         trailing: group.isArchived
             ? Chip(

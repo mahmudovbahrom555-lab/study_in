@@ -67,7 +67,10 @@ class BrandTitle extends StatelessWidget {
           Text.rich(
             TextSpan(
               children: [
-                TextSpan(text: 'MaMu ', style: base?.copyWith(fontWeight: FontWeight.w700)),
+                TextSpan(
+                  text: 'MaMu ',
+                  style: base?.copyWith(fontWeight: FontWeight.w700),
+                ),
                 TextSpan(
                   text: 'Learn',
                   style: base?.copyWith(

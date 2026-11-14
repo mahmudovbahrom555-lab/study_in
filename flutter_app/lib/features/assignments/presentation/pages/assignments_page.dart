@@ -38,7 +38,7 @@ class _AssignmentsPageState extends ConsumerState<AssignmentsPage> {
       appBar: AppBar(title: Text(context.l10n.tabAssignments)),
       floatingActionButton: isTeacher
           ? FloatingActionButton(
-            tooltip: context.l10n.createAssignment,
+              tooltip: context.l10n.createAssignment,
               onPressed: () => _showCreateSheet(context),
               child: const Icon(LucideIcons.plus),
             )
@@ -75,11 +75,9 @@ class _AssignmentsPageState extends ConsumerState<AssignmentsPage> {
       isScrollControlled: true,
       builder: (_) => _CreateAssignmentSheet(
         onSubmit: ({required title, description, dueDate}) {
-          ref.read(assignmentsProvider(widget.groupId).notifier).create(
-                title: title,
-                description: description,
-                dueDate: dueDate,
-              );
+          ref
+              .read(assignmentsProvider(widget.groupId).notifier)
+              .create(title: title, description: description, dueDate: dueDate);
         },
       ),
     );
@@ -135,7 +133,9 @@ class _AssignmentCard extends ConsumerWidget {
                       ),
                     if (a.dueDate != null)
                       Text(
-                        l10n.dueDate(DateFormat('dd.MM.yyyy HH:mm').format(a.dueDate!)),
+                        l10n.dueDate(
+                          DateFormat('dd.MM.yyyy HH:mm').format(a.dueDate!),
+                        ),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: a.isOverdue ? theme.colorScheme.error : null,
                         ),
@@ -143,7 +143,9 @@ class _AssignmentCard extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                       statusText,
-                      style: theme.textTheme.labelLarge?.copyWith(color: statusColor),
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: statusColor,
+                      ),
                     ),
                   ],
                 ),
@@ -190,11 +192,23 @@ class _AssignmentCard extends ConsumerWidget {
     }
     final mine = a.mySubmission;
     if (mine?.grade != null) {
-      return (LucideIcons.circleCheck, AppColors.success, l10n.gradeValue('${mine!.grade}'));
+      return (
+        LucideIcons.circleCheck,
+        AppColors.success,
+        l10n.gradeValue('${mine!.grade}'),
+      );
     }
-    if (mine != null) return (LucideIcons.clock, scheme.primary, l10n.hwSubmitted);
-    if (a.isOverdue) return (LucideIcons.circleAlert, scheme.error, l10n.hwOverdue);
-    return (LucideIcons.fileCheck, scheme.onSurfaceVariant, l10n.hwNotSubmitted);
+    if (mine != null) {
+      return (LucideIcons.clock, scheme.primary, l10n.hwSubmitted);
+    }
+    if (a.isOverdue) {
+      return (LucideIcons.circleAlert, scheme.error, l10n.hwOverdue);
+    }
+    return (
+      LucideIcons.fileCheck,
+      scheme.onSurfaceVariant,
+      l10n.hwNotSubmitted,
+    );
   }
 }
 
@@ -207,7 +221,8 @@ class _CreateAssignmentSheet extends StatefulWidget {
     required String title,
     String? description,
     DateTime? dueDate,
-  }) onSubmit;
+  })
+  onSubmit;
 
   @override
   State<_CreateAssignmentSheet> createState() => _CreateAssignmentSheetState();
@@ -277,7 +292,15 @@ class _CreateAssignmentSheetState extends State<_CreateAssignmentSheet> {
               );
               // Срок — конец выбранного дня, а не полночь в его начале.
               if (date != null) {
-                setState(() => _dueDate = DateTime(date.year, date.month, date.day, 23, 59));
+                setState(
+                  () => _dueDate = DateTime(
+                    date.year,
+                    date.month,
+                    date.day,
+                    23,
+                    59,
+                  ),
+                );
               }
             },
           ),

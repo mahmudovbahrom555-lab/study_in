@@ -6,10 +6,10 @@ enum PaymentStatus {
   paid;
 
   static PaymentStatus fromJson(String v) => switch (v) {
-        'paid' => paid,
-        'pending' => pending,
-        _ => trial,
-      };
+    'paid' => paid,
+    'pending' => pending,
+    _ => trial,
+  };
 
   String toJson() => name;
 }
@@ -44,18 +44,17 @@ class Group {
     String? description,
     bool? isArchived,
     int? memberCount,
-  }) =>
-      Group(
-        id: id,
-        teacherId: teacherId,
-        name: name ?? this.name,
-        subject: subject ?? this.subject,
-        description: description ?? this.description,
-        inviteCode: inviteCode,
-        isArchived: isArchived ?? this.isArchived,
-        memberCount: memberCount ?? this.memberCount,
-        createdAt: createdAt,
-      );
+  }) => Group(
+    id: id,
+    teacherId: teacherId,
+    name: name ?? this.name,
+    subject: subject ?? this.subject,
+    description: description ?? this.description,
+    inviteCode: inviteCode,
+    isArchived: isArchived ?? this.isArchived,
+    memberCount: memberCount ?? this.memberCount,
+    createdAt: createdAt,
+  );
 }
 
 @immutable

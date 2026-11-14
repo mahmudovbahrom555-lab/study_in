@@ -28,8 +28,9 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
   @override
   Widget build(BuildContext context) {
     final groupsState = ref.watch(groupsProvider);
-    final group =
-        groupsState.groups.where((g) => g.id == widget.groupId).firstOrNull;
+    final group = groupsState.groups
+        .where((g) => g.id == widget.groupId)
+        .firstOrNull;
     final membersAsync = ref.watch(membersProvider(widget.groupId));
     final authState = ref.watch(authProvider);
     final isTeacher = authState.user?.role == 'teacher';
@@ -51,19 +52,22 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
               icon: const Icon(LucideIcons.ellipsisVertical),
               onSelected: (v) => _onMenuSelected(context, v, group),
               itemBuilder: (_) => [
-                PopupMenuItem(
-                  value: 'edit',
-                  child: Text(context.l10n.edit),
-                ),
+                PopupMenuItem(value: 'edit', child: Text(context.l10n.edit)),
                 PopupMenuItem(
                   value: 'archive',
-                  child: Text(group.isArchived ? context.l10n.unarchive : context.l10n.archive),
+                  child: Text(
+                    group.isArchived
+                        ? context.l10n.unarchive
+                        : context.l10n.archive,
+                  ),
                 ),
                 PopupMenuItem(
                   value: 'delete',
                   child: Text(
                     context.l10n.delete,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 ),
               ],
@@ -104,15 +108,14 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
                         member: members[i],
                         isOwner: isOwner,
                         onRemove: isOwner
-                            ? () => _confirmRemove(
-                                  context,
-                                  members[i],
-                                )
+                            ? () => _confirmRemove(context, members[i])
                             : null,
                         onPaymentTap: isOwner
                             ? (status) => ref
-                                .read(membersProvider(widget.groupId).notifier)
-                                .updatePayment(members[i].studentId, status)
+                                  .read(
+                                    membersProvider(widget.groupId).notifier,
+                                  )
+                                  .updatePayment(members[i].studentId, status)
                             : null,
                       ),
                     ),
@@ -159,9 +162,9 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
         ],
       ),
     );
-    if (ok == true && mounted) {
+    if (ok == true && context.mounted) {
       await ref.read(groupsProvider.notifier).deleteGroup(group.id);
-      if (mounted) Navigator.of(context).pop();
+      if (context.mounted) Navigator.of(context).pop();
     }
   }
 
@@ -183,10 +186,12 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
         ],
       ),
     );
-    if (ok == true && mounted) {
+    if (ok == true && context.mounted) {
+      final groups = ref.read(groupsProvider.notifier);
       await ref.read(groupsRepositoryProvider).leaveGroup(group.id);
-      await ref.read(groupsProvider.notifier).load();
-      if (mounted) Navigator.of(context).pop();
+      if (!context.mounted) return;
+      await groups.load();
+      if (context.mounted) Navigator.of(context).pop();
     }
   }
 
@@ -236,7 +241,8 @@ class _QuickActions extends ConsumerWidget {
       _ActionTile(
         icon: LucideIcons.calendarCheck,
         label: context.l10n.attendance,
-        onTap: () => context.push('${Routes.groupAttendance(groupId)}?role=$role'),
+        onTap: () =>
+            context.push('${Routes.groupAttendance(groupId)}?role=$role'),
       ),
       _ActionTile(
         icon: LucideIcons.fileCheck,
@@ -342,8 +348,8 @@ class _GroupInfoCard extends StatelessWidget {
             Text(
               group.subject!,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
             const SizedBox(height: 4),
           ],
@@ -362,10 +368,13 @@ class _GroupInfoCard extends StatelessWidget {
                   tooltip: context.l10n.copy,
                   icon: const Icon(LucideIcons.copy, size: 18),
                   onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: group.inviteCode));
+                    await Clipboard.setData(
+                      ClipboardData(text: group.inviteCode),
+                    );
                     if (!context.mounted) return;
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(SnackBar(content: Text(context.l10n.copied)));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(context.l10n.copied)),
+                    );
                   },
                 ),
               ],

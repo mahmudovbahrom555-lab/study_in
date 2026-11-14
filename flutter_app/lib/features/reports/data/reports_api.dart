@@ -25,7 +25,9 @@ class ReportsApi {
   }
 
   Future<List<RiskAlertDto>> refreshRiskAlerts() async {
-    final resp = await _dio.post<Map<String, dynamic>>('/owner/risk-alerts/refresh');
+    final resp = await _dio.post<Map<String, dynamic>>(
+      '/owner/risk-alerts/refresh',
+    );
     return (resp.data!['data'] as List<dynamic>)
         .map((e) => RiskAlertDto.fromJson(e as Map<String, dynamic>))
         .toList();

@@ -16,17 +16,17 @@ class RemoteConfig {
   const RemoteConfig({this.minVersion, this.features = const {}});
 
   factory RemoteConfig.fromJson(Map<String, dynamic> json) => RemoteConfig(
-        minVersion: json['min_version'] as String?,
-        features: {
-          for (final e in (json['features'] as Map? ?? const {}).entries)
-            if (e.value == true) e.key as String,
-        },
-      );
+    minVersion: json['min_version'] as String?,
+    features: {
+      for (final e in (json['features'] as Map? ?? const {}).entries)
+        if (e.value == true) e.key as String,
+    },
+  );
 
   Map<String, dynamic> toJson() => {
-        'min_version': minVersion,
-        'features': {for (final f in features) f: true},
-      };
+    'min_version': minVersion,
+    'features': {for (final f in features) f: true},
+  };
 
   final String? minVersion;
   final Set<String> features;

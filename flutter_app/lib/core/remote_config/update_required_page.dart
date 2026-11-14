@@ -24,7 +24,11 @@ class UpdateRequiredPage extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(LucideIcons.circleArrowUp, size: 64, color: theme.colorScheme.primary),
+              Icon(
+                LucideIcons.circleArrowUp,
+                size: 64,
+                color: theme.colorScheme.primary,
+              ),
               const SizedBox(height: 24),
               Text(
                 l10n.updateRequiredTitle,
@@ -40,7 +44,9 @@ class UpdateRequiredPage extends ConsumerWidget {
               const SizedBox(height: 32),
               FilledButton(
                 onPressed: () => launchUrl(
-                  Uri.parse('https://play.google.com/store/apps/details?id=$packageName'),
+                  Uri.parse(
+                    'https://play.google.com/store/apps/details?id=$packageName',
+                  ),
                   mode: LaunchMode.externalApplication,
                 ),
                 child: Text(l10n.updateAction),

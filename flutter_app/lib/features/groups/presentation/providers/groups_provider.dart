@@ -32,12 +32,11 @@ class GroupsState {
     bool? isLoading,
     String? error,
     bool clearError = false,
-  }) =>
-      GroupsState(
-        groups: groups ?? this.groups,
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => GroupsState(
+    groups: groups ?? this.groups,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 class GroupsNotifier extends StateNotifier<GroupsState> {
@@ -67,10 +66,7 @@ class GroupsNotifier extends StateNotifier<GroupsState> {
         subject: subject,
         description: description,
       );
-      state = state.copyWith(
-        isLoading: false,
-        groups: [g, ...state.groups],
-      );
+      state = state.copyWith(isLoading: false, groups: [g, ...state.groups]);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
@@ -80,10 +76,7 @@ class GroupsNotifier extends StateNotifier<GroupsState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final g = await _repo.joinGroup(inviteCode);
-      state = state.copyWith(
-        isLoading: false,
-        groups: [g, ...state.groups],
-      );
+      state = state.copyWith(isLoading: false, groups: [g, ...state.groups]);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
@@ -135,8 +128,9 @@ class GroupsNotifier extends StateNotifier<GroupsState> {
   }
 }
 
-final groupsProvider =
-    StateNotifierProvider<GroupsNotifier, GroupsState>((ref) {
+final groupsProvider = StateNotifierProvider<GroupsNotifier, GroupsState>((
+  ref,
+) {
   return GroupsNotifier(ref.watch(groupsRepositoryProvider));
 });
 
@@ -144,7 +138,7 @@ final groupsProvider =
 
 class MembersNotifier extends StateNotifier<AsyncValue<List<GroupMember>>> {
   MembersNotifier(this._repo, this._groupId)
-      : super(const AsyncValue.loading()) {
+    : super(const AsyncValue.loading()) {
     load();
   }
 
@@ -191,7 +185,11 @@ class MembersNotifier extends StateNotifier<AsyncValue<List<GroupMember>>> {
   }
 }
 
-final membersProvider = StateNotifierProvider.family<MembersNotifier,
-    AsyncValue<List<GroupMember>>, String>((ref, groupId) {
-  return MembersNotifier(ref.watch(groupsRepositoryProvider), groupId);
-});
+final membersProvider =
+    StateNotifierProvider.family<
+      MembersNotifier,
+      AsyncValue<List<GroupMember>>,
+      String
+    >((ref, groupId) {
+      return MembersNotifier(ref.watch(groupsRepositoryProvider), groupId);
+    });

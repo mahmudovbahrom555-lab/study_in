@@ -32,7 +32,11 @@ class AccountPage extends ConsumerWidget {
             leading: const Icon(LucideIcons.user),
             title: Text(user?.name.isNotEmpty == true ? user!.name : '—'),
             subtitle: Text(l10n.nameLabel),
-            trailing: Icon(LucideIcons.pencil, size: 18, semanticLabel: l10n.editName),
+            trailing: Icon(
+              LucideIcons.pencil,
+              size: 18,
+              semanticLabel: l10n.editName,
+            ),
             onTap: () => _editName(context, ref, user?.name ?? ''),
           ),
           ListTile(
@@ -66,7 +70,10 @@ class AccountPage extends ConsumerWidget {
           ),
           const Divider(height: 32),
           ListTile(
-            leading: Icon(LucideIcons.logOut, color: Theme.of(context).colorScheme.error),
+            leading: Icon(
+              LucideIcons.logOut,
+              color: Theme.of(context).colorScheme.error,
+            ),
             title: Text(
               l10n.signOut,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
@@ -75,7 +82,10 @@ class AccountPage extends ConsumerWidget {
           ),
           // Требование Google Play: удалить аккаунт можно прямо в приложении.
           ListTile(
-            leading: Icon(LucideIcons.trash2, color: Theme.of(context).colorScheme.error),
+            leading: Icon(
+              LucideIcons.trash2,
+              color: Theme.of(context).colorScheme.error,
+            ),
             title: Text(
               l10n.deleteAccount,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
@@ -100,7 +110,11 @@ class AccountPage extends ConsumerWidget {
     final user = ref.read(authProvider).user;
     // Репетитор должен видеть, что вместе с ним исчезнут его группы.
     final ownGroups = user?.role == 'teacher'
-        ? ref.read(groupsProvider).groups.where((g) => g.teacherId == user!.id).length
+        ? ref
+              .read(groupsProvider)
+              .groups
+              .where((g) => g.teacherId == user!.id)
+              .length
         : 0;
 
     final ok = await showDialog<bool>(
@@ -156,11 +170,11 @@ class AccountPage extends ConsumerWidget {
   }
 
   String _roleName(AppLocalizations l10n, String? role) => switch (role) {
-        'teacher' => l10n.roleTeacher,
-        'student' => l10n.roleStudent,
-        'parent' => l10n.roleParent,
-        _ => '—',
-      };
+    'teacher' => l10n.roleTeacher,
+    'student' => l10n.roleStudent,
+    'parent' => l10n.roleParent,
+    _ => '—',
+  };
 
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
@@ -218,7 +232,9 @@ class _EditNameDialogState extends ConsumerState<_EditNameDialog> {
     final name = _ctrl.text.trim();
     if (_busy) return;
     if (name.length < 2) {
-      setState(() => _error = name.isEmpty ? l10n.enterName : l10n.nameTooShort);
+      setState(
+        () => _error = name.isEmpty ? l10n.enterName : l10n.nameTooShort,
+      );
       return;
     }
     setState(() {
@@ -247,7 +263,10 @@ class _EditNameDialogState extends ConsumerState<_EditNameDialog> {
         autofocus: true,
         maxLength: 100,
         textCapitalization: TextCapitalization.words,
-        decoration: InputDecoration(labelText: l10n.fullName, errorText: _error),
+        decoration: InputDecoration(
+          labelText: l10n.fullName,
+          errorText: _error,
+        ),
         onSubmitted: (_) => _save(),
       ),
       actions: [
@@ -255,10 +274,7 @@ class _EditNameDialogState extends ConsumerState<_EditNameDialog> {
           onPressed: () => Navigator.pop(context),
           child: Text(l10n.cancel),
         ),
-        FilledButton(
-          onPressed: _busy ? null : _save,
-          child: Text(l10n.save),
-        ),
+        FilledButton(onPressed: _busy ? null : _save, child: Text(l10n.save)),
       ],
     );
   }
@@ -296,8 +312,9 @@ class _ParentCodeSectionState extends ConsumerState<_ParentCodeSection> {
   Future<void> _copy() async {
     await Clipboard.setData(ClipboardData(text: _code!.code));
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(context.l10n.copied)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.l10n.copied)));
   }
 
   @override
@@ -341,7 +358,9 @@ class _ParentCodeSectionState extends ConsumerState<_ParentCodeSection> {
             ),
             Text(
               l10n.codeValidUntil(
-                DateFormat.MMMd(l10n.localeName).add_Hm().format(code.expiresAt),
+                DateFormat.MMMd(
+                  l10n.localeName,
+                ).add_Hm().format(code.expiresAt),
               ),
               style: theme.textTheme.bodySmall,
             ),

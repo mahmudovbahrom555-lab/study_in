@@ -14,17 +14,23 @@ class AiRepositoryImpl implements AiRepository {
   }
 
   @override
-  Future<StudentProgress> studentProgress(String groupId, String studentId) async {
+  Future<StudentProgress> studentProgress(
+    String groupId,
+    String studentId,
+  ) async {
     final dto = await _api.studentProgress(groupId, studentId);
     return dto.toDomain();
   }
 
   @override
-  Future<void> submitQuestionFeedback(String questionId, {required bool accepted}) =>
-      _api.submitQuestionFeedback(questionId, accepted: accepted);
+  Future<void> submitQuestionFeedback(
+    String questionId, {
+    required bool accepted,
+  }) => _api.submitQuestionFeedback(questionId, accepted: accepted);
 
   @override
-  Future<({double rate, int total})> myAcceptanceRate() => _api.myAcceptanceRate();
+  Future<({double rate, int total})> myAcceptanceRate() =>
+      _api.myAcceptanceRate();
 
   @override
   Future<TeacherGenerationStats> generationStats() async {
@@ -37,11 +43,11 @@ class AiRepositoryImpl implements AiRepository {
     String recId, {
     required String status,
     String action = '',
-  }) =>
-      _api.recordRecommendationAction(recId, status: status, action: action);
+  }) => _api.recordRecommendationAction(recId, status: status, action: action);
 
   @override
-  Future<String> explainRecommendation(String recId) => _api.explainRecommendation(recId);
+  Future<String> explainRecommendation(String recId) =>
+      _api.explainRecommendation(recId);
 
   @override
   Future<Gamification> myGamification() async {

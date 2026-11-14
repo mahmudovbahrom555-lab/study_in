@@ -81,19 +81,22 @@ class _QuizzesPageState extends ConsumerState<QuizzesPage> {
       context: context,
       isScrollControlled: true,
       builder: (_) => CreateQuizSheet(
-        onSubmit: ({
-          required String title,
-          String? description,
-          int maxAttempts = 1,
-          int? timeLimit,
-        }) {
-          ref.read(quizzesProvider(widget.groupId).notifier).createQuiz(
-                title: title,
-                description: description,
-                maxAttempts: maxAttempts,
-                timeLimit: timeLimit,
-              );
-        },
+        onSubmit:
+            ({
+              required String title,
+              String? description,
+              int maxAttempts = 1,
+              int? timeLimit,
+            }) {
+              ref
+                  .read(quizzesProvider(widget.groupId).notifier)
+                  .createQuiz(
+                    title: title,
+                    description: description,
+                    maxAttempts: maxAttempts,
+                    timeLimit: timeLimit,
+                  );
+            },
       ),
     );
   }

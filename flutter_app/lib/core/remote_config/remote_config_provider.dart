@@ -37,7 +37,9 @@ class RemoteConfigController extends StateNotifier<RemoteConfig> {
   Future<void> refresh() async {
     try {
       final res = await _dio.get<Map<String, dynamic>>('/app-config');
-      final config = RemoteConfig.fromJson(res.data!['data'] as Map<String, dynamic>);
+      final config = RemoteConfig.fromJson(
+        res.data!['data'] as Map<String, dynamic>,
+      );
       state = config;
       await _box.put(_key, jsonEncode(config.toJson()));
     } catch (e) {
@@ -48,8 +50,8 @@ class RemoteConfigController extends StateNotifier<RemoteConfig> {
 
 final remoteConfigProvider =
     StateNotifierProvider<RemoteConfigController, RemoteConfig>(
-  (ref) => RemoteConfigController(
-    ref.watch(dioProvider),
-    Hive.box<dynamic>(settingsBoxName),
-  ),
-);
+      (ref) => RemoteConfigController(
+        ref.watch(dioProvider),
+        Hive.box<dynamic>(settingsBoxName),
+      ),
+    );
