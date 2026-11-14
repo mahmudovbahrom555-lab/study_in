@@ -77,7 +77,9 @@ class _QuizBody extends StatelessWidget {
                 size: 16,
                 color: quiz.isPublished ? Colors.green : Colors.orange,
               ),
-              label: Text(quiz.isPublished ? context.l10n.published : context.l10n.draft),
+              label: Text(
+                quiz.isPublished ? context.l10n.published : context.l10n.draft,
+              ),
             ),
           ],
         ),
@@ -91,20 +93,15 @@ class _QuizBody extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ...quiz.questions.asMap().entries.map(
-                (e) => _QuestionTile(
-                  index: e.key + 1,
-                  question: e.value,
-                ),
-              ),
+            (e) => _QuestionTile(index: e.key + 1, question: e.value),
+          ),
         ],
         const SizedBox(height: 24),
         if (quiz.isPublished)
           FilledButton.icon(
             icon: const Icon(LucideIcons.play),
             label: Text(context.l10n.startQuiz),
-            onPressed: () => context.push(
-              Routes.quizAttempt(groupId, quiz.id),
-            ),
+            onPressed: () => context.push(Routes.quizAttempt(groupId, quiz.id)),
           ),
       ],
     );
@@ -135,10 +132,7 @@ class _QuestionTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    question.body,
-                    style: theme.textTheme.bodyLarge,
-                  ),
+                  child: Text(question.body, style: theme.textTheme.bodyLarge),
                 ),
                 Text(
                   context.l10n.pointsShort(question.points),
@@ -158,9 +152,7 @@ class _QuestionTile extends StatelessWidget {
                             ? LucideIcons.circleCheck
                             : LucideIcons.circle,
                         size: 16,
-                        color: o.isCorrect == true
-                            ? Colors.green
-                            : Colors.grey,
+                        color: o.isCorrect == true ? Colors.green : Colors.grey,
                       ),
                       const SizedBox(width: 6),
                       Expanded(child: Text(o.body)),

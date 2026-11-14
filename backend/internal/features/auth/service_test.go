@@ -18,11 +18,11 @@ import (
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
 type mockRepo struct {
-	users         map[string]*domain.User
-	codes         map[string]*domain.VerificationCode
-	tokens        map[string]*domain.RefreshToken
-	attempts      map[uuid.UUID]int
-	markedUsed    map[uuid.UUID]bool
+	users      map[string]*domain.User
+	codes      map[string]*domain.VerificationCode
+	tokens     map[string]*domain.RefreshToken
+	attempts   map[uuid.UUID]int
+	markedUsed map[uuid.UUID]bool
 }
 
 func newMockRepo() *mockRepo {

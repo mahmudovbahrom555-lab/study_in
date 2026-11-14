@@ -2,12 +2,12 @@ import '../../domain/entities/quiz.dart';
 
 class OptionDto {
   factory OptionDto.fromJson(Map<String, dynamic> json) => OptionDto(
-        id: json['id'] as String,
-        questionId: json['question_id'] as String? ?? '',
-        body: json['body'] as String,
-        position: json['position'] as int? ?? 0,
-        isCorrect: json['is_correct'] as bool?,
-      );
+    id: json['id'] as String,
+    questionId: json['question_id'] as String? ?? '',
+    body: json['body'] as String,
+    position: json['position'] as int? ?? 0,
+    isCorrect: json['is_correct'] as bool?,
+  );
 
   const OptionDto({
     required this.id,
@@ -24,26 +24,26 @@ class OptionDto {
   final bool? isCorrect;
 
   Option toDomain() => Option(
-        id: id,
-        questionId: questionId,
-        body: body,
-        position: position,
-        isCorrect: isCorrect,
-      );
+    id: id,
+    questionId: questionId,
+    body: body,
+    position: position,
+    isCorrect: isCorrect,
+  );
 }
 
 class QuestionDto {
   factory QuestionDto.fromJson(Map<String, dynamic> json) => QuestionDto(
-        id: json['id'] as String,
-        quizId: json['quiz_id'] as String? ?? '',
-        body: json['body'] as String,
-        explanation: json['explanation'] as String?,
-        position: json['position'] as int? ?? 0,
-        points: json['points'] as int? ?? 1,
-        options: (json['options'] as List<dynamic>? ?? [])
-            .map((e) => OptionDto.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+    id: json['id'] as String,
+    quizId: json['quiz_id'] as String? ?? '',
+    body: json['body'] as String,
+    explanation: json['explanation'] as String?,
+    position: json['position'] as int? ?? 0,
+    points: json['points'] as int? ?? 1,
+    options: (json['options'] as List<dynamic>? ?? [])
+        .map((e) => OptionDto.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
 
   const QuestionDto({
     required this.id,
@@ -64,37 +64,37 @@ class QuestionDto {
   final List<OptionDto> options;
 
   Question toDomain() => Question(
-        id: id,
-        quizId: quizId,
-        body: body,
-        explanation: explanation,
-        position: position,
-        points: points,
-        options: options.map((o) => o.toDomain()).toList(),
-      );
+    id: id,
+    quizId: quizId,
+    body: body,
+    explanation: explanation,
+    position: position,
+    points: points,
+    options: options.map((o) => o.toDomain()).toList(),
+  );
 }
 
 class QuizDto {
   factory QuizDto.fromJson(Map<String, dynamic> json) => QuizDto(
-        id: json['id'] as String,
-        groupId: json['group_id'] as String,
-        teacherId: json['teacher_id'] as String,
-        title: json['title'] as String,
-        description: json['description'] as String?,
-        timeLimit: json['time_limit'] as int?,
-        maxAttempts: json['max_attempts'] as int? ?? 1,
-        isPublished: json['is_published'] as bool? ?? false,
-        createdAt: DateTime.parse(json['created_at'] as String),
-        openAt: json['open_at'] != null
-            ? DateTime.parse(json['open_at'] as String)
-            : null,
-        closeAt: json['close_at'] != null
-            ? DateTime.parse(json['close_at'] as String)
-            : null,
-        questions: (json['questions'] as List<dynamic>? ?? [])
-            .map((e) => QuestionDto.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+    id: json['id'] as String,
+    groupId: json['group_id'] as String,
+    teacherId: json['teacher_id'] as String,
+    title: json['title'] as String,
+    description: json['description'] as String?,
+    timeLimit: json['time_limit'] as int?,
+    maxAttempts: json['max_attempts'] as int? ?? 1,
+    isPublished: json['is_published'] as bool? ?? false,
+    createdAt: DateTime.parse(json['created_at'] as String),
+    openAt: json['open_at'] != null
+        ? DateTime.parse(json['open_at'] as String)
+        : null,
+    closeAt: json['close_at'] != null
+        ? DateTime.parse(json['close_at'] as String)
+        : null,
+    questions: (json['questions'] as List<dynamic>? ?? [])
+        .map((e) => QuestionDto.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
 
   const QuizDto({
     required this.id,
@@ -125,33 +125,33 @@ class QuizDto {
   final List<QuestionDto> questions;
 
   Quiz toDomain() => Quiz(
-        id: id,
-        groupId: groupId,
-        teacherId: teacherId,
-        title: title,
-        description: description,
-        timeLimit: timeLimit,
-        maxAttempts: maxAttempts,
-        openAt: openAt,
-        closeAt: closeAt,
-        isPublished: isPublished,
-        createdAt: createdAt,
-        questions: questions.map((q) => q.toDomain()).toList(),
-      );
+    id: id,
+    groupId: groupId,
+    teacherId: teacherId,
+    title: title,
+    description: description,
+    timeLimit: timeLimit,
+    maxAttempts: maxAttempts,
+    openAt: openAt,
+    closeAt: closeAt,
+    isPublished: isPublished,
+    createdAt: createdAt,
+    questions: questions.map((q) => q.toDomain()).toList(),
+  );
 }
 
 class QuizAttemptDto {
   factory QuizAttemptDto.fromJson(Map<String, dynamic> json) => QuizAttemptDto(
-        id: json['id'] as String,
-        quizId: json['quiz_id'] as String,
-        studentId: json['student_id'] as String,
-        maxScore: json['max_score'] as int? ?? 0,
-        startedAt: DateTime.parse(json['started_at'] as String),
-        finishedAt: json['finished_at'] != null
-            ? DateTime.parse(json['finished_at'] as String)
-            : null,
-        score: json['score'] as int?,
-      );
+    id: json['id'] as String,
+    quizId: json['quiz_id'] as String,
+    studentId: json['student_id'] as String,
+    maxScore: json['max_score'] as int? ?? 0,
+    startedAt: DateTime.parse(json['started_at'] as String),
+    finishedAt: json['finished_at'] != null
+        ? DateTime.parse(json['finished_at'] as String)
+        : null,
+    score: json['score'] as int?,
+  );
 
   const QuizAttemptDto({
     required this.id,
@@ -172,14 +172,14 @@ class QuizAttemptDto {
   final int? score;
 
   QuizAttempt toDomain() => QuizAttempt(
-        id: id,
-        quizId: quizId,
-        studentId: studentId,
-        maxScore: maxScore,
-        startedAt: startedAt,
-        finishedAt: finishedAt,
-        score: score,
-      );
+    id: id,
+    quizId: quizId,
+    studentId: studentId,
+    maxScore: maxScore,
+    startedAt: startedAt,
+    finishedAt: finishedAt,
+    score: score,
+  );
 }
 
 class QuestionResultDto {
@@ -219,40 +219,35 @@ class QuestionResultDto {
   final bool isCorrect;
 
   QuestionResult toDomain() => QuestionResult(
-        questionId: questionId,
-        questionBody: questionBody,
-        points: points,
-        explanation: explanation,
-        selectedOptionId: selectedOptionId,
-        selectedBody: selectedBody,
-        correctOptionId: correctOptionId,
-        correctBody: correctBody,
-        isCorrect: isCorrect,
-      );
+    questionId: questionId,
+    questionBody: questionBody,
+    points: points,
+    explanation: explanation,
+    selectedOptionId: selectedOptionId,
+    selectedBody: selectedBody,
+    correctOptionId: correctOptionId,
+    correctBody: correctBody,
+    isCorrect: isCorrect,
+  );
 }
 
 class QuizResultDto {
   factory QuizResultDto.fromJson(Map<String, dynamic> json) {
     return QuizResultDto(
-      attempt: QuizAttemptDto.fromJson(
-        json['attempt'] as Map<String, dynamic>,
-      ),
+      attempt: QuizAttemptDto.fromJson(json['attempt'] as Map<String, dynamic>),
       questionResults: (json['question_results'] as List<dynamic>? ?? [])
           .map((e) => QuestionResultDto.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
   }
 
-  const QuizResultDto({
-    required this.attempt,
-    required this.questionResults,
-  });
+  const QuizResultDto({required this.attempt, required this.questionResults});
 
   final QuizAttemptDto attempt;
   final List<QuestionResultDto> questionResults;
 
   QuizResult toDomain() => QuizResult(
-        attempt: attempt.toDomain(),
-        questionResults: questionResults.map((r) => r.toDomain()).toList(),
-      );
+    attempt: attempt.toDomain(),
+    questionResults: questionResults.map((r) => r.toDomain()).toList(),
+  );
 }

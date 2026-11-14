@@ -36,7 +36,12 @@ class _QuizAttemptPageState extends ConsumerState<QuizAttemptPage> {
     final repo = ref.read(quizzesRepositoryProvider(widget.groupId));
     try {
       final q = await repo.getQuiz(widget.quizId);
-      if (mounted) setState(() { _quiz = q; _loadingQuiz = false; });
+      if (mounted) {
+        setState(() {
+          _quiz = q;
+          _loadingQuiz = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _loadingQuiz = false);
     }
@@ -55,9 +60,7 @@ class _QuizAttemptPageState extends ConsumerState<QuizAttemptPage> {
         .submit(widget.quizId);
     if (result != null && mounted) {
       await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => QuizResultPage(result: result),
-        ),
+        MaterialPageRoute<void>(builder: (_) => QuizResultPage(result: result)),
       );
       if (mounted) Navigator.of(context).pop();
     }
@@ -249,13 +252,20 @@ class _QuestionCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
-            ...question.options.map(
-              (o) => RadioListTile<String>(
-                value: o.id,
-                groupValue: selectedOptionId,
-                onChanged: (_) => onSelect(o.id),
-                title: Text(o.body),
-                contentPadding: EdgeInsets.zero,
+            RadioGroup<String>(
+              groupValue: selectedOptionId,
+              onChanged: (optionId) {
+                if (optionId != null) onSelect(optionId);
+              },
+              child: Column(
+                children: [
+                  for (final option in question.options)
+                    RadioListTile<String>(
+                      value: option.id,
+                      title: Text(option.body),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                ],
               ),
             ),
           ],

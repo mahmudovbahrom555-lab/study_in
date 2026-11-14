@@ -2,17 +2,17 @@ import '../../domain/entities/group.dart';
 
 class GroupDto {
   factory GroupDto.fromJson(Map<String, dynamic> json) => GroupDto(
-        id: json['id'] as String,
-        teacherId: json['teacher_id'] as String,
-        name: json['name'] as String,
-        subject: json['subject'] as String?,
-        description: json['description'] as String?,
-        // Родителю сервер код приглашения не отдаёт.
-        inviteCode: json['invite_code'] as String? ?? '',
-        isArchived: json['is_archived'] as bool? ?? false,
-        memberCount: json['member_count'] as int? ?? 0,
-        createdAt: DateTime.parse(json['created_at'] as String),
-      );
+    id: json['id'] as String,
+    teacherId: json['teacher_id'] as String,
+    name: json['name'] as String,
+    subject: json['subject'] as String?,
+    description: json['description'] as String?,
+    // Родителю сервер код приглашения не отдаёт.
+    inviteCode: json['invite_code'] as String? ?? '',
+    isArchived: json['is_archived'] as bool? ?? false,
+    memberCount: json['member_count'] as int? ?? 0,
+    createdAt: DateTime.parse(json['created_at'] as String),
+  );
 
   const GroupDto({
     required this.id,
@@ -37,28 +37,30 @@ class GroupDto {
   final DateTime createdAt;
 
   Group toDomain() => Group(
-        id: id,
-        teacherId: teacherId,
-        name: name,
-        subject: subject,
-        description: description,
-        inviteCode: inviteCode,
-        isArchived: isArchived,
-        memberCount: memberCount,
-        createdAt: createdAt,
-      );
+    id: id,
+    teacherId: teacherId,
+    name: name,
+    subject: subject,
+    description: description,
+    inviteCode: inviteCode,
+    isArchived: isArchived,
+    memberCount: memberCount,
+    createdAt: createdAt,
+  );
 }
 
 class GroupMemberDto {
   factory GroupMemberDto.fromJson(Map<String, dynamic> json) => GroupMemberDto(
-        studentId: json['student_id'] as String,
-        name: json['name'] as String,
-        // Телефон и оплату сервер отдаёт только репетитору группы.
-        phone: json['phone'] as String? ?? '',
-        avatarUrl: json['avatar_url'] as String?,
-        joinedAt: DateTime.parse(json['joined_at'] as String),
-        paymentStatus: PaymentStatus.fromJson(json['payment_status'] as String? ?? ''),
-      );
+    studentId: json['student_id'] as String,
+    name: json['name'] as String,
+    // Телефон и оплату сервер отдаёт только репетитору группы.
+    phone: json['phone'] as String? ?? '',
+    avatarUrl: json['avatar_url'] as String?,
+    joinedAt: DateTime.parse(json['joined_at'] as String),
+    paymentStatus: PaymentStatus.fromJson(
+      json['payment_status'] as String? ?? '',
+    ),
+  );
 
   const GroupMemberDto({
     required this.studentId,
@@ -77,11 +79,11 @@ class GroupMemberDto {
   final PaymentStatus paymentStatus;
 
   GroupMember toDomain() => GroupMember(
-        studentId: studentId,
-        name: name,
-        phone: phone,
-        avatarUrl: avatarUrl,
-        joinedAt: joinedAt,
-        paymentStatus: paymentStatus,
-      );
+    studentId: studentId,
+    name: name,
+    phone: phone,
+    avatarUrl: avatarUrl,
+    joinedAt: joinedAt,
+    paymentStatus: paymentStatus,
+  );
 }

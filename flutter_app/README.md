@@ -43,12 +43,30 @@ flutter run --dart-define=API_URL=http://localhost:8080/api/v1
 ```bash
 flutter pub get                          # Установить зависимости
 flutter run                              # Запустить (debug)
-flutter run --release                    # Release режим
 flutter analyze                          # Линтер
 flutter test                             # Тесты
 dart format lib/                         # Форматирование
 flutter pub run build_runner build       # Кодогенерация
 ```
+
+## Android App Bundle для Google Play
+
+Используйте Flutter 3.38.9, JDK 17 и Android SDK Platform 36.
+В `android/key.properties` укажите `storeFile` (абсолютный путь или путь
+относительно `android/`), `storePassword`, `keyAlias` и `keyPassword`.
+Используйте ключ загрузки для приложения `uz.mamulearn.app` в Play Console.
+Файл настроек и хранилище ключей должны оставаться вне Git.
+
+```bash
+flutter pub get --enforce-lockfile
+flutter build appbundle --release \
+  --dart-define=ENV=production \
+  --dart-define=API_URL=https://api.mamu.education/api/v1
+```
+
+Пакет для загрузки будет в `build/app/outputs/bundle/release/app-release.aab`.
+Перед повторной загрузкой увеличьте номер сборки после `+` в `pubspec.yaml`.
+План проверок перед публикацией описан в [плане релиза](../docs/PLAY-RELEASE.md).
 
 ## Принципы
 

@@ -102,8 +102,12 @@ func TestDetect_ImageSize(t *testing.T) {
 
 type memRepo struct{ files map[uuid.UUID]*domain.File }
 
-func (r *memRepo) Create(_ context.Context, f *domain.File) error { cp := *f; r.files[f.ID] = &cp; return nil }
-func (r *memRepo) Delete(_ context.Context, id uuid.UUID) error  { delete(r.files, id); return nil }
+func (r *memRepo) Create(_ context.Context, f *domain.File) error {
+	cp := *f
+	r.files[f.ID] = &cp
+	return nil
+}
+func (r *memRepo) Delete(_ context.Context, id uuid.UUID) error { delete(r.files, id); return nil }
 func (r *memRepo) ListStalePending(_ context.Context, before time.Time, limit int) ([]*domain.File, error) {
 	var out []*domain.File
 	for _, f := range r.files {
@@ -122,7 +126,10 @@ func (s *memStore) PutObject(_ context.Context, key string, r io.Reader, _ int64
 	s.objects[key] = b
 	return nil
 }
-func (s *memStore) RemoveObject(_ context.Context, key string) error { delete(s.objects, key); return nil }
+func (s *memStore) RemoveObject(_ context.Context, key string) error {
+	delete(s.objects, key)
+	return nil
+}
 
 type noopSigner struct{}
 

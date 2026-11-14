@@ -27,8 +27,8 @@ const (
 	// PendingTTL — сколько живёт загруженный, но не прикреплённый файл.
 	PendingTTL = 24 * time.Hour
 
-	cleanupBatch   = 100
-	maxNameRunes   = 200
+	cleanupBatch = 100
+	maxNameRunes = 200
 )
 
 type Repository interface {

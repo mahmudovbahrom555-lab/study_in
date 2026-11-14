@@ -21,25 +21,42 @@ type memRepo struct {
 func newMemRepo() *memRepo { return &memRepo{grades: make(map[uuid.UUID]*domain.Grade)} }
 
 func (r *memRepo) Create(_ context.Context, g *domain.Grade) error {
-	cp := *g; r.grades[g.ID] = &cp; return nil
+	cp := *g
+	r.grades[g.ID] = &cp
+	return nil
 }
 func (r *memRepo) GetByID(_ context.Context, id uuid.UUID) (*domain.Grade, error) {
-	g, ok := r.grades[id]; if !ok { return nil, nil }; cp := *g; return &cp, nil
+	g, ok := r.grades[id]
+	if !ok {
+		return nil, nil
+	}
+	cp := *g
+	return &cp, nil
 }
 func (r *memRepo) ListByGroupStudent(_ context.Context, gid, sid uuid.UUID) ([]*domain.Grade, error) {
 	var out []*domain.Grade
 	for _, g := range r.grades {
-		if g.GroupID == gid && g.StudentID == sid { cp := *g; out = append(out, &cp) }
+		if g.GroupID == gid && g.StudentID == sid {
+			cp := *g
+			out = append(out, &cp)
+		}
 	}
 	return out, nil
 }
 func (r *memRepo) ListByGroup(_ context.Context, gid uuid.UUID) ([]*domain.Grade, error) {
 	var out []*domain.Grade
-	for _, g := range r.grades { if g.GroupID == gid { cp := *g; out = append(out, &cp) } }
+	for _, g := range r.grades {
+		if g.GroupID == gid {
+			cp := *g
+			out = append(out, &cp)
+		}
+	}
 	return out, nil
 }
 func (r *memRepo) Update(_ context.Context, g *domain.Grade) error {
-	cp := *g; r.grades[g.ID] = &cp; return nil
+	cp := *g
+	r.grades[g.ID] = &cp
+	return nil
 }
 func (r *memRepo) Delete(_ context.Context, id uuid.UUID) error { delete(r.grades, id); return nil }
 
@@ -61,11 +78,18 @@ func (mg *memGroups) addMember(gid, sid uuid.UUID) {
 	mg.members[gid.String()+":"+sid.String()] = struct{}{}
 }
 func (mg *memGroups) GetGroupByID(_ context.Context, id uuid.UUID) (*domain.Group, error) {
-	g, ok := mg.groups[id]; if !ok { return nil, nil }; cp := *g; return &cp, nil
+	g, ok := mg.groups[id]
+	if !ok {
+		return nil, nil
+	}
+	cp := *g
+	return &cp, nil
 }
 func (mg *memGroups) GetMember(_ context.Context, gid, uid uuid.UUID) (*domain.GroupMember, error) {
 	_, ok := mg.members[gid.String()+":"+uid.String()]
-	if !ok { return nil, nil }
+	if !ok {
+		return nil, nil
+	}
 	return &domain.GroupMember{GroupID: gid, StudentID: uid}, nil
 }
 
@@ -104,8 +128,8 @@ func TestCreateGrade_Success(t *testing.T) {
 	g, err := svc.CreateGrade(context.Background(), teacherID, gid, grades.CreateGradeRequest{
 		StudentID: studentID,
 		Subject:   "Математика",
-		Value: v(85),
-		MaxValue: 100,
+		Value:     v(85),
+		MaxValue:  100,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, float64(85), g.Value)

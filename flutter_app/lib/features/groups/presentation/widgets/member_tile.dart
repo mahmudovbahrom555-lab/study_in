@@ -37,10 +37,7 @@ class MemberTile extends StatelessWidget {
           ? Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _PaymentChip(
-                  status: member.paymentStatus,
-                  onTap: onPaymentTap,
-                ),
+                _PaymentChip(status: member.paymentStatus, onTap: onPaymentTap),
                 // Редкое и необратимое действие — в меню, а не кнопкой рядом со статусом оплаты.
                 if (onRemove != null)
                   PopupMenuButton<void>(
@@ -50,7 +47,9 @@ class MemberTile extends StatelessWidget {
                         onTap: onRemove,
                         child: Text(
                           context.l10n.removeFromGroup,
-                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
                         ),
                       ),
                     ],
@@ -73,7 +72,10 @@ class _PaymentChip extends StatelessWidget {
     final (label, color) = switch (status) {
       PaymentStatus.paid => (context.l10n.paymentPaid, AppColors.success),
       PaymentStatus.pending => (context.l10n.paymentPending, AppColors.warning),
-      PaymentStatus.trial => (context.l10n.paymentTrial, AppColors.textSecondary),
+      PaymentStatus.trial => (
+        context.l10n.paymentTrial,
+        AppColors.textSecondary,
+      ),
     };
 
     final chip = Chip(
@@ -92,10 +94,7 @@ class _PaymentChip extends StatelessWidget {
       hint: context.l10n.changePaymentStatus,
       excludeSemantics: true,
       onTap: () => _showPicker(context),
-      child: GestureDetector(
-        onTap: () => _showPicker(context),
-        child: chip,
-      ),
+      child: GestureDetector(onTap: () => _showPicker(context), child: chip),
     );
   }
 
@@ -109,7 +108,9 @@ class _PaymentChip extends StatelessWidget {
             for (final s in PaymentStatus.values)
               ListTile(
                 title: Text(_label(context.l10n, s)),
-                leading: Icon(s == status ? LucideIcons.circleDot : LucideIcons.circle),
+                leading: Icon(
+                  s == status ? LucideIcons.circleDot : LucideIcons.circle,
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   onTap?.call(s);
@@ -122,8 +123,8 @@ class _PaymentChip extends StatelessWidget {
   }
 
   String _label(AppLocalizations l10n, PaymentStatus s) => switch (s) {
-        PaymentStatus.paid => l10n.paymentPaid,
-        PaymentStatus.pending => l10n.paymentPendingLong,
-        PaymentStatus.trial => l10n.paymentTrialLong,
-      };
+    PaymentStatus.paid => l10n.paymentPaid,
+    PaymentStatus.pending => l10n.paymentPendingLong,
+    PaymentStatus.trial => l10n.paymentTrialLong,
+  };
 }

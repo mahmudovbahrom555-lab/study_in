@@ -16,7 +16,9 @@ Assignment assignmentFromJson(Map<String, dynamic> json) {
         ? null
         : SubmissionSummary(
             grade: mine['grade'] as int?,
-            submittedAt: DateTime.parse(mine['submitted_at'] as String).toLocal(),
+            submittedAt: DateTime.parse(
+              mine['submitted_at'] as String,
+            ).toLocal(),
           ),
     stats: stats == null
         ? null
@@ -28,36 +30,35 @@ Assignment assignmentFromJson(Map<String, dynamic> json) {
 }
 
 Submission submissionFromJson(Map<String, dynamic> json) => Submission(
-      id: json['id'] as String,
-      studentId: json['student_id'] as String,
-      studentName: json['student_name'] as String?,
-      comment: json['comment'] as String?,
-      grade: json['grade'] as int?,
-      teacherNote: json['teacher_note'] as String?,
-      files: ((json['attachments'] as List<dynamic>?) ?? const [])
-          .map(
-            (e) => attachedFileFromJson(
-              e as Map<String, dynamic>,
-              nameKey: 'filename',
-            ),
-          )
-          .toList(),
-      submittedAt: DateTime.parse(json['submitted_at'] as String).toLocal(),
-      gradedAt: _date(json['graded_at']),
-    );
+  id: json['id'] as String,
+  studentId: json['student_id'] as String,
+  studentName: json['student_name'] as String?,
+  comment: json['comment'] as String?,
+  grade: json['grade'] as int?,
+  teacherNote: json['teacher_note'] as String?,
+  files: ((json['attachments'] as List<dynamic>?) ?? const [])
+      .map(
+        (e) => attachedFileFromJson(
+          e as Map<String, dynamic>,
+          nameKey: 'filename',
+        ),
+      )
+      .toList(),
+  submittedAt: DateTime.parse(json['submitted_at'] as String).toLocal(),
+  gradedAt: _date(json['graded_at']),
+);
 
 /// Сдача отдаёт имя файла в `filename`, а POST /files — в `name`.
 AttachedFile attachedFileFromJson(
   Map<String, dynamic> json, {
   String nameKey = 'name',
-}) =>
-    AttachedFile(
-      id: json['id'] as String,
-      name: json[nameKey] as String,
-      mimeType: json['mime_type'] as String,
-      sizeBytes: (json['size_bytes'] as num).toInt(),
-      url: json['url'] as String,
-    );
+}) => AttachedFile(
+  id: json['id'] as String,
+  name: json[nameKey] as String,
+  mimeType: json['mime_type'] as String,
+  sizeBytes: (json['size_bytes'] as num).toInt(),
+  url: json['url'] as String,
+);
 
 /// Сервер отдаёт UTC; на экране — время телефона.
 DateTime? _date(Object? v) =>

@@ -9,7 +9,8 @@ class CreateQuizSheet extends StatefulWidget {
     String? description,
     int maxAttempts,
     int? timeLimit,
-  }) onSubmit;
+  })
+  onSubmit;
 
   @override
   State<CreateQuizSheet> createState() => _CreateQuizSheetState();
@@ -39,8 +40,7 @@ class _CreateQuizSheetState extends State<CreateQuizSheet> {
     final attempts = int.tryParse(_attemptsCtrl.text.trim()) ?? 1;
     widget.onSubmit(
       title: _titleCtrl.text.trim(),
-      description:
-          _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+      description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
       maxAttempts: attempts,
       timeLimit: timeLimit,
     );
@@ -58,20 +58,27 @@ class _CreateQuizSheetState extends State<CreateQuizSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(context.l10n.newQuiz, style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.l10n.newQuiz,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _titleCtrl,
-              decoration: InputDecoration(labelText: context.l10n.titleRequired),
-              validator: (v) =>
-                  v == null || v.trim().isEmpty ? context.l10n.requiredField : null,
+              decoration: InputDecoration(
+                labelText: context.l10n.titleRequired,
+              ),
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? context.l10n.requiredField
+                  : null,
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _descCtrl,
-              decoration:
-                  InputDecoration(labelText: context.l10n.descriptionOptional),
+              decoration: InputDecoration(
+                labelText: context.l10n.descriptionOptional,
+              ),
               maxLines: 2,
               textInputAction: TextInputAction.next,
             ),
@@ -81,8 +88,9 @@ class _CreateQuizSheetState extends State<CreateQuizSheet> {
                 Expanded(
                   child: TextFormField(
                     controller: _attemptsCtrl,
-                    decoration:
-                        InputDecoration(labelText: context.l10n.attempts),
+                    decoration: InputDecoration(
+                      labelText: context.l10n.attempts,
+                    ),
                     keyboardType: TextInputType.number,
                     validator: (v) {
                       final n = int.tryParse(v ?? '');
@@ -95,8 +103,9 @@ class _CreateQuizSheetState extends State<CreateQuizSheet> {
                 Expanded(
                   child: TextFormField(
                     controller: _timeLimitCtrl,
-                    decoration:
-                        InputDecoration(labelText: context.l10n.limitMinutes),
+                    decoration: InputDecoration(
+                      labelText: context.l10n.limitMinutes,
+                    ),
                     keyboardType: TextInputType.number,
                   ),
                 ),

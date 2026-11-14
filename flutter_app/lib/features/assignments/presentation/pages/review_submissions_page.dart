@@ -95,7 +95,9 @@ class _SubmissionCard extends StatelessWidget {
           children: [
             Text(s.studentName ?? '—', style: theme.textTheme.titleMedium),
             Text(
-              l10n.hwSubmittedAt(DateFormat('dd.MM.yyyy HH:mm').format(s.submittedAt)),
+              l10n.hwSubmittedAt(
+                DateFormat('dd.MM.yyyy HH:mm').format(s.submittedAt),
+              ),
               style: theme.textTheme.bodySmall,
             ),
             if (s.comment case final c? when c.isNotEmpty) ...[
@@ -140,8 +142,9 @@ class _GradeForm extends ConsumerStatefulWidget {
 }
 
 class _GradeFormState extends ConsumerState<_GradeForm> {
-  late final _grade =
-      TextEditingController(text: widget.submission.grade?.toString());
+  late final _grade = TextEditingController(
+    text: widget.submission.grade?.toString(),
+  );
   late final _note = TextEditingController(text: widget.submission.teacherNote);
   late bool _editing = !widget.submission.isGraded;
   bool _saving = false;
@@ -167,7 +170,9 @@ class _GradeFormState extends ConsumerState<_GradeForm> {
       _saving = true;
     });
     try {
-      await ref.read(assignmentsRepositoryProvider).grade(
+      await ref
+          .read(assignmentsRepositoryProvider)
+          .grade(
             widget.assignment.groupId,
             widget.assignment.id,
             widget.submission.id,
@@ -175,14 +180,16 @@ class _GradeFormState extends ConsumerState<_GradeForm> {
             note: note.isEmpty ? null : note,
           );
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.hwGradeSaved)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.hwGradeSaved)));
       widget.onGraded();
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(userErrorMessage(e))));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(userErrorMessage(e))));
     }
   }
 
@@ -202,7 +209,9 @@ class _GradeFormState extends ConsumerState<_GradeForm> {
               children: [
                 Text(
                   l10n.gradeValue('${s.grade}'),
-                  style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
                 if (s.teacherNote case final n? when n.isNotEmpty) Text(n),
               ],

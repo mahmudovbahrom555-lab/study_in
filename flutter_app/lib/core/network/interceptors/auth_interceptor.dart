@@ -50,7 +50,9 @@ class AuthInterceptor extends Interceptor {
       return;
     }
 
-    final newToken = await (_refreshing ??= _refresh().whenComplete(() => _refreshing = null));
+    final newToken = await (_refreshing ??= _refresh().whenComplete(
+      () => _refreshing = null,
+    ));
     if (newToken == null) {
       handler.next(err);
       return;

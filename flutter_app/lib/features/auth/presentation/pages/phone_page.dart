@@ -23,9 +23,9 @@ class _ConsentNote extends StatefulWidget {
 class _ConsentNoteState extends State<_ConsentNote> {
   final _tap = TapGestureRecognizer()
     ..onTap = () => launchUrl(
-          Uri.parse(AppConfig.privacyUrl),
-          mode: LaunchMode.externalApplication,
-        );
+      Uri.parse(AppConfig.privacyUrl),
+      mode: LaunchMode.externalApplication,
+    );
 
   @override
   void dispose() {
@@ -38,7 +38,9 @@ class _ConsentNoteState extends State<_ConsentNote> {
     final theme = Theme.of(context);
     return Text.rich(
       TextSpan(
-        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
         children: [
           TextSpan(text: context.l10n.loginConsent),
           TextSpan(
@@ -110,15 +112,15 @@ class _PhonePageState extends ConsumerState<PhonePage> {
               Text(
                 context.l10n.loginTitle,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 context.l10n.loginSubtitle,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
               ),
               const SizedBox(height: 40),
               PhoneInput(

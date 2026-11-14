@@ -7,8 +7,10 @@ import '../../domain/entities/quiz.dart';
 import '../../domain/repositories/quizzes_repository.dart';
 import '../../../../core/network/error_message.dart';
 
-final quizzesRepositoryProvider =
-    Provider.family<QuizzesRepository, String>((ref, groupId) {
+final quizzesRepositoryProvider = Provider.family<QuizzesRepository, String>((
+  ref,
+  groupId,
+) {
   final dio = ref.watch(dioProvider);
   final impl = QuizzesRepositoryImpl(QuizzesApi(dio));
   impl.setGroupId(groupId);
@@ -33,12 +35,11 @@ class QuizzesState {
     bool? isLoading,
     String? error,
     bool clearError = false,
-  }) =>
-      QuizzesState(
-        quizzes: quizzes ?? this.quizzes,
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => QuizzesState(
+    quizzes: quizzes ?? this.quizzes,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 class QuizzesNotifier extends StateNotifier<QuizzesState> {
@@ -72,10 +73,7 @@ class QuizzesNotifier extends StateNotifier<QuizzesState> {
         maxAttempts: maxAttempts,
         timeLimit: timeLimit,
       );
-      state = state.copyWith(
-        isLoading: false,
-        quizzes: [q, ...state.quizzes],
-      );
+      state = state.copyWith(isLoading: false, quizzes: [q, ...state.quizzes]);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: userErrorMessage(e));
     }
@@ -97,16 +95,22 @@ class QuizzesNotifier extends StateNotifier<QuizzesState> {
   }
 }
 
-final quizzesProvider = StateNotifierProvider.family<QuizzesNotifier,
-    QuizzesState, String>((ref, groupId) {
-  return QuizzesNotifier(ref.watch(quizzesRepositoryProvider(groupId)), groupId);
-});
+final quizzesProvider =
+    StateNotifierProvider.family<QuizzesNotifier, QuizzesState, String>((
+      ref,
+      groupId,
+    ) {
+      return QuizzesNotifier(
+        ref.watch(quizzesRepositoryProvider(groupId)),
+        groupId,
+      );
+    });
 
 // ─── Quiz detail ──────────────────────────────────────────────────────────────
 
 class QuizDetailNotifier extends StateNotifier<AsyncValue<Quiz>> {
   QuizDetailNotifier(this._repo, this._quizId)
-      : super(const AsyncValue.loading()) {
+    : super(const AsyncValue.loading()) {
     load();
   }
 
@@ -124,13 +128,17 @@ class QuizDetailNotifier extends StateNotifier<AsyncValue<Quiz>> {
   }
 }
 
-final quizDetailProvider = StateNotifierProvider.family<QuizDetailNotifier,
-    AsyncValue<Quiz>, ({String groupId, String quizId})>(
-  (ref, params) => QuizDetailNotifier(
-    ref.watch(quizzesRepositoryProvider(params.groupId)),
-    params.quizId,
-  ),
-);
+final quizDetailProvider =
+    StateNotifierProvider.family<
+      QuizDetailNotifier,
+      AsyncValue<Quiz>,
+      ({String groupId, String quizId})
+    >(
+      (ref, params) => QuizDetailNotifier(
+        ref.watch(quizzesRepositoryProvider(params.groupId)),
+        params.quizId,
+      ),
+    );
 
 // ─── Attempt ──────────────────────────────────────────────────────────────────
 
@@ -153,13 +161,12 @@ class AttemptState {
     bool? isSubmitting,
     String? error,
     bool clearError = false,
-  }) =>
-      AttemptState(
-        attempt: attempt ?? this.attempt,
-        answers: answers ?? this.answers,
-        isSubmitting: isSubmitting ?? this.isSubmitting,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => AttemptState(
+    attempt: attempt ?? this.attempt,
+    answers: answers ?? this.answers,
+    isSubmitting: isSubmitting ?? this.isSubmitting,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 class AttemptNotifier extends StateNotifier<AttemptState> {
@@ -177,9 +184,7 @@ class AttemptNotifier extends StateNotifier<AttemptState> {
   }
 
   void selectAnswer(String questionId, String optionId) {
-    state = state.copyWith(
-      answers: {...state.answers, questionId: optionId},
-    );
+    state = state.copyWith(answers: {...state.answers, questionId: optionId});
   }
 
   Future<QuizResult?> submit(String quizId) async {
@@ -203,12 +208,12 @@ class AttemptNotifier extends StateNotifier<AttemptState> {
 
 final attemptProvider =
     StateNotifierProvider.autoDispose<AttemptNotifier, AttemptState>((ref) {
-  // groupId must be set on the repo before use; caller uses quizzesRepositoryProvider(groupId)
-  // We use a simple provider here — caller passes groupId-scoped repo via parameter
-  throw UnimplementedError('use attemptProviderFamily');
-});
+      // groupId must be set on the repo before use; caller uses quizzesRepositoryProvider(groupId)
+      // We use a simple provider here — caller passes groupId-scoped repo via parameter
+      throw UnimplementedError('use attemptProviderFamily');
+    });
 
 final attemptProviderFamily = StateNotifierProvider.autoDispose
     .family<AttemptNotifier, AttemptState, String>((ref, groupId) {
-  return AttemptNotifier(ref.watch(quizzesRepositoryProvider(groupId)));
-});
+      return AttemptNotifier(ref.watch(quizzesRepositoryProvider(groupId)));
+    });

@@ -56,18 +56,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: Routes.splash,
-        builder: (_, __) => const SplashPage(),
-      ),
+      GoRoute(path: Routes.splash, builder: (_, __) => const SplashPage()),
       GoRoute(
         path: Routes.updateRequired,
         builder: (_, __) => const UpdateRequiredPage(),
       ),
-      GoRoute(
-        path: Routes.phone,
-        builder: (_, __) => const PhonePage(),
-      ),
+      GoRoute(path: Routes.phone, builder: (_, __) => const PhonePage()),
       GoRoute(
         path: Routes.verify,
         builder: (_, state) {
@@ -83,14 +77,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.profileSetup,
         builder: (_, __) => const ProfileSetupPage(),
       ),
-      GoRoute(
-        path: Routes.home,
-        builder: (_, __) => const HomeShell(),
-      ),
-      GoRoute(
-        path: Routes.groups,
-        builder: (_, __) => const HomeShell(),
-      ),
+      GoRoute(path: Routes.home, builder: (_, __) => const HomeShell()),
+      GoRoute(path: Routes.groups, builder: (_, __) => const HomeShell()),
       GoRoute(
         path: '/groups/:id',
         builder: (_, state) =>
@@ -161,10 +149,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.notifications,
         builder: (_, __) => const NotificationsPage(),
       ),
-      GoRoute(
-        path: Routes.account,
-        builder: (_, __) => const AccountPage(),
-      ),
+      GoRoute(path: Routes.account, builder: (_, __) => const AccountPage()),
       GoRoute(
         path: '/parent/children/:studentId/groups/:groupId/roi',
         builder: (_, state) => ParentRoiPage(

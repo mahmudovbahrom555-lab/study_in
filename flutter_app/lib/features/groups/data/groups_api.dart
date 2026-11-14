@@ -53,12 +53,10 @@ class GroupsApi {
     return GroupDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }
 
-  Future<void> deleteGroup(String id) =>
-      _dio.delete<void>('/groups/$id');
+  Future<void> deleteGroup(String id) => _dio.delete<void>('/groups/$id');
 
   Future<GroupDto> archiveGroup(String id) async {
-    final resp =
-        await _dio.post<Map<String, dynamic>>('/groups/$id/archive');
+    final resp = await _dio.post<Map<String, dynamic>>('/groups/$id/archive');
     return GroupDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }
 
@@ -74,8 +72,9 @@ class GroupsApi {
       _dio.post<void>('/groups/$groupId/members/leave');
 
   Future<List<GroupMemberDto>> listMembers(String groupId) async {
-    final resp =
-        await _dio.get<Map<String, dynamic>>('/groups/$groupId/members');
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '/groups/$groupId/members',
+    );
     final list = resp.data!['data'] as List<dynamic>;
     return list
         .map((e) => GroupMemberDto.fromJson(e as Map<String, dynamic>))
@@ -85,11 +84,7 @@ class GroupsApi {
   Future<void> removeMember(String groupId, String studentId) =>
       _dio.delete<void>('/groups/$groupId/members/$studentId');
 
-  Future<void> updatePayment(
-    String groupId,
-    String studentId,
-    String status,
-  ) =>
+  Future<void> updatePayment(String groupId, String studentId, String status) =>
       _dio.patch<void>(
         '/groups/$groupId/members/$studentId/payment',
         data: {'status': status},

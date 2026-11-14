@@ -33,12 +33,11 @@ class ChildrenState {
     bool? isLoading,
     String? error,
     bool clearError = false,
-  }) =>
-      ChildrenState(
-        children: children ?? this.children,
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => ChildrenState(
+    children: children ?? this.children,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 class ChildrenNotifier extends StateNotifier<ChildrenState> {
@@ -83,32 +82,41 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
   }
 }
 
-final childrenProvider =
-    StateNotifierProvider<ChildrenNotifier, ChildrenState>((ref) {
-  return ChildrenNotifier(ref.watch(parentsRepositoryProvider));
-});
+final childrenProvider = StateNotifierProvider<ChildrenNotifier, ChildrenState>(
+  (ref) {
+    return ChildrenNotifier(ref.watch(parentsRepositoryProvider));
+  },
+);
 
 // ─── Child groups ─────────────────────────────────────────────────────────────
 
-final childGroupsProvider =
-    FutureProvider.family<List<Group>, String>((ref, studentId) async {
+final childGroupsProvider = FutureProvider.family<List<Group>, String>((
+  ref,
+  studentId,
+) async {
   return ref.watch(parentsRepositoryProvider).childGroups(studentId);
 });
 
 // ─── Child grades per group ───────────────────────────────────────────────────
 
-final childGradesProvider = FutureProvider.family<List<Grade>,
-    ({String studentId, String groupId})>((ref, params) async {
-  return ref
-      .watch(parentsRepositoryProvider)
-      .childGrades(params.studentId, params.groupId);
-});
+final childGradesProvider =
+    FutureProvider.family<List<Grade>, ({String studentId, String groupId})>((
+      ref,
+      params,
+    ) async {
+      return ref
+          .watch(parentsRepositoryProvider)
+          .childGrades(params.studentId, params.groupId);
+    });
 
 // ─── Child attendance per group ───────────────────────────────────────────────
 
-final childAttendanceProvider = FutureProvider.family<List<Attendance>,
-    ({String studentId, String groupId})>((ref, params) async {
-  return ref
-      .watch(parentsRepositoryProvider)
-      .childAttendance(params.studentId, params.groupId);
-});
+final childAttendanceProvider =
+    FutureProvider.family<
+      List<Attendance>,
+      ({String studentId, String groupId})
+    >((ref, params) async {
+      return ref
+          .watch(parentsRepositoryProvider)
+          .childAttendance(params.studentId, params.groupId);
+    });

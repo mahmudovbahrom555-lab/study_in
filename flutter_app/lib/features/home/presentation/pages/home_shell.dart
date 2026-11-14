@@ -66,7 +66,10 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final role = ref.watch(authProvider).user?.role ?? 'student';
-    final tabs = [for (final t in _tabs) if (t.visible(role)) t];
+    final tabs = [
+      for (final t in _tabs)
+        if (t.visible(role)) t,
+    ];
     final index = _tab.clamp(0, tabs.length - 1);
     final unread = ref.watch(unreadCountProvider);
 
@@ -75,7 +78,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         title: const BrandTitle(),
         actions: [
           IconButton(
-            tooltip: unread > 0 ? context.l10n.notificationsUnread(unread) : context.l10n.notifications,
+            tooltip: unread > 0
+                ? context.l10n.notificationsUnread(unread)
+                : context.l10n.notifications,
             icon: Badge(
               isLabelVisible: unread > 0,
               label: Text('$unread'),

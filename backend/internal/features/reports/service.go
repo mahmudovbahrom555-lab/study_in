@@ -20,22 +20,22 @@ func NewService(repo Repository) *Service {
 }
 
 // GenerateParentReport computes or returns the cached monthly report for a student in a group.
-// Parent must be the caller; access check (parentID ↔ studentID) is done at handler level.
+// The handler authorizes the caller before requesting a report.
 func (s *Service) GenerateParentReport(ctx context.Context, studentID, groupID uuid.UUID) (*domain.ParentReport, error) {
 	now := time.Now().UTC()
 	periodStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	periodEnd := periodStart.AddDate(0, 1, -1)
+	nextPeriodStart := periodStart.AddDate(0, 1, 0)
 
 	// Return cached if it exists and was generated today.
 	existing, err := s.repo.GetLatestReport(ctx, studentID, groupID)
 	if err == nil && existing != nil {
 		today := now.Truncate(24 * time.Hour)
-		if !existing.CreatedAt.Before(today) {
+		if existing.PeriodStart.Equal(periodStart) && !existing.CreatedAt.Before(today) {
 			return existing, nil
 		}
 	}
 
-	metrics, err := s.repo.ComputeMetrics(ctx, studentID, groupID, periodStart, periodEnd)
+	metrics, err := s.repo.ComputeMetrics(ctx, studentID, groupID, periodStart, nextPeriodStart)
 	if err != nil {
 		return nil, fmt.Errorf("reports.GenerateParentReport compute: %w", err)
 	}
@@ -44,7 +44,7 @@ func (s *Service) GenerateParentReport(ctx context.Context, studentID, groupID u
 		StudentID:             studentID,
 		GroupID:               groupID,
 		PeriodStart:           periodStart,
-		PeriodEnd:             periodEnd,
+		PeriodEnd:             nextPeriodStart.AddDate(0, 0, -1),
 		AttendancePct:         metrics.AttendancePct,
 		QuizScoreAvg:          metrics.QuizScoreAvg,
 		QuizScorePrevAvg:      metrics.QuizScorePrevAvg,

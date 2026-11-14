@@ -45,7 +45,10 @@ class AuthApi {
   }
 
   Future<void> logout(String refreshToken) async {
-    await _dio.post<void>('/auth/logout', data: {'refresh_token': refreshToken});
+    await _dio.post<void>(
+      '/auth/logout',
+      data: {'refresh_token': refreshToken},
+    );
   }
 
   Future<UserDto> setRole(String role) async {

@@ -35,8 +35,8 @@ import (
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/parents"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/quizzes"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/reports"
-	openaiinfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/openai"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/minio"
+	openaiinfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/openai"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/postgres"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/queue"
 	redisinfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/redis"
@@ -48,12 +48,12 @@ import (
 
 // Server инкапсулирует зависимости HTTP сервера.
 type Server struct {
-	cfg    *config.Config
-	log    *slog.Logger
-	db     *sqlx.DB
-	redis  *redisclient.Client
-	router *chi.Mux
-	server *http.Server
+	cfg      *config.Config
+	log      *slog.Logger
+	db       *sqlx.DB
+	redis    *redisclient.Client
+	router   *chi.Mux
+	server   *http.Server
 	aiSvc    *aifeature.Service
 	filesSvc *files.Service
 	chatSvc  *chat.Service
@@ -186,7 +186,7 @@ func (s *Server) setupRouter() {
 
 	reportRepo := postgres.NewReportRepository(s.db)
 	reportService := reports.NewService(reportRepo)
-	reportHandler := reports.NewHandler(reportService, reportRepo)
+	reportHandler := reports.NewHandler(reportService, reportRepo, parentRepo)
 
 	notifRepo := postgres.NewNotificationRepository(s.db)
 	notifService := notifications.NewService(notifRepo, &pushEnqueuer{q: queueClient})
@@ -343,7 +343,7 @@ func (s *Server) RunChatCleanup(ctx context.Context) {
 // asyncSMSSender satisfies sms.Sender by enqueuing tasks via Asynq.
 // Falls back to directSMS when the queue is unavailable (dev/test).
 type asyncSMSSender struct {
-	q        interface {
+	q interface {
 		EnqueueSMS(ctx context.Context, phone, message string) error
 	}
 	fallback sms.Sender

@@ -44,8 +44,9 @@ class PostCard extends StatelessWidget {
                 ],
                 Text(
                   post.authorName,
-                  style: theme.textTheme.labelMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const Spacer(),
                 Text(
@@ -63,7 +64,9 @@ class PostCard extends StatelessWidget {
                       if (isTeacher)
                         PopupMenuItem(
                           value: 'pin',
-                          child: Text(post.pinned ? context.l10n.unpin : context.l10n.pin),
+                          child: Text(
+                            post.pinned ? context.l10n.unpin : context.l10n.pin,
+                          ),
                         ),
                       if (isTeacher || isAuthor)
                         PopupMenuItem(

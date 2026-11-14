@@ -475,11 +475,11 @@ func (r *AIGenerationSessionRepository) SyncCounts(ctx context.Context, sessionI
 
 func (r *AIGenerationSessionRepository) TeacherStats(ctx context.Context, teacherID uuid.UUID) (*domain.TeacherGenerationStats, error) {
 	type row struct {
-		Sessions   int `db:"sessions"`
-		Generated  int `db:"generated"`
-		Accepted   int `db:"accepted"`
-		Edited     int `db:"edited"`
-		Rejected   int `db:"rejected"`
+		Sessions  int `db:"sessions"`
+		Generated int `db:"generated"`
+		Accepted  int `db:"accepted"`
+		Edited    int `db:"edited"`
+		Rejected  int `db:"rejected"`
 	}
 	var res row
 	err := r.db.GetContext(ctx, &res, `

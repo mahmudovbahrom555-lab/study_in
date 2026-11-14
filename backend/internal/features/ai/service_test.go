@@ -145,7 +145,9 @@ func (m *mockTokenRepo) MonthlyTokens(_ context.Context, _ uuid.UUID) (int, erro
 	return m.total, nil
 }
 
-type mockMasteryRepo struct{ entries map[string]*domain.TopicMastery }
+type mockMasteryRepo struct {
+	entries map[string]*domain.TopicMastery
+}
 
 func newMockMasteryRepo() *mockMasteryRepo {
 	return &mockMasteryRepo{entries: map[string]*domain.TopicMastery{}}
@@ -182,7 +184,9 @@ func (m *mockMasteryRepo) ListWeakTopics(_ context.Context, s uuid.UUID, limit i
 	return out, nil
 }
 
-type mockGamifRepo struct{ data map[uuid.UUID]*domain.StudentGamification }
+type mockGamifRepo struct {
+	data map[uuid.UUID]*domain.StudentGamification
+}
 
 func newMockGamifRepo() *mockGamifRepo {
 	return &mockGamifRepo{data: map[uuid.UUID]*domain.StudentGamification{}}

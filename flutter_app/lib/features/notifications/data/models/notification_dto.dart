@@ -28,11 +28,11 @@ class NotificationDto {
   final DateTime createdAt;
 
   AppNotification toDomain() => AppNotification(
-        id: id,
-        title: title,
-        body: body,
-        type: type,
-        isRead: isRead,
-        createdAt: createdAt,
-      );
+    id: id,
+    title: title,
+    body: body,
+    type: type,
+    isRead: isRead,
+    createdAt: createdAt,
+  );
 }

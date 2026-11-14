@@ -8,8 +8,9 @@ class GradesApi {
   final Dio _dio;
 
   Future<List<GradeDto>> listGroupGrades(String groupId) async {
-    final resp =
-        await _dio.get<Map<String, dynamic>>('/groups/$groupId/grades');
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '/groups/$groupId/grades',
+    );
     final list = resp.data!['data'] as List<dynamic>;
     return list
         .map((e) => GradeDto.fromJson(e as Map<String, dynamic>))

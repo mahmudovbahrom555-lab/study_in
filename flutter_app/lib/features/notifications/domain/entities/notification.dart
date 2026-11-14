@@ -18,15 +18,12 @@ class AppNotification {
   final bool isRead;
   final DateTime createdAt;
 
-  AppNotification copyWith({
-    bool? isRead,
-  }) =>
-      AppNotification(
-        id: id,
-        title: title,
-        body: body,
-        type: type,
-        isRead: isRead ?? this.isRead,
-        createdAt: createdAt,
-      );
+  AppNotification copyWith({bool? isRead}) => AppNotification(
+    id: id,
+    title: title,
+    body: body,
+    type: type,
+    isRead: isRead ?? this.isRead,
+    createdAt: createdAt,
+  );
 }

@@ -6,10 +6,7 @@ import 'package:dio/dio.dart';
 class LoggingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    dev.log(
-      '→ ${options.method} ${options.uri}',
-      name: 'API',
-    );
+    dev.log('→ ${options.method} ${options.uri}', name: 'API');
     super.onRequest(options, handler);
   }
 

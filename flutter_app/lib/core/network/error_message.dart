@@ -41,18 +41,20 @@ String userErrorMessage(Object error) {
 
 /// Коды доменных ошибок, для которых у нас есть точный текст.
 String? _byCode(AppLocalizations l10n, String? code) => switch (code) {
-      'FILE_TOO_LARGE' => l10n.errFileTooLarge,
-      'FILE_TYPE_NOT_ALLOWED' => l10n.errFileType,
-      'FILE_EMPTY' => l10n.errFileEmpty,
-      'TOO_MANY_FILES' => l10n.errTooManyFiles,
-      'ALREADY_GRADED' => l10n.errAlreadyGraded,
-      'SUBMISSION_EMPTY' => l10n.errSubmissionEmpty,
-      'FILE_IN_USE' || 'FILE_NOT_FOUND' || 'FILE_MISSING' => l10n.errFileUnavailable,
-      'GRADE_ABOVE_MAX' => l10n.errGradeAboveMax,
-      'STUDENT_NOT_IN_GROUP' => l10n.errStudentNotInGroup,
-      'HOMEWORK_GRADE_READONLY' => l10n.homeworkGradeReadonly,
-      _ => null,
-    };
+  'FILE_TOO_LARGE' => l10n.errFileTooLarge,
+  'FILE_TYPE_NOT_ALLOWED' => l10n.errFileType,
+  'FILE_EMPTY' => l10n.errFileEmpty,
+  'TOO_MANY_FILES' => l10n.errTooManyFiles,
+  'ALREADY_GRADED' => l10n.errAlreadyGraded,
+  'SUBMISSION_EMPTY' => l10n.errSubmissionEmpty,
+  'FILE_IN_USE' ||
+  'FILE_NOT_FOUND' ||
+  'FILE_MISSING' => l10n.errFileUnavailable,
+  'GRADE_ABOVE_MAX' => l10n.errGradeAboveMax,
+  'STUDENT_NOT_IN_GROUP' => l10n.errStudentNotInGroup,
+  'HOMEWORK_GRADE_READONLY' => l10n.homeworkGradeReadonly,
+  _ => null,
+};
 
 String? _serverCode(Object? data) {
   if (data is Map && data['error'] is Map) {

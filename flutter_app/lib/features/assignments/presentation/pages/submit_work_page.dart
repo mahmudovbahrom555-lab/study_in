@@ -35,10 +35,7 @@ class SubmitWorkPage extends ConsumerStatefulWidget {
 /// Вложение на экране: уже на сервере или ещё загружается с телефона.
 class _Slot {
   _Slot.local(this.path, this.name);
-  _Slot.uploaded(AttachedFile f)
-      : path = null,
-        name = f.name,
-        file = f;
+  _Slot.uploaded(AttachedFile f) : path = null, name = f.name, file = f;
 
   final String? path;
   final String name;
@@ -49,7 +46,8 @@ class _Slot {
 
   bool get isUploading => file == null && error == null;
   bool get isLocalImage =>
-      path != null && RegExp(r'\.(jpe?g|png|heic)$', caseSensitive: false).hasMatch(path!);
+      path != null &&
+      RegExp(r'\.(jpe?g|png|heic)$', caseSensitive: false).hasMatch(path!);
 }
 
 class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
@@ -130,11 +128,11 @@ class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
           )
         : [
             if (await picker.pickImage(
-              source: ImageSource.gallery,
-              maxWidth: _photoMaxSide,
-              maxHeight: _photoMaxSide,
-              imageQuality: _photoQuality,
-            )
+                  source: ImageSource.gallery,
+                  maxWidth: _photoMaxSide,
+                  maxHeight: _photoMaxSide,
+                  imageQuality: _photoQuality,
+                )
                 case final x?)
               x,
           ];
@@ -159,8 +157,9 @@ class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
     final fitting = slots.take(_free).toList();
     setState(() => _slots.addAll(fitting));
     if (fitting.length < slots.length) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(context.l10n.errTooManyFiles)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.errTooManyFiles)));
     }
     for (final s in fitting) {
       _upload(s);
@@ -174,12 +173,16 @@ class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
       s.cancel = CancelToken();
     });
     try {
-      final f = await ref.read(assignmentsRepositoryProvider).uploadFile(
+      final f = await ref
+          .read(assignmentsRepositoryProvider)
+          .uploadFile(
             path: s.path!,
             name: s.name,
             cancelToken: s.cancel,
             onProgress: (sent, total) {
-              if (mounted && total > 0) setState(() => s.progress = sent / total);
+              if (mounted && total > 0) {
+                setState(() => s.progress = sent / total);
+              }
             },
           );
       if (mounted) setState(() => s.file = f);
@@ -199,20 +202,27 @@ class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
   Future<void> _submit() async {
     final l10n = context.l10n;
     if (_slots.any((s) => s.isUploading)) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.hwWaitUploads)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.hwWaitUploads)));
       return;
     }
     final comment = _comment.text.trim();
-    final ids = [for (final s in _slots) if (s.file != null) s.file!.id];
+    final ids = [
+      for (final s in _slots)
+        if (s.file != null) s.file!.id,
+    ];
     if (comment.isEmpty && ids.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.errSubmissionEmpty)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errSubmissionEmpty)));
       return;
     }
     setState(() => _sending = true);
     try {
-      await ref.read(assignmentsRepositoryProvider).submit(
+      await ref
+          .read(assignmentsRepositoryProvider)
+          .submit(
             _a.groupId,
             _a.id,
             comment: comment.isEmpty ? null : comment,
@@ -220,14 +230,16 @@ class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
           );
       ref.read(assignmentsProvider(_a.groupId).notifier).load();
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.hwSubmittedOk)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.hwSubmittedOk)));
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       setState(() => _sending = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(userErrorMessage(e))));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(userErrorMessage(e))));
     }
   }
 
@@ -239,64 +251,67 @@ class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _loadError != null
-              ? ErrorView(error: _loadError, onRetry: _load)
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _AssignmentHeader(assignment: _a),
-                    if (_existing case final sub? when sub.isGraded) ...[
-                      const SizedBox(height: 16),
-                      _GradeCard(submission: sub),
-                    ],
-                    const SizedBox(height: 24),
-                    Text(l10n.hwYourWork, style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _comment,
-                      readOnly: _readOnly,
-                      minLines: 2,
-                      maxLines: 5,
-                      decoration: InputDecoration(labelText: l10n.commentOptional),
-                    ),
-                    const SizedBox(height: 12),
-                    for (final s in _slots)
-                      _SlotTile(
-                        slot: s,
-                        readOnly: _readOnly,
-                        onRemove: () => _remove(s),
-                        onRetry: () => _upload(s),
-                      ),
-                    if (!_readOnly && _free > 0) ...[
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          OutlinedButton.icon(
-                            icon: const Icon(LucideIcons.camera, size: 18),
-                            label: Text(l10n.hwCamera),
-                            onPressed: _fromCamera,
-                          ),
-                          OutlinedButton.icon(
-                            icon: const Icon(LucideIcons.images, size: 18),
-                            label: Text(l10n.hwGallery),
-                            onPressed: _fromGallery,
-                          ),
-                          OutlinedButton.icon(
-                            icon: const Icon(LucideIcons.paperclip, size: 18),
-                            label: Text(l10n.hwFile),
-                            onPressed: _fromFiles,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.hwAttachHint,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ],
+          ? ErrorView(error: _loadError, onRetry: _load)
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _AssignmentHeader(assignment: _a),
+                if (_existing case final sub? when sub.isGraded) ...[
+                  const SizedBox(height: 16),
+                  _GradeCard(submission: sub),
+                ],
+                const SizedBox(height: 24),
+                Text(
+                  l10n.hwYourWork,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _comment,
+                  readOnly: _readOnly,
+                  minLines: 2,
+                  maxLines: 5,
+                  decoration: InputDecoration(labelText: l10n.commentOptional),
+                ),
+                const SizedBox(height: 12),
+                for (final s in _slots)
+                  _SlotTile(
+                    slot: s,
+                    readOnly: _readOnly,
+                    onRemove: () => _remove(s),
+                    onRetry: () => _upload(s),
+                  ),
+                if (!_readOnly && _free > 0) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        icon: const Icon(LucideIcons.camera, size: 18),
+                        label: Text(l10n.hwCamera),
+                        onPressed: _fromCamera,
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(LucideIcons.images, size: 18),
+                        label: Text(l10n.hwGallery),
+                        onPressed: _fromGallery,
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(LucideIcons.paperclip, size: 18),
+                        label: Text(l10n.hwFile),
+                        onPressed: _fromFiles,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.hwAttachHint,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ],
+            ),
       bottomNavigationBar: _loading || _loadError != null || _readOnly
           ? null
           : SafeArea(
@@ -304,7 +319,9 @@ class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 child: FilledButton(
                   onPressed: _sending ? null : _submit,
-                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                  ),
                   child: _sending
                       ? const SizedBox.square(
                           dimension: 20,
@@ -366,9 +383,12 @@ class _GradeCard extends StatelessWidget {
           children: [
             Text(
               l10n.gradeValue('${submission.grade}'),
-              style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.primary),
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
             ),
-            if (submission.teacherNote case final note? when note.isNotEmpty) ...[
+            if (submission.teacherNote case final note?
+                when note.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(l10n.hwTeacherNote, style: theme.textTheme.labelMedium),
               Text(note),
@@ -401,8 +421,8 @@ class _SlotTile extends StatelessWidget {
     final Widget? preview = slot.isLocalImage
         ? Image.file(File(slot.path!), fit: BoxFit.cover, width: 48, height: 48)
         : (f != null && f.isImage)
-            ? networkPreview(f)
-            : null;
+        ? networkPreview(f)
+        : null;
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
@@ -411,11 +431,13 @@ class _SlotTile extends StatelessWidget {
       subtitle: slot.error != null
           ? Text(slot.error!, style: TextStyle(color: theme.colorScheme.error))
           : slot.isUploading
-              ? Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: LinearProgressIndicator(value: slot.progress > 0 ? slot.progress : null),
-                )
-              : null,
+          ? Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: LinearProgressIndicator(
+                value: slot.progress > 0 ? slot.progress : null,
+              ),
+            )
+          : null,
       onTap: f != null ? () => openAttachment(context, f) : null,
       trailing: readOnly
           ? null

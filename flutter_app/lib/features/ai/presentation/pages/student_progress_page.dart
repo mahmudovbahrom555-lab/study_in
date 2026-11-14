@@ -197,8 +197,9 @@ class _TopicRow extends StatelessWidget {
                 Expanded(
                   child: Text(
                     topic.topicName,
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 Text(
@@ -293,16 +294,19 @@ class _AttemptTile extends StatelessWidget {
     final color = attempt.percentage >= 80
         ? Colors.green
         : attempt.percentage >= 60
-            ? Colors.orange
-            : Colors.red;
+        ? Colors.orange
+        : Colors.red;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(attempt.quizTitle),
       subtitle: Text(DateFormat('dd.MM.yyyy').format(attempt.finishedAt)),
       trailing: Text(
         '$pct%',
-        style:
-            TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+        ),
       ),
     );
   }

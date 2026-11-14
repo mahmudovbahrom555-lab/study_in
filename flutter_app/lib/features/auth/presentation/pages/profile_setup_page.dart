@@ -25,7 +25,9 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref.read(authProvider.notifier).updateProfile(name: _nameCtrl.text.trim());
+    await ref
+        .read(authProvider.notifier)
+        .updateProfile(name: _nameCtrl.text.trim());
     if (!mounted) return;
 
     final error = ref.read(authProvider).error;
@@ -55,16 +57,15 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
                 Text(
                   context.l10n.profileNameTitle,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   context.l10n.profileNameHint,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: Colors.grey),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
                 ),
                 const SizedBox(height: 40),
                 TextFormField(
@@ -75,7 +76,9 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
                     border: const OutlineInputBorder(),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return context.l10n.enterName;
+                    if (v == null || v.trim().isEmpty) {
+                      return context.l10n.enterName;
+                    }
                     if (v.trim().length < 2) return context.l10n.nameTooShort;
                     return null;
                   },

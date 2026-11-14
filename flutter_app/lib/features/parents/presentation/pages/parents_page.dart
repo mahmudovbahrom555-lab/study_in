@@ -24,9 +24,7 @@ class _ParentsPageState extends ConsumerState<ParentsPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(
-      () => ref.read(childrenProvider.notifier).load(),
-    );
+    Future.microtask(() => ref.read(childrenProvider.notifier).load());
   }
 
   @override
@@ -51,9 +49,7 @@ class _ParentsPageState extends ConsumerState<ParentsPage> {
             );
           }
           if (state.children.isEmpty) {
-            return Center(
-              child: Text(context.l10n.noChildren),
-            );
+            return Center(child: Text(context.l10n.noChildren));
           }
           return RefreshIndicator(
             onRefresh: () => ref.read(childrenProvider.notifier).load(),
@@ -85,8 +81,9 @@ class _ParentsPageState extends ConsumerState<ParentsPage> {
               busy = true;
               error = null;
             });
-            final err =
-                await ref.read(childrenProvider.notifier).linkChildByCode(code);
+            final err = await ref
+                .read(childrenProvider.notifier)
+                .linkChildByCode(code);
             if (!ctx.mounted) return;
             if (err != null) {
               setDialogState(() {
@@ -96,8 +93,9 @@ class _ParentsPageState extends ConsumerState<ParentsPage> {
               return;
             }
             Navigator.pop(ctx);
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(l10n.childLinked)));
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l10n.childLinked)));
           }
 
           return AlertDialog(
@@ -189,9 +187,7 @@ class _ChildCard extends ConsumerWidget {
             child: Text(context.l10n.cancel),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
               ref.read(childrenProvider.notifier).unlinkChild(link.studentId);
               Navigator.pop(ctx);
@@ -243,8 +239,10 @@ class _ChildGroupsSection extends ConsumerWidget {
           children: groups
               .map(
                 (g) => ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 0,
+                  ),
                   title: Text(
                     g.subject == null ? g.name : '${g.name} · ${g.subject}',
                   ),
@@ -282,10 +280,12 @@ class _ChildGroupsSection extends ConsumerWidget {
                                 final p = (studentId: studentId, groupId: g.id);
                                 return AttendanceHistoryView(
                                   title: _title(context.l10n.attendance),
-                                  records:
-                                      ref.watch(childAttendanceProvider(p)),
-                                  onRetry: () => ref
-                                      .invalidate(childAttendanceProvider(p)),
+                                  records: ref.watch(
+                                    childAttendanceProvider(p),
+                                  ),
+                                  onRetry: () => ref.invalidate(
+                                    childAttendanceProvider(p),
+                                  ),
                                 );
                               },
                             ),

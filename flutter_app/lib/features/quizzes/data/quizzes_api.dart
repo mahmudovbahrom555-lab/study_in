@@ -8,8 +8,9 @@ class QuizzesApi {
   final Dio _dio;
 
   Future<List<QuizDto>> listGroupQuizzes(String groupId) async {
-    final resp =
-        await _dio.get<Map<String, dynamic>>('/groups/$groupId/quizzes');
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '/groups/$groupId/quizzes',
+    );
     final list = resp.data!['data'] as List<dynamic>;
     return list
         .map((e) => QuizDto.fromJson(e as Map<String, dynamic>))
@@ -17,8 +18,9 @@ class QuizzesApi {
   }
 
   Future<QuizDto> getQuiz(String groupId, String quizId) async {
-    final resp = await _dio
-        .get<Map<String, dynamic>>('/groups/$groupId/quizzes/$quizId');
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '/groups/$groupId/quizzes/$quizId',
+    );
     return QuizDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }
 
@@ -85,11 +87,7 @@ class QuizzesApi {
   }) async {
     final resp = await _dio.post<Map<String, dynamic>>(
       '/groups/$groupId/quizzes/$quizId/questions/$questionId/options',
-      data: {
-        'body': body,
-        'is_correct': isCorrect,
-        'position': position,
-      },
+      data: {'body': body, 'is_correct': isCorrect, 'position': position},
     );
     return OptionDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }

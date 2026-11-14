@@ -22,15 +22,14 @@ func NewReportRepository(db *sqlx.DB) *ReportRepository {
 	return &ReportRepository{db: db}
 }
 
-// ComputeMetrics runs SQL aggregations for a student in a group over [from, to].
-// The "previous period" is the same-length window ending just before from.
+// ComputeMetrics runs SQL aggregations over [from, to).
+// The previous calendar month ends at from.
 func (r *ReportRepository) ComputeMetrics(
 	ctx context.Context,
 	studentID, groupID uuid.UUID,
 	from, to time.Time,
 ) (*reports.RawMetrics, error) {
 	prevFrom := from.AddDate(0, -1, 0)
-	prevTo := from.AddDate(0, 0, -1)
 
 	const q = `
 WITH
@@ -42,7 +41,8 @@ att_cur AS (
     FROM attendance
     WHERE student_id = $1
       AND group_id   = $2
-      AND lesson_date BETWEEN $3 AND $4
+      AND lesson_date >= ($3::timestamptz AT TIME ZONE 'UTC')::date
+      AND lesson_date < ($4::timestamptz AT TIME ZONE 'UTC')::date
 ),
 -- Quiz scores current period
 quiz_cur AS (
@@ -55,7 +55,7 @@ quiz_cur AS (
     JOIN quizzes q ON q.id = qa.quiz_id
     WHERE qa.student_id = $1
       AND q.group_id    = $2
-      AND qa.finished_at BETWEEN $3 AND $4
+      AND qa.finished_at >= $3 AND qa.finished_at < $4
       AND qa.finished_at IS NOT NULL
 ),
 -- Quiz scores previous period
@@ -68,7 +68,7 @@ quiz_prev AS (
     JOIN quizzes q ON q.id = qa.quiz_id
     WHERE qa.student_id = $1
       AND q.group_id    = $2
-      AND qa.finished_at BETWEEN $5 AND $6
+      AND qa.finished_at >= $5 AND qa.finished_at < $3
       AND qa.finished_at IS NOT NULL
 ),
 -- Mastery current
@@ -79,7 +79,7 @@ mastery_cur AS (
         ) AS avg_mastery
     FROM topic_mastery
     WHERE student_id = $1
-      AND updated_at <= $4
+      AND updated_at < $4
 ),
 -- Mastery previous
 mastery_prev AS (
@@ -89,7 +89,7 @@ mastery_prev AS (
         ) AS avg_mastery
     FROM topic_mastery
     WHERE student_id = $1
-      AND updated_at <= $6
+      AND updated_at < $3
 ),
 -- Homework completion
 hw AS (
@@ -99,7 +99,7 @@ hw AS (
     LEFT JOIN submissions s
         ON s.assignment_id = a.id AND s.student_id = $1
     WHERE a.group_id  = $2
-      AND a.due_date BETWEEN $3 AND $4
+      AND a.due_date >= $3 AND a.due_date < $4
       AND a.deleted_at IS NULL
 )
 SELECT
@@ -126,7 +126,7 @@ FROM att_cur att, quiz_cur qc, quiz_prev qp, mastery_cur mc, mastery_prev mp, hw
 	if err := r.db.GetContext(ctx, &row, q,
 		studentID, groupID,
 		from, to,
-		prevFrom, prevTo,
+		prevFrom,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return &reports.RawMetrics{}, nil
@@ -388,7 +388,13 @@ WHERE id = $1 AND teacher_id = $2
 
 // IsGroupMember verifies the student belongs to the group.
 func (r *ReportRepository) IsGroupMember(ctx context.Context, groupID, studentID uuid.UUID) (bool, error) {
-	const q = `SELECT EXISTS(SELECT 1 FROM group_members WHERE group_id=$1 AND student_id=$2)`
+	const q = `
+SELECT EXISTS (
+    SELECT 1
+    FROM group_members gm
+    JOIN groups g ON g.id = gm.group_id
+    WHERE gm.group_id = $1 AND gm.student_id = $2 AND g.deleted_at IS NULL
+)`
 	var ok bool
 	if err := r.db.GetContext(ctx, &ok, q, groupID, studentID); err != nil {
 		return false, fmt.Errorf("ReportRepository.IsGroupMember: %w", err)

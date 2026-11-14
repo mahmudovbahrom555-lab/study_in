@@ -21,8 +21,8 @@ type memRepo struct {
 	assignments map[uuid.UUID]*domain.Assignment
 	aAtts       map[uuid.UUID][]*domain.AssignmentAttachment
 	submissions map[string]*domain.Submission // "assignmentID:studentID"
-	files       map[uuid.UUID]*domain.File     // модуль files (memRepo служит и FileGetter)
-	subFiles    map[uuid.UUID][]uuid.UUID      // submissionID → fileIDs по порядку
+	files       map[uuid.UUID]*domain.File    // модуль files (memRepo служит и FileGetter)
+	subFiles    map[uuid.UUID][]uuid.UUID     // submissionID → fileIDs по порядку
 }
 
 func newMemRepo() *memRepo {
@@ -45,7 +45,10 @@ func (r *memRepo) addFile(owner uuid.UUID) uuid.UUID {
 func (r *memRepo) GetByIDs(_ context.Context, ids []uuid.UUID) ([]*domain.File, error) {
 	var out []*domain.File
 	for _, id := range ids {
-		if f, ok := r.files[id]; ok { cp := *f; out = append(out, &cp) }
+		if f, ok := r.files[id]; ok {
+			cp := *f
+			out = append(out, &cp)
+		}
 	}
 	return out, nil
 }
@@ -53,32 +56,49 @@ func (r *memRepo) GetByIDs(_ context.Context, ids []uuid.UUID) ([]*domain.File, 
 func subKey(aid, sid uuid.UUID) string { return aid.String() + ":" + sid.String() }
 
 func (r *memRepo) CreateAssignment(_ context.Context, a *domain.Assignment) error {
-	cp := *a; r.assignments[a.ID] = &cp; return nil
+	cp := *a
+	r.assignments[a.ID] = &cp
+	return nil
 }
 func (r *memRepo) GetAssignmentByID(_ context.Context, id uuid.UUID) (*domain.Assignment, error) {
 	a, ok := r.assignments[id]
-	if !ok || a.DeletedAt != nil { return nil, nil }
-	cp := *a; return &cp, nil
+	if !ok || a.DeletedAt != nil {
+		return nil, nil
+	}
+	cp := *a
+	return &cp, nil
 }
 func (r *memRepo) ListGroupAssignments(_ context.Context, groupID uuid.UUID) ([]*domain.Assignment, error) {
 	var out []*domain.Assignment
 	for _, a := range r.assignments {
-		if a.GroupID == groupID && a.DeletedAt == nil { cp := *a; out = append(out, &cp) }
+		if a.GroupID == groupID && a.DeletedAt == nil {
+			cp := *a
+			out = append(out, &cp)
+		}
 	}
 	return out, nil
 }
 func (r *memRepo) UpdateAssignment(_ context.Context, a *domain.Assignment) error {
-	cp := *a; r.assignments[a.ID] = &cp; return nil
+	cp := *a
+	r.assignments[a.ID] = &cp
+	return nil
 }
 func (r *memRepo) SoftDeleteAssignment(_ context.Context, id uuid.UUID) error {
-	if a, ok := r.assignments[id]; ok { now := time.Now(); a.DeletedAt = &now }; return nil
+	if a, ok := r.assignments[id]; ok {
+		now := time.Now()
+		a.DeletedAt = &now
+	}
+	return nil
 }
 func (r *memRepo) AddAssignmentAttachment(_ context.Context, a *domain.AssignmentAttachment) error {
-	cp := *a; r.aAtts[a.AssignmentID] = append(r.aAtts[a.AssignmentID], &cp); return nil
+	cp := *a
+	r.aAtts[a.AssignmentID] = append(r.aAtts[a.AssignmentID], &cp)
+	return nil
 }
 func (r *memRepo) ListAssignmentAttachments(_ context.Context, id uuid.UUID) ([]*domain.AssignmentAttachment, error) {
 	return r.aAtts[id], nil
 }
+
 // SaveSubmission повторяет семантику Postgres-реализации: прежние файлы → pending, новые → attached.
 func (r *memRepo) SaveSubmission(_ context.Context, s *domain.Submission, fileIDs []uuid.UUID) error {
 	cp := *s
@@ -86,24 +106,40 @@ func (r *memRepo) SaveSubmission(_ context.Context, s *domain.Submission, fileID
 		cp.Grade, cp.TeacherNote, cp.GradedAt = old.Grade, old.TeacherNote, old.GradedAt
 	}
 	r.submissions[subKey(s.AssignmentID, s.StudentID)] = &cp
-	for _, id := range r.subFiles[s.ID] { r.files[id].Status = domain.FileStatusPending }
+	for _, id := range r.subFiles[s.ID] {
+		r.files[id].Status = domain.FileStatusPending
+	}
 	r.subFiles[s.ID] = append([]uuid.UUID(nil), fileIDs...)
-	for _, id := range fileIDs { r.files[id].Status = domain.FileStatusAttached }
+	for _, id := range fileIDs {
+		r.files[id].Status = domain.FileStatusAttached
+	}
 	return nil
 }
 func (r *memRepo) ListSubmissionFiles(_ context.Context, ids []uuid.UUID) (map[uuid.UUID][]*domain.File, error) {
 	out := map[uuid.UUID][]*domain.File{}
 	for _, sid := range ids {
-		for _, fid := range r.subFiles[sid] { cp := *r.files[fid]; out[sid] = append(out[sid], &cp) }
+		for _, fid := range r.subFiles[sid] {
+			cp := *r.files[fid]
+			out[sid] = append(out[sid], &cp)
+		}
 	}
 	return out, nil
 }
 func (r *memRepo) GetSubmission(_ context.Context, aid, sid uuid.UUID) (*domain.Submission, error) {
 	s, ok := r.submissions[subKey(aid, sid)]
-	if !ok { return nil, nil }; cp := *s; return &cp, nil
+	if !ok {
+		return nil, nil
+	}
+	cp := *s
+	return &cp, nil
 }
 func (r *memRepo) GetSubmissionByID(_ context.Context, id uuid.UUID) (*domain.Submission, error) {
-	for _, s := range r.submissions { if s.ID == id { cp := *s; return &cp, nil } }
+	for _, s := range r.submissions {
+		if s.ID == id {
+			cp := *s
+			return &cp, nil
+		}
+	}
 	return nil, nil
 }
 func (r *memRepo) ListSubmissions(_ context.Context, aid uuid.UUID) ([]*domain.SubmissionWithStudent, error) {
@@ -145,7 +181,12 @@ func (r *memRepo) SubmissionStats(_ context.Context, aids []uuid.UUID) (map[uuid
 }
 func (r *memRepo) GradeSubmission(_ context.Context, id uuid.UUID, grade int16, note string) error {
 	for _, s := range r.submissions {
-		if s.ID == id { now := time.Now(); s.Grade = &grade; s.TeacherNote = &note; s.GradedAt = &now }
+		if s.ID == id {
+			now := time.Now()
+			s.Grade = &grade
+			s.TeacherNote = &note
+			s.GradedAt = &now
+		}
 	}
 	return nil
 }
@@ -169,18 +210,32 @@ func (mg *memGroups) addMember(gid, sid uuid.UUID) {
 	mg.members[gid.String()+":"+sid.String()] = &domain.GroupMember{GroupID: gid, StudentID: sid}
 }
 func (mg *memGroups) GetGroupByID(_ context.Context, id uuid.UUID) (*domain.Group, error) {
-	g, ok := mg.groups[id]; if !ok { return nil, nil }; cp := *g; return &cp, nil
+	g, ok := mg.groups[id]
+	if !ok {
+		return nil, nil
+	}
+	cp := *g
+	return &cp, nil
 }
 func (mg *memGroups) GetMember(_ context.Context, gid, uid uuid.UUID) (*domain.GroupMember, error) {
-	m, ok := mg.members[gid.String()+":"+uid.String()]; if !ok { return nil, nil }; cp := *m; return &cp, nil
+	m, ok := mg.members[gid.String()+":"+uid.String()]
+	if !ok {
+		return nil, nil
+	}
+	cp := *m
+	return &cp, nil
 }
 
 // --- noop store/signer ---
 
 type noopStore struct{}
-func (noopStore) PutObject(_ context.Context, _ string, _ io.Reader, _ int64, _ string) error { return nil }
+
+func (noopStore) PutObject(_ context.Context, _ string, _ io.Reader, _ int64, _ string) error {
+	return nil
+}
 
 type noopSigner struct{}
+
 func (noopSigner) PresignedGetURL(_ context.Context, key, _ string) (string, error) { return key, nil }
 
 // --- helpers ---

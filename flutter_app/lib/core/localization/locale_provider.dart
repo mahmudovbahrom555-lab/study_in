@@ -32,12 +32,12 @@ class HiveLanguageStore implements LanguageStore {
 /// ([resolveAppLocale]); после ручного выбора — сохраняется на устройстве.
 class LocaleController extends StateNotifier<Locale> {
   LocaleController(this._store, {List<Locale>? deviceLocales})
-      : super(
-          resolveAppLocale(
-            savedLanguageCode: _store.read(),
-            deviceLocales: deviceLocales ?? PlatformDispatcher.instance.locales,
-          ),
-        ) {
+    : super(
+        resolveAppLocale(
+          savedLanguageCode: _store.read(),
+          deviceLocales: deviceLocales ?? PlatformDispatcher.instance.locales,
+        ),
+      ) {
     currentAppLocale = state;
   }
 
@@ -52,7 +52,6 @@ class LocaleController extends StateNotifier<Locale> {
 }
 
 final localeProvider = StateNotifierProvider<LocaleController, Locale>(
-  (ref) => LocaleController(
-    HiveLanguageStore(Hive.box<dynamic>(settingsBoxName)),
-  ),
+  (ref) =>
+      LocaleController(HiveLanguageStore(Hive.box<dynamic>(settingsBoxName))),
 );

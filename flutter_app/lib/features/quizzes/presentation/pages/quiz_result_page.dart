@@ -18,8 +18,8 @@ class QuizResultPage extends ConsumerWidget {
     final color = pct >= 0.8
         ? Colors.green
         : pct >= 0.6
-            ? Colors.orange
-            : Colors.red;
+        ? Colors.orange
+        : Colors.red;
 
     final gamification = ref.watch(gamificationProvider);
 
@@ -45,11 +45,8 @@ class QuizResultPage extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           ...result.questionResults.asMap().entries.map(
-                (e) => _QuestionResultCard(
-                  index: e.key + 1,
-                  item: e.value,
-                ),
-              ),
+            (e) => _QuestionResultCard(index: e.key + 1, item: e.value),
+          ),
           const SizedBox(height: 20),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -86,14 +83,22 @@ class _GamificationBanner extends StatelessWidget {
               value: '${gamification.xpTotal} XP',
               label: context.l10n.totalXp,
             ),
-            Container(width: 1, height: 36, color: Colors.deepPurple.withValues(alpha: 0.15)),
+            Container(
+              width: 1,
+              height: 36,
+              color: Colors.deepPurple.withValues(alpha: 0.15),
+            ),
             _Stat(
               icon: LucideIcons.flame,
               iconColor: Colors.orange,
               value: context.l10n.daysShort(gamification.streakDays),
               label: context.l10n.streak,
             ),
-            Container(width: 1, height: 36, color: Colors.deepPurple.withValues(alpha: 0.15)),
+            Container(
+              width: 1,
+              height: 36,
+              color: Colors.deepPurple.withValues(alpha: 0.15),
+            ),
             _Stat(
               icon: LucideIcons.trophy,
               iconColor: Colors.deepPurple,
@@ -127,8 +132,14 @@ class _Stat extends StatelessWidget {
       children: [
         Icon(icon, color: iconColor, size: 20),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+        ),
       ],
     );
   }
@@ -160,22 +171,20 @@ class _ScoreHeader extends StatelessWidget {
             Text(
               '$pct%',
               style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               context.l10n.correctCount('$score', '$max'),
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(color: color),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: color),
             ),
             const SizedBox(height: 16),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.amber.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
@@ -223,19 +232,19 @@ class _QuestionResultCardState extends State<_QuestionResultCard> {
     final color = unanswered
         ? Colors.grey
         : item.isCorrect
-            ? Colors.green
-            : Colors.red;
+        ? Colors.green
+        : Colors.red;
     final icon = unanswered
         ? LucideIcons.circleMinus
         : item.isCorrect
-            ? LucideIcons.circleCheck
-            : LucideIcons.circleX;
+        ? LucideIcons.circleCheck
+        : LucideIcons.circleX;
     // Результат передаётся только цветом и иконкой — диктору нужен текст.
     final resultLabel = unanswered
         ? context.l10n.noAnswer
         : item.isCorrect
-            ? context.l10n.correct
-            : context.l10n.incorrect;
+        ? context.l10n.correct
+        : context.l10n.incorrect;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -254,7 +263,12 @@ class _QuestionResultCardState extends State<_QuestionResultCard> {
             children: [
               Row(
                 children: [
-                  Icon(icon, color: color, size: 22, semanticLabel: resultLabel),
+                  Icon(
+                    icon,
+                    color: color,
+                    size: 22,
+                    semanticLabel: resultLabel,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -263,12 +277,12 @@ class _QuestionResultCardState extends State<_QuestionResultCard> {
                     ),
                   ),
                   Icon(
-                    _expanded
-                        ? LucideIcons.chevronUp
-                        : LucideIcons.chevronDown,
+                    _expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
                     color: Colors.grey,
                     size: 20,
-                    semanticLabel: _expanded ? context.l10n.collapse : context.l10n.showExplanation,
+                    semanticLabel: _expanded
+                        ? context.l10n.collapse
+                        : context.l10n.showExplanation,
                   ),
                 ],
               ),
@@ -369,10 +383,7 @@ class _AnswerRow extends StatelessWidget {
               children: [
                 TextSpan(
                   text: '$label: ',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                 ),
                 TextSpan(
                   text: text,

@@ -10,7 +10,7 @@ import '../network/error_message.dart';
 /// либо готовое [message].
 class ErrorView extends StatelessWidget {
   const ErrorView({super.key, this.error, this.message, this.onRetry})
-      : assert(error != null || message != null);
+    : assert(error != null || message != null);
 
   final Object? error;
   final String? message;

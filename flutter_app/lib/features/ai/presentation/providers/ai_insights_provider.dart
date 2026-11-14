@@ -13,8 +13,10 @@ final aiRepositoryProvider = Provider<AiRepository>((ref) {
 
 // ─── ClassInsights ────────────────────────────────────────────────────────────
 
-final classInsightsProvider =
-    FutureProvider.family<ClassInsights, String>((ref, groupId) {
+final classInsightsProvider = FutureProvider.family<ClassInsights, String>((
+  ref,
+  groupId,
+) {
   return ref.watch(aiRepositoryProvider).classInsights(groupId);
 });
 
@@ -24,22 +26,22 @@ typedef _ProgressArgs = ({String groupId, String studentId});
 
 final studentProgressProvider =
     FutureProvider.family<StudentProgress, _ProgressArgs>((ref, args) {
-  return ref
-      .watch(aiRepositoryProvider)
-      .studentProgress(args.groupId, args.studentId);
-});
+      return ref
+          .watch(aiRepositoryProvider)
+          .studentProgress(args.groupId, args.studentId);
+    });
 
 // ─── Acceptance rate ──────────────────────────────────────────────────────────
 
-final acceptanceRateProvider =
-    FutureProvider<({double rate, int total})>((ref) {
+final acceptanceRateProvider = FutureProvider<({double rate, int total})>((
+  ref,
+) {
   return ref.watch(aiRepositoryProvider).myAcceptanceRate();
 });
 
 // ─── Generation stats (TAR + session counts) ─────────────────────────────────
 
-final generationStatsProvider =
-    FutureProvider<TeacherGenerationStats>((ref) {
+final generationStatsProvider = FutureProvider<TeacherGenerationStats>((ref) {
   return ref.watch(aiRepositoryProvider).generationStats();
 });
 

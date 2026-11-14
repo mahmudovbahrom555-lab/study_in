@@ -20,8 +20,9 @@ class ParentsApi {
 
   /// Ученик выдаёт код для привязки родителя.
   Future<({String code, DateTime expiresAt})> createLinkCode() async {
-    final resp =
-        await _dio.post<Map<String, dynamic>>('/student/parent-link-code');
+    final resp = await _dio.post<Map<String, dynamic>>(
+      '/student/parent-link-code',
+    );
     final data = resp.data!['data'] as Map<String, dynamic>;
     return (
       code: data['code'] as String,

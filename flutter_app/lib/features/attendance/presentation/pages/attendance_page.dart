@@ -37,18 +37,18 @@ class AttendancePage extends ConsumerWidget {
 }
 
 Color _statusColor(AttendanceStatus s) => switch (s) {
-      AttendanceStatus.present => AppColors.success,
-      AttendanceStatus.absent => AppColors.error,
-      AttendanceStatus.late => AppColors.warning,
-      AttendanceStatus.excused => AppColors.info,
-    };
+  AttendanceStatus.present => AppColors.success,
+  AttendanceStatus.absent => AppColors.error,
+  AttendanceStatus.late => AppColors.warning,
+  AttendanceStatus.excused => AppColors.info,
+};
 
 IconData _statusIcon(AttendanceStatus s) => switch (s) {
-      AttendanceStatus.present => LucideIcons.circleCheck,
-      AttendanceStatus.absent => LucideIcons.circleX,
-      AttendanceStatus.late => LucideIcons.clock,
-      AttendanceStatus.excused => LucideIcons.info,
-    };
+  AttendanceStatus.present => LucideIcons.circleCheck,
+  AttendanceStatus.absent => LucideIcons.circleX,
+  AttendanceStatus.late => LucideIcons.clock,
+  AttendanceStatus.excused => LucideIcons.info,
+};
 
 String _fmtDate(DateTime d) => DateFormat('dd.MM.yyyy').format(d);
 
@@ -67,13 +67,18 @@ class _TeacherAttendancePage extends ConsumerWidget {
 
     ref.listen(rosterProvider(groupId).select((s) => s.saveError), (_, err) {
       if (err != null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(err)));
       }
     });
 
     final Widget body;
     if (state.loadError != null && state.entries.isEmpty) {
-      body = ErrorView(error: state.loadError, onRetry: () => notifier.load(state.date));
+      body = ErrorView(
+        error: state.loadError,
+        onRetry: () => notifier.load(state.date),
+      );
     } else if (state.isLoading && state.entries.isEmpty) {
       body = const Center(child: CircularProgressIndicator());
     } else if (state.entries.isEmpty) {
@@ -94,7 +99,7 @@ class _TeacherAttendancePage extends ConsumerWidget {
             final e = state.entries[i];
             return _RosterRow(
               entry: e,
-              saving: state.saving.contains(e.studentId),
+              enabled: !state.isLoading && !state.saving.contains(e.studentId),
               onTap: (s) => notifier.toggle(e.studentId, s),
             );
           },
@@ -107,7 +112,8 @@ class _TeacherAttendancePage extends ConsumerWidget {
       body: Column(
         children: [
           _DayBar(groupId: groupId),
-          if (state.entries.isNotEmpty) _Summary(state: state, onRestPresent: notifier.markRestPresent),
+          if (state.entries.isNotEmpty)
+            _Summary(state: state, onRestPresent: notifier.markRestPresent),
           SizedBox(
             height: 2,
             child: state.isLoading && state.entries.isNotEmpty
@@ -130,6 +136,9 @@ class _DayBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final date = ref.watch(rosterProvider(groupId).select((s) => s.date));
+    final isSaving = ref.watch(
+      rosterProvider(groupId).select((s) => s.saving.isNotEmpty),
+    );
     final notifier = ref.read(rosterProvider(groupId).notifier);
     final now = DateTime.now();
     final isToday = date == DateTime(now.year, now.month, now.day);
@@ -143,29 +152,37 @@ class _DayBar extends ConsumerWidget {
             IconButton(
               tooltip: l10n.attPrevDay,
               icon: const Icon(LucideIcons.chevronLeft),
-              onPressed: () => notifier.shiftDay(-1),
+              onPressed: isSaving ? null : () => notifier.shiftDay(-1),
             ),
             Expanded(
               child: TextButton.icon(
                 icon: const Icon(LucideIcons.calendar, size: 18),
-                label: Text(isToday ? l10n.attToday(_fmtDate(date)) : _fmtDate(date)),
-                onPressed: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: date,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now(),
-                    helpText: l10n.pickDate,
-                  );
-                  if (picked != null) notifier.load(picked);
-                },
+                label: Text(
+                  isToday ? l10n.attToday(_fmtDate(date)) : _fmtDate(date),
+                ),
+                onPressed: isSaving
+                    ? null
+                    : () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: date,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                          helpText: l10n.pickDate,
+                        );
+                        if (context.mounted && picked != null) {
+                          notifier.load(picked);
+                        }
+                      },
               ),
             ),
             IconButton(
               tooltip: l10n.attNextDay,
               icon: const Icon(LucideIcons.chevronRight),
               // Будущие дни не отмечаем.
-              onPressed: isToday ? null : () => notifier.shiftDay(1),
+              onPressed: isToday || isSaving
+                  ? null
+                  : () => notifier.shiftDay(1),
             ),
           ],
         ),
@@ -194,14 +211,16 @@ class _Summary extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.attMarkedOf(state.marked, state.entries.length),
-              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           if (state.hasUnmarked)
             FilledButton.tonalIcon(
               icon: const Icon(LucideIcons.checkCheck, size: 18),
               label: Text(l10n.attRestPresent),
-              onPressed: onRestPresent,
+              onPressed: state.isLoading ? null : onRestPresent,
             ),
         ],
       ),
@@ -212,10 +231,14 @@ class _Summary extends StatelessWidget {
 /// Строка ученика: имя и статус текстом, справа 4 кнопки статуса.
 /// Тап ставит статус, повторный тап по нему же снимает отметку.
 class _RosterRow extends StatelessWidget {
-  const _RosterRow({required this.entry, required this.saving, required this.onTap});
+  const _RosterRow({
+    required this.entry,
+    required this.enabled,
+    required this.onTap,
+  });
 
   final RosterEntry entry;
-  final bool saving;
+  final bool enabled;
   final void Function(AttendanceStatus) onTap;
 
   @override
@@ -240,7 +263,9 @@ class _RosterRow extends StatelessWidget {
                 Text(
                   status?.label(l10n) ?? l10n.attNotMarked,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: status == null ? theme.colorScheme.onSurfaceVariant : _statusColor(status),
+                    color: status == null
+                        ? theme.colorScheme.onSurfaceVariant
+                        : _statusColor(status),
                   ),
                 ),
               ],
@@ -250,7 +275,7 @@ class _RosterRow extends StatelessWidget {
             _StatusButton(
               status: s,
               selected: status == s,
-              enabled: !saving,
+              enabled: enabled,
               onTap: () => onTap(s),
             ),
         ],
@@ -354,8 +379,14 @@ class _StatsBanner extends StatelessWidget {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('${counts[s] ?? 0}', style: Theme.of(context).textTheme.titleMedium),
-                Text(s.label(context.l10n), style: Theme.of(context).textTheme.labelSmall),
+                Text(
+                  '${counts[s] ?? 0}',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                Text(
+                  s.label(context.l10n),
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
               ],
             ),
         ],

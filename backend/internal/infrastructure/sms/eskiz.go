@@ -19,9 +19,9 @@ type EskizSender struct {
 	from     string
 	client   *http.Client
 
-	mu        sync.Mutex
-	token     string
-	tokenExp  time.Time
+	mu       sync.Mutex
+	token    string
+	tokenExp time.Time
 }
 
 func NewEskizSender(email, password, from string) *EskizSender {

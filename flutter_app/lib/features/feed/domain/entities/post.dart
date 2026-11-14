@@ -22,18 +22,14 @@ class Post {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  Post copyWith({
-    String? body,
-    bool? pinned,
-  }) =>
-      Post(
-        id: id,
-        groupId: groupId,
-        authorId: authorId,
-        authorName: authorName,
-        body: body ?? this.body,
-        pinned: pinned ?? this.pinned,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-      );
+  Post copyWith({String? body, bool? pinned}) => Post(
+    id: id,
+    groupId: groupId,
+    authorId: authorId,
+    authorName: authorName,
+    body: body ?? this.body,
+    pinned: pinned ?? this.pinned,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+  );
 }

@@ -19,8 +19,9 @@ Future<void> openAttachment(BuildContext context, AttachedFile file) async {
     mode: LaunchMode.externalApplication,
   );
   if (!opened && context.mounted) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(context.l10n.hwCantOpenFile)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.l10n.hwCantOpenFile)));
   }
 }
 
@@ -42,7 +43,8 @@ class AttachmentThumb extends StatelessWidget {
         height: size,
         color: theme.colorScheme.surfaceContainerHighest,
         alignment: Alignment.center,
-        child: child ??
+        child:
+            child ??
             Icon(LucideIcons.fileText, color: theme.colorScheme.primary),
       ),
     );
@@ -50,12 +52,12 @@ class AttachmentThumb extends StatelessWidget {
 }
 
 Widget networkPreview(AttachedFile f) => Image.network(
-      f.url,
-      fit: BoxFit.cover,
-      width: double.infinity,
-      height: double.infinity,
-      errorBuilder: (_, __, ___) => const Icon(LucideIcons.imageOff),
-    );
+  f.url,
+  fit: BoxFit.cover,
+  width: double.infinity,
+  height: double.infinity,
+  errorBuilder: (_, __, ___) => const Icon(LucideIcons.imageOff),
+);
 
 /// Файл сдачи у репетитора: фото — миниатюрой, документ — чипом с именем.
 class AttachmentChip extends StatelessWidget {

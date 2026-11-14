@@ -15,11 +15,7 @@ import '../providers/grades_provider.dart';
 import '../widgets/add_grade_sheet.dart';
 
 class GradesPage extends ConsumerStatefulWidget {
-  const GradesPage({
-    super.key,
-    required this.groupId,
-    this.isTeacher = false,
-  });
+  const GradesPage({super.key, required this.groupId, this.isTeacher = false});
 
   final String groupId;
   final bool isTeacher;
@@ -99,7 +95,9 @@ class _TeacherView extends ConsumerWidget {
                   grade: g,
                   showStudent: true,
                   // Оценку за ДЗ меняют в проверке работы, не в журнале.
-                  onDelete: g.isHomework ? null : () => _confirmDelete(context, ref, g),
+                  onDelete: g.isHomework
+                      ? null
+                      : () => _confirmDelete(context, ref, g),
                 );
               },
             ),
@@ -134,7 +132,11 @@ class _TeacherView extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, Grade g) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    Grade g,
+  ) async {
     final l10n = context.l10n;
     final ok = await showDialog<bool>(
       context: context,
@@ -163,16 +165,21 @@ class _TeacherView extends ConsumerWidget {
       ),
     );
     if (ok != true) return;
-    final error = await ref.read(groupGradesProvider(groupId).notifier).deleteGrade(g.id);
+    final error = await ref
+        .read(groupGradesProvider(groupId).notifier)
+        .deleteGrade(g.id);
     if (error != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
     }
   }
 }
 
 /// Балл без лишних нулей и с десятичным разделителем языка: «4,5», «85».
-String formatScore(double v, String locale) =>
-    NumberFormat.decimalPattern(locale).format(double.parse(v.toStringAsFixed(2)));
+String formatScore(double v, String locale) => NumberFormat.decimalPattern(
+  locale,
+).format(double.parse(v.toStringAsFixed(2)));
 
 // ─── Grade history (student, parent) ─────────────────────────────────────────
 
@@ -240,7 +247,10 @@ class _SummaryBar extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             context.l10n.gradesSummary(
-              formatScore(double.parse(avg.toStringAsFixed(1)), context.l10n.localeName),
+              formatScore(
+                double.parse(avg.toStringAsFixed(1)),
+                context.l10n.localeName,
+              ),
               grades.length,
             ),
             style: Theme.of(context).textTheme.bodyMedium,
@@ -273,16 +283,19 @@ class _GradeTile extends StatelessWidget {
     final color = pct >= 80
         ? AppColors.success
         : pct >= 60
-            ? AppColors.warning
-            : AppColors.error;
-    final score = '${formatScore(grade.value, locale)} / ${formatScore(grade.maxValue, locale)}';
+        ? AppColors.warning
+        : AppColors.error;
+    final score =
+        '${formatScore(grade.value, locale)} / ${formatScore(grade.maxValue, locale)}';
     final date = DateFormat('dd.MM.yyyy').format(grade.gradedAt.toLocal());
 
     // В журнале репетитора строка — ученик, у ученика и родителя — за что оценка.
     final title = showStudent
         ? (grade.studentName.isEmpty ? '—' : grade.studentName)
         : grade.subject;
-    final details = showStudent ? '${grade.subject} · $score · $date' : '$score · $date';
+    final details = showStudent
+        ? '${grade.subject} · $score · $date'
+        : '$score · $date';
 
     return ListTile(
       leading: CircleAvatar(
@@ -337,7 +350,9 @@ class _KindChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSecondaryContainer),
+        style: Theme.of(
+          context,
+        ).textTheme.labelSmall?.copyWith(color: scheme.onSecondaryContainer),
       ),
     );
   }
