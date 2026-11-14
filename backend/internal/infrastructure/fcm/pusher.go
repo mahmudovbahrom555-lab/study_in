@@ -11,8 +11,8 @@ import (
 // Pusher sends push notifications via FCM.
 // The real implementation requires firebase-admin-go; here we stub it
 // so the binary compiles without that dependency. To enable real FCM:
-//   1. go get firebase.google.com/go/v4
-//   2. Replace the stub body below with the real messaging.Client call.
+//  1. go get firebase.google.com/go/v4
+//  2. Replace the stub body below with the real messaging.Client call.
 type Pusher struct {
 	log *slog.Logger
 }

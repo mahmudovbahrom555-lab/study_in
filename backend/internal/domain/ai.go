@@ -196,8 +196,8 @@ type QuizQuestionFeedback struct {
 // Persisted in ai_recommendations; ID lets the teacher accept, dismiss, or explain it.
 type TeacherRecommendation struct {
 	ID           uuid.UUID `json:"id"`
-	Priority     int       `json:"priority"`      // 1=high, 2=medium, 3=low
-	Action       string    `json:"action"`        // create_quiz | schedule_review | check_students | rate_questions | celebrate
+	Priority     int       `json:"priority"` // 1=high, 2=medium, 3=low
+	Action       string    `json:"action"`   // create_quiz | schedule_review | check_students | rate_questions | celebrate
 	Topic        string    `json:"topic,omitempty"`
 	Reason       string    `json:"reason"`
 	StudentCount int       `json:"student_count,omitempty"`
@@ -254,13 +254,13 @@ type TopicWeakness struct {
 }
 
 type StudentSummary struct {
-	StudentID    uuid.UUID `json:"student_id"`
-	Name         string    `json:"name"`
-	XPTotal      int       `json:"xp"`
-	StreakDays   int       `json:"streak"`
-	TopWeakness  string    `json:"top_weakness"`
-	LastActive   *string   `json:"last_active"`
-	IsAtRisk     bool      `json:"is_at_risk"` // no activity for 3+ days
+	StudentID   uuid.UUID `json:"student_id"`
+	Name        string    `json:"name"`
+	XPTotal     int       `json:"xp"`
+	StreakDays  int       `json:"streak"`
+	TopWeakness string    `json:"top_weakness"`
+	LastActive  *string   `json:"last_active"`
+	IsAtRisk    bool      `json:"is_at_risk"` // no activity for 3+ days
 }
 
 type QuizStats struct {

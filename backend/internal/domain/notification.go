@@ -15,4 +15,3 @@ type Notification struct {
 	IsRead    bool      `db:"is_read"`
 	CreatedAt time.Time `db:"created_at"`
 }
-

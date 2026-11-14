@@ -29,7 +29,7 @@ type BatchMark struct {
 	Status    domain.AttendanceStatus `json:"status"     validate:"required,oneof=present absent late excused"`
 }
 
-type AttendanceResponse struct {
+type Response struct {
 	ID         uuid.UUID               `json:"id"`
 	GroupID    uuid.UUID               `json:"group_id"`
 	StudentID  uuid.UUID               `json:"student_id"`
@@ -51,8 +51,8 @@ type RosterEntryResponse struct {
 	Note         *string                  `json:"note,omitempty"`
 }
 
-func toResponse(a *domain.Attendance) AttendanceResponse {
-	return AttendanceResponse{
+func toResponse(a *domain.Attendance) Response {
+	return Response{
 		ID:         a.ID,
 		GroupID:    a.GroupID,
 		StudentID:  a.StudentID,

@@ -17,8 +17,8 @@ const (
 )
 
 type Service struct {
-	repo    Repository
-	groups  GroupChecker
+	repo   Repository
+	groups GroupChecker
 }
 
 func NewService(repo Repository, groups GroupChecker) *Service {

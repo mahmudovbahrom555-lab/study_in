@@ -11,28 +11,28 @@ import (
 
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/domain"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/ai/prompts"
-	infpdf "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/pdf"
 	oai "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/openai"
+	infpdf "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/pdf"
 	sm2 "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/spaced_repetition"
 )
 
 // Service is the AI feature orchestrator.
 type Service struct {
-	docs        DocumentRepository
-	jobs        JobRepository
-	sessions    SessionRepository
-	tokens      TokenRepository
-	mastery     MasteryRepository
-	gamif       GamificationRepository
-	topics      TopicRepository
-	quiz        QuizCreator
-	store       ObjectStore
-	insights    InsightsRepository
-	feedback    QuizFeedbackRepository
-	genSess     GenerationSessionRepository
-	recRepo     RecommendationRepository
-	ai          *oai.Client
-	cfg         ServiceConfig
+	docs     DocumentRepository
+	jobs     JobRepository
+	sessions SessionRepository
+	tokens   TokenRepository
+	mastery  MasteryRepository
+	gamif    GamificationRepository
+	topics   TopicRepository
+	quiz     QuizCreator
+	store    ObjectStore
+	insights InsightsRepository
+	feedback QuizFeedbackRepository
+	genSess  GenerationSessionRepository
+	recRepo  RecommendationRepository
+	ai       *oai.Client
+	cfg      ServiceConfig
 }
 
 type ServiceConfig struct {
@@ -448,11 +448,11 @@ type WritingCheckRequest struct {
 }
 
 type WritingCheckResult struct {
-	CEFREstimate  string         `json:"cefr_estimate"`
-	Scores        map[string]int `json:"scores"`
-	Errors        []WritingError `json:"errors"`
-	Strengths     []string       `json:"strengths"`
-	OneImprovement string        `json:"one_improvement"`
+	CEFREstimate   string         `json:"cefr_estimate"`
+	Scores         map[string]int `json:"scores"`
+	Errors         []WritingError `json:"errors"`
+	Strengths      []string       `json:"strengths"`
+	OneImprovement string         `json:"one_improvement"`
 }
 
 type WritingError struct {

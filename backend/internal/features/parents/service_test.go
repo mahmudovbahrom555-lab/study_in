@@ -45,13 +45,21 @@ func (r *memRepo) GetActiveLinkCode(_ context.Context, code string) (*domain.Par
 func key(p, s uuid.UUID) string { return p.String() + ":" + s.String() }
 
 func (r *memRepo) Link(_ context.Context, l *domain.ParentLink) error {
-	cp := *l; r.links[key(l.ParentID, l.StudentID)] = &cp; return nil
+	cp := *l
+	r.links[key(l.ParentID, l.StudentID)] = &cp
+	return nil
 }
 func (r *memRepo) Unlink(_ context.Context, p, s uuid.UUID) error {
-	delete(r.links, key(p, s)); return nil
+	delete(r.links, key(p, s))
+	return nil
 }
 func (r *memRepo) GetLink(_ context.Context, p, s uuid.UUID) (*domain.ParentLink, error) {
-	l, ok := r.links[key(p, s)]; if !ok { return nil, nil }; cp := *l; return &cp, nil
+	l, ok := r.links[key(p, s)]
+	if !ok {
+		return nil, nil
+	}
+	cp := *l
+	return &cp, nil
 }
 func (r *memRepo) ListChildren(_ context.Context, p uuid.UUID) ([]*domain.ChildLink, error) {
 	var out []*domain.ChildLink
@@ -64,7 +72,12 @@ func (r *memRepo) ListChildren(_ context.Context, p uuid.UUID) ([]*domain.ChildL
 }
 func (r *memRepo) ListParents(_ context.Context, s uuid.UUID) ([]*domain.ParentLink, error) {
 	var out []*domain.ParentLink
-	for _, l := range r.links { if l.StudentID == s { cp := *l; out = append(out, &cp) } }
+	for _, l := range r.links {
+		if l.StudentID == s {
+			cp := *l
+			out = append(out, &cp)
+		}
+	}
 	return out, nil
 }
 

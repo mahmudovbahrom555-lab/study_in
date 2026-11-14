@@ -26,7 +26,7 @@ func (r *RecommendationRepository) ReplaceForGroup(ctx context.Context, groupID 
 	if err != nil {
 		return fmt.Errorf("ReplaceForGroup begin: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }() // after Commit it returns ErrTxDone, nothing to do
 
 	if _, err = tx.ExecContext(ctx,
 		`DELETE FROM ai_recommendations WHERE group_id=$1 AND status='pending'`, groupID); err != nil {

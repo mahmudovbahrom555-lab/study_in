@@ -28,9 +28,9 @@ const (
 
 // Service — бизнес-логика авторизации.
 type Service struct {
-	repo    Repository
-	sms     sms.Sender
-	jwt     *jwt.Manager
+	repo     Repository
+	sms      sms.Sender
+	jwt      *jwt.Manager
 	limiter  Limiter
 	devCode  string // если задан — вместо случайного кода (только dev, см. config.validate)
 	consents ConsentRecorder
@@ -93,7 +93,7 @@ func (s *Service) SendCode(ctx context.Context, req *SendCodeRequest) error {
 }
 
 // Verify проверяет код и выдаёт токены. Создаёт пользователя при первом входе.
-func (s *Service) Verify(ctx context.Context, req *VerifyRequest) (*AuthResponse, error) {
+func (s *Service) Verify(ctx context.Context, req *VerifyRequest) (*Response, error) {
 	vc, err := s.repo.GetLatestVerificationCode(ctx, req.Phone)
 	if err != nil {
 		return nil, fmt.Errorf("get code: %w", err)
@@ -139,7 +139,7 @@ func (s *Service) Verify(ctx context.Context, req *VerifyRequest) (*AuthResponse
 		return nil, err
 	}
 
-	return &AuthResponse{
+	return &Response{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		User:         userToResponse(user),
@@ -175,7 +175,7 @@ func (s *Service) recordPrivacyConsent(ctx context.Context, userID uuid.UUID, re
 }
 
 // Refresh обменивает refresh-токен на новую пару токенов.
-func (s *Service) Refresh(ctx context.Context, req *RefreshRequest) (*AuthResponse, error) {
+func (s *Service) Refresh(ctx context.Context, req *RefreshRequest) (*Response, error) {
 	tokenHash := hashToken(req.RefreshToken)
 
 	rt, err := s.repo.GetRefreshToken(ctx, tokenHash)
@@ -208,7 +208,7 @@ func (s *Service) Refresh(ctx context.Context, req *RefreshRequest) (*AuthRespon
 		return nil, err
 	}
 
-	return &AuthResponse{
+	return &Response{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		User:         userToResponse(user),

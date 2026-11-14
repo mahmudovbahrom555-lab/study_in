@@ -95,7 +95,7 @@ func (h *Handler) markMany(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	out := make([]AttendanceResponse, len(list))
+	out := make([]Response, len(list))
 	for i, a := range list {
 		out[i] = toResponse(a)
 	}
@@ -143,7 +143,7 @@ func (h *Handler) listStudent(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	out := make([]AttendanceResponse, len(list))
+	out := make([]Response, len(list))
 	for i, a := range list {
 		out[i] = toResponse(a)
 	}

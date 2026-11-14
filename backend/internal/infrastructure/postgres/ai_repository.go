@@ -397,4 +397,3 @@ func (r *AITopicRepository) GetTopicsByQuestion(ctx context.Context, questionID 
 	}
 	return ids, nil
 }
-

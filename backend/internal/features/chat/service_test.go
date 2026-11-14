@@ -54,8 +54,10 @@ func (r *memRepo) List(_ context.Context, groupID uuid.UUID, _ *uuid.UUID, limit
 	return out, nil
 }
 
-func (r *memRepo) Get(_ context.Context, id uuid.UUID) (*domain.ChatMessage, error) { return r.msgs[id], nil }
-func (r *memRepo) Delete(_ context.Context, id uuid.UUID) error            { delete(r.msgs, id); return nil }
+func (r *memRepo) Get(_ context.Context, id uuid.UUID) (*domain.ChatMessage, error) {
+	return r.msgs[id], nil
+}
+func (r *memRepo) Delete(_ context.Context, id uuid.UUID) error { delete(r.msgs, id); return nil }
 func (r *memRepo) DeleteExpired(_ context.Context, now time.Time, _ int) (int, error) {
 	n := 0
 	for id, m := range r.msgs {

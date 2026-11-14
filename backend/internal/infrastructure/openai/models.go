@@ -2,12 +2,12 @@ package openai
 
 // Model identifiers used across the AI layer.
 const (
-	ModelGPT4oMini      = "gpt-4o-mini"
-	ModelGPT4o          = "gpt-4o"
-	ModelEmbedSmall     = "text-embedding-3-small"
-	ModelWhisper1       = "whisper-1"
-	ModelTTS1           = "tts-1"
-	ModelDallE3         = "dall-e-3"
+	ModelGPT4oMini  = "gpt-4o-mini"
+	ModelGPT4o      = "gpt-4o"
+	ModelEmbedSmall = "text-embedding-3-small"
+	ModelWhisper1   = "whisper-1"
+	ModelTTS1       = "tts-1"
+	ModelDallE3     = "dall-e-3"
 )
 
 // Cost per 1 million tokens in USD (as of mid-2025).

@@ -25,10 +25,13 @@ jobs:
           cache: true
           cache-dependency-path: backend/go.sum
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v4
+        # v2 of the linter: v1.64.8 (what "latest" resolved to under action v4)
+        # is built with Go 1.24 and refuses a go.mod that targets 1.25.
+        # Pinned, so a new release can't break CI on its own.
+        uses: golangci/golangci-lint-action@v8
         with:
           working-directory: backend
-          version: latest
+          version: v2.15.0
 
   test:
     name: Test

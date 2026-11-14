@@ -11,12 +11,12 @@ import (
 
 // Quality values passed to Update (mirrors SM-2 scale 0-5).
 const (
-	QualityBlackout  = 0 // complete blackout
-	QualityBad       = 1 // wrong but familiar on seeing answer
-	QualityFail      = 2 // wrong but easy to remember
-	QualityHard      = 3 // correct with difficulty
-	QualityGood      = 4 // correct after hesitation
-	QualityEasy      = 5 // perfect response
+	QualityBlackout = 0 // complete blackout
+	QualityBad      = 1 // wrong but familiar on seeing answer
+	QualityFail     = 2 // wrong but easy to remember
+	QualityHard     = 3 // correct with difficulty
+	QualityGood     = 4 // correct after hesitation
+	QualityEasy     = 5 // perfect response
 )
 
 // Update applies one SM-2 iteration to mastery.

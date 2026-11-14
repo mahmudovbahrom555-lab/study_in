@@ -71,7 +71,7 @@ func userToResponse(u *domain.User) UserResponse {
 	}
 }
 
-type AuthResponse struct {
+type Response struct {
 	AccessToken  string       `json:"access_token"`
 	RefreshToken string       `json:"refresh_token"`
 	User         UserResponse `json:"user"`

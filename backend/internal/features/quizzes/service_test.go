@@ -34,71 +34,134 @@ func newMemRepo() *memRepo {
 }
 
 func (r *memRepo) CreateQuiz(_ context.Context, q *domain.Quiz) error {
-	cp := *q; r.quizzes[q.ID] = &cp; return nil
+	cp := *q
+	r.quizzes[q.ID] = &cp
+	return nil
 }
 func (r *memRepo) GetQuizByID(_ context.Context, id uuid.UUID) (*domain.Quiz, error) {
-	q, ok := r.quizzes[id]; if !ok || q.DeletedAt != nil { return nil, nil }; cp := *q; return &cp, nil
+	q, ok := r.quizzes[id]
+	if !ok || q.DeletedAt != nil {
+		return nil, nil
+	}
+	cp := *q
+	return &cp, nil
 }
 func (r *memRepo) ListGroupQuizzes(_ context.Context, groupID uuid.UUID) ([]*domain.Quiz, error) {
 	var out []*domain.Quiz
 	for _, q := range r.quizzes {
-		if q.GroupID == groupID && q.DeletedAt == nil { cp := *q; out = append(out, &cp) }
+		if q.GroupID == groupID && q.DeletedAt == nil {
+			cp := *q
+			out = append(out, &cp)
+		}
 	}
 	return out, nil
 }
-func (r *memRepo) UpdateQuiz(_ context.Context, q *domain.Quiz) error { cp := *q; r.quizzes[q.ID] = &cp; return nil }
+func (r *memRepo) UpdateQuiz(_ context.Context, q *domain.Quiz) error {
+	cp := *q
+	r.quizzes[q.ID] = &cp
+	return nil
+}
 func (r *memRepo) SoftDeleteQuiz(_ context.Context, id uuid.UUID) error {
-	if q, ok := r.quizzes[id]; ok { now := time.Now(); q.DeletedAt = &now }; return nil
+	if q, ok := r.quizzes[id]; ok {
+		now := time.Now()
+		q.DeletedAt = &now
+	}
+	return nil
 }
 func (r *memRepo) PublishQuiz(_ context.Context, id uuid.UUID, published bool) error {
-	if q, ok := r.quizzes[id]; ok { q.IsPublished = published }; return nil
+	if q, ok := r.quizzes[id]; ok {
+		q.IsPublished = published
+	}
+	return nil
 }
 func (r *memRepo) CreateQuestion(_ context.Context, q *domain.Question) error {
-	cp := *q; r.questions[q.ID] = &cp; return nil
+	cp := *q
+	r.questions[q.ID] = &cp
+	return nil
 }
 func (r *memRepo) GetQuestion(_ context.Context, id uuid.UUID) (*domain.Question, error) {
-	q, ok := r.questions[id]; if !ok { return nil, nil }; cp := *q; return &cp, nil
+	q, ok := r.questions[id]
+	if !ok {
+		return nil, nil
+	}
+	cp := *q
+	return &cp, nil
 }
 func (r *memRepo) ListQuestions(_ context.Context, quizID uuid.UUID) ([]*domain.Question, error) {
 	var out []*domain.Question
-	for _, q := range r.questions { if q.QuizID == quizID { cp := *q; out = append(out, &cp) } }
+	for _, q := range r.questions {
+		if q.QuizID == quizID {
+			cp := *q
+			out = append(out, &cp)
+		}
+	}
 	return out, nil
 }
-func (r *memRepo) UpdateQuestion(_ context.Context, q *domain.Question) error { cp := *q; r.questions[q.ID] = &cp; return nil }
-func (r *memRepo) DeleteQuestion(_ context.Context, id uuid.UUID) error { delete(r.questions, id); return nil }
+func (r *memRepo) UpdateQuestion(_ context.Context, q *domain.Question) error {
+	cp := *q
+	r.questions[q.ID] = &cp
+	return nil
+}
+func (r *memRepo) DeleteQuestion(_ context.Context, id uuid.UUID) error {
+	delete(r.questions, id)
+	return nil
+}
 
 func (r *memRepo) CreateOption(_ context.Context, o *domain.Option) error {
-	cp := *o; r.options[o.ID] = &cp; return nil
+	cp := *o
+	r.options[o.ID] = &cp
+	return nil
 }
 func (r *memRepo) ListOptions(_ context.Context, questionID uuid.UUID) ([]*domain.Option, error) {
 	var out []*domain.Option
-	for _, o := range r.options { if o.QuestionID == questionID { cp := *o; out = append(out, &cp) } }
+	for _, o := range r.options {
+		if o.QuestionID == questionID {
+			cp := *o
+			out = append(out, &cp)
+		}
+	}
 	return out, nil
 }
-func (r *memRepo) DeleteOption(_ context.Context, id uuid.UUID) error { delete(r.options, id); return nil }
+func (r *memRepo) DeleteOption(_ context.Context, id uuid.UUID) error {
+	delete(r.options, id)
+	return nil
+}
 
 func (r *memRepo) CreateAttempt(_ context.Context, a *domain.QuizAttempt) error {
-	cp := *a; r.attempts[a.ID] = &cp; return nil
+	cp := *a
+	r.attempts[a.ID] = &cp
+	return nil
 }
 func (r *memRepo) GetAttempt(_ context.Context, id uuid.UUID) (*domain.QuizAttempt, error) {
-	a, ok := r.attempts[id]; if !ok { return nil, nil }; cp := *a; return &cp, nil
+	a, ok := r.attempts[id]
+	if !ok {
+		return nil, nil
+	}
+	cp := *a
+	return &cp, nil
 }
 func (r *memRepo) CountAttempts(_ context.Context, quizID, studentID uuid.UUID) (int, error) {
 	count := 0
 	for _, a := range r.attempts {
-		if a.QuizID == quizID && a.StudentID == studentID { count++ }
+		if a.QuizID == quizID && a.StudentID == studentID {
+			count++
+		}
 	}
 	return count, nil
 }
 func (r *memRepo) FinishAttempt(_ context.Context, id uuid.UUID, score, maxScore int16) error {
 	if a, ok := r.attempts[id]; ok {
-		now := time.Now(); a.FinishedAt = &now; a.Score = &score; a.MaxScore = maxScore
+		now := time.Now()
+		a.FinishedAt = &now
+		a.Score = &score
+		a.MaxScore = maxScore
 	}
 	return nil
 }
 func (r *memRepo) SaveAnswers(_ context.Context, ans []*domain.StudentAnswer) error {
 	for _, a := range ans {
-		cp := *a; r.answers[a.AttemptID] = append(r.answers[a.AttemptID], &cp)
+		cp := *a
+		r.answers[a.AttemptID] = append(r.answers[a.AttemptID], &cp)
 	}
 	return nil
 }
@@ -120,13 +183,22 @@ func newGroups(teacherID uuid.UUID) (*memGroups, uuid.UUID) {
 		members: make(map[string]struct{}),
 	}, gid
 }
-func (mg *memGroups) addMember(gid, sid uuid.UUID) { mg.members[gid.String()+":"+sid.String()] = struct{}{} }
+func (mg *memGroups) addMember(gid, sid uuid.UUID) {
+	mg.members[gid.String()+":"+sid.String()] = struct{}{}
+}
 func (mg *memGroups) GetGroupByID(_ context.Context, id uuid.UUID) (*domain.Group, error) {
-	g, ok := mg.groups[id]; if !ok { return nil, nil }; cp := *g; return &cp, nil
+	g, ok := mg.groups[id]
+	if !ok {
+		return nil, nil
+	}
+	cp := *g
+	return &cp, nil
 }
 func (mg *memGroups) GetMember(_ context.Context, gid, uid uuid.UUID) (*domain.GroupMember, error) {
 	_, ok := mg.members[gid.String()+":"+uid.String()]
-	if !ok { return nil, nil }
+	if !ok {
+		return nil, nil
+	}
 	return &domain.GroupMember{GroupID: gid, StudentID: uid}, nil
 }
 
@@ -324,7 +396,7 @@ func TestSubmitAttempt_ResultItems_Count(t *testing.T) {
 	// Answer only 2 out of 3 questions (one correct, one wrong uuid).
 	result, err := svc.SubmitAttempt(context.Background(), attempt.ID, studentID, quizzes.SubmitAnswersRequest{
 		Answers: map[string]string{
-			q1ID.String(): q1Opt.String(),    // correct
+			q1ID.String(): q1Opt.String(),      // correct
 			q2ID.String(): uuid.New().String(), // wrong option id
 		},
 	})
