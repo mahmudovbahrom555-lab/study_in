@@ -21,6 +21,12 @@ class AppConfig {
   /// Включён ли подробный логгинг.
   static bool get isDev => env == 'development';
 
+  /// OAuth-клиент Google типа «Web application» (тот же, что GOOGLE_CLIENT_ID
+  /// на сервере). Пусто — кнопка «Войти через Google» скрыта.
+  static const String googleClientId = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID',
+  );
+
   /// Куда слать краши (Sentry). Пусто — сбор выключен.
   static const String sentryDsn = String.fromEnvironment('SENTRY_DSN');
 

@@ -2,6 +2,7 @@ import '../../../core/storage/secure_storage.dart';
 import '../domain/entities/user.dart';
 import '../domain/repositories/auth_repository.dart';
 import 'auth_api.dart';
+import 'models/user_dto.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this._api, this._storage);
@@ -15,7 +16,17 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<({String accessToken, String refreshToken, User user, bool isNewUser})>
   verify(String phone, String code, {String deviceInfo = ''}) async {
-    final dto = await _api.verify(phone, code, deviceInfo: deviceInfo);
+    return _signedIn(await _api.verify(phone, code, deviceInfo: deviceInfo));
+  }
+
+  @override
+  Future<({String accessToken, String refreshToken, User user, bool isNewUser})>
+  googleSignIn(String idToken, {String deviceInfo = ''}) async {
+    return _signedIn(await _api.googleSignIn(idToken, deviceInfo: deviceInfo));
+  }
+
+  Future<({String accessToken, String refreshToken, User user, bool isNewUser})>
+  _signedIn(AuthResponseDto dto) async {
     await _storage.saveTokens(
       accessToken: dto.accessToken,
       refreshToken: dto.refreshToken,

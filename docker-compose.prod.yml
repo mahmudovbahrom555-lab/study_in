@@ -106,6 +106,7 @@ services:
       SMS_ESKIZ_FROM: ${SMS_ESKIZ_FROM:-4546}
       APP_MIN_VERSION: ${APP_MIN_VERSION:-0.0.0}
       APP_FEATURES: ${APP_FEATURES:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_FORMAT: json
       AUTO_MIGRATE: "true"
