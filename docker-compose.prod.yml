@@ -30,33 +30,41 @@ services:
       timeout: 5s
       retries: 10
 
-  minio:
-    image: minio/minio:latest
-    container_name: repetapp-minio
+  # minio/minio and quay.io/minio/minio were pulled from public Docker Hub/Quay in
+  # Sept 2026 — MinIO's free community images are no longer anonymously pullable.
+  # SeaweedFS (Apache 2.0, still on Docker Hub) serves the same S3 API as a drop-in
+  # replacement; MINIO_ROOT_USER/PASSWORD are reused as its S3 credentials.
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    container_name: repetapp-seaweedfs
     restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  minio-init:
-    image: minio/mc:latest
-    container_name: repetapp-minio-init
-    depends_on:
-      minio:
-        condition: service_healthy
     entrypoint: >
       /bin/sh -c "
-      mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD};
-      mc mb --ignore-existing local/${S3_BUCKET:-repetapp-files};
-      exit 0;
+      printf '{\"identities\":[{\"name\":\"repetapp\",\"credentials\":[{\"accessKey\":\"%s\",\"secretKey\":\"%s\"}],\"actions\":[\"Admin\",\"Read\",\"Write\"]}]}' \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\" > /tmp/s3.json &&
+      weed server -dir=/data -master -volume -filer -s3 -s3.port=9000 -s3.config=/tmp/s3.json -ip=seaweedfs
+      "
+    volumes:
+      - minio_data:/data
+
+  minio-init:
+    image: amazon/aws-cli:latest
+    container_name: repetapp-minio-init
+    depends_on:
+      - seaweedfs
+    environment:
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint: >
+      /bin/sh -c "
+      for i in $$(seq 1 30); do
+        aws --endpoint-url http://seaweedfs:9000 s3 mb s3://${S3_BUCKET:-repetapp-files} && exit 0;
+        sleep 2;
+      done;
+      exit 1;
       "
     # Bucket is private — files are accessible via signed URLs only (1h TTL).
 
@@ -86,7 +94,7 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_ACCESS_TTL_MINUTES: "15"
       JWT_REFRESH_TTL_DAYS: "30"
-      S3_ENDPOINT: minio:9000
+      S3_ENDPOINT: seaweedfs:9000
       S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       S3_BUCKET: ${S3_BUCKET:-repetapp-files}
