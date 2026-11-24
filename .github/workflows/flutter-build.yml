@@ -1,0 +1,39 @@
+name: Flutter Build (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: 'Backend API base URL'
+        required: true
+        default: 'https://api.mamu.education'
+
+jobs:
+  build:
+    name: Build web + APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.9'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+
+      - name: Build web
+        run: flutter build web --dart-define=API_BASE_URL=${{ inputs.api_base_url }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: flutter_app/build/web
+
+      - name: Build APK (release, unsigned)
+        run: flutter build apk --release --dart-define=API_BASE_URL=${{ inputs.api_base_url }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
