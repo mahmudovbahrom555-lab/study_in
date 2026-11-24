@@ -8,9 +8,9 @@ on:
         required: true
         default: 'https://api.mamu.education/api/v1'
       google_client_id:
-        description: 'Google OAuth Web client ID (empty = no Google button)'
+        description: 'Google OAuth Web client ID (public; empty = no Google button)'
         required: false
-        default: ''
+        default: '861962304134-2meell0ovqjnlj48cu8ukqnuf260if0g.apps.googleusercontent.com'
 
 jobs:
   build:
