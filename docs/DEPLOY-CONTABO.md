@@ -66,6 +66,13 @@ flutter build web --dart-define=API_BASE_URL=https://api.yourdomain.com   # ес
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 ```
 
+После изменения `deploy/Caddyfile` пересоздать Caddy: файл примонтирован по
+одному, а `git pull` заменяет его новым файлом, и запущенный контейнер его не видит.
+`--no-deps` — чтобы не перезапускать базу и API:
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --no-deps --force-recreate caddy
+```
+
 ## Примечания
 - Автодеплоя нет — всё руками через SSH (так и задумано, см. `AI_CONTEXT.md`).
 - `.env.prod` никогда не коммитить — только `.env.prod.example`.
