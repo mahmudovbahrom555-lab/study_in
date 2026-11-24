@@ -3,8 +3,17 @@
 }
 
 {$WEB_DOMAIN} {
-	root * /srv/web
-	try_files {path} /index.html
-	file_server
 	encode gzip
+
+	# Тестовые сборки APK: кладутся на сервер в ./downloads, вне web-сборки.
+	handle /downloads/* {
+		root * /srv
+		file_server
+	}
+
+	handle {
+		root * /srv/web
+		try_files {path} /index.html
+		file_server
+	}
 }

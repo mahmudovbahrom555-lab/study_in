@@ -132,6 +132,7 @@ services:
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile
       - ./flutter_app/build/web:/srv/web:ro
+      - ./downloads:/srv/downloads:ro
       - caddy_data:/data
       - caddy_config:/config
 

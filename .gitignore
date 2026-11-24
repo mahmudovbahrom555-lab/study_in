@@ -43,6 +43,8 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+# Тестовые APK на сервере (раздаёт Caddy)
+downloads/
 
 # Logs
 *.log
