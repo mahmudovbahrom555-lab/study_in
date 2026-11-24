@@ -45,6 +45,6 @@ type GroupMember struct {
 type GroupMemberDetail struct {
 	GroupMember
 	Name      string  `db:"name"`
-	Phone     string  `db:"phone"`
+	Phone     *string `db:"phone"`
 	AvatarURL *string `db:"avatar_url"`
 }

@@ -43,7 +43,9 @@ func (l Language) Valid() bool {
 
 type User struct {
 	ID             uuid.UUID  `db:"id"`
-	Phone          string     `db:"phone"`
+	Phone          *string    `db:"phone"` // nil у вошедших через Google
+	Email          *string    `db:"email"`
+	GoogleSub      *string    `db:"google_sub"`
 	Name           string     `db:"name"`
 	Role           *Role      `db:"role"`
 	AvatarURL      *string    `db:"avatar_url"`

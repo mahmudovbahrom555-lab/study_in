@@ -25,6 +25,16 @@ type VerifyRequest struct {
 	UserAgent string `json:"-"`
 }
 
+// GoogleSignInRequest — вход через Google: ID-токен, выданный Google клиенту.
+type GoogleSignInRequest struct {
+	IDToken        string `json:"id_token"        validate:"required"`
+	DeviceInfo     string `json:"device_info"`
+	PrivacyVersion string `json:"privacy_version" validate:"max=20"`
+
+	IP        string `json:"-"`
+	UserAgent string `json:"-"`
+}
+
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
@@ -52,6 +62,7 @@ type AddDeviceTokenRequest struct {
 type UserResponse struct {
 	ID        uuid.UUID    `json:"id"`
 	Phone     string       `json:"phone"`
+	Email     string       `json:"email,omitempty"`
 	Name      string       `json:"name"`
 	Role      *domain.Role `json:"role"`
 	AvatarURL *string      `json:"avatar_url"`
@@ -62,13 +73,21 @@ type UserResponse struct {
 func userToResponse(u *domain.User) UserResponse {
 	return UserResponse{
 		ID:        u.ID,
-		Phone:     u.Phone,
+		Phone:     deref(u.Phone),
+		Email:     deref(u.Email),
 		Name:      u.Name,
 		Role:      u.Role,
 		AvatarURL: u.AvatarURL,
 		Language:  string(u.Language),
 		IsActive:  u.IsActive,
 	}
+}
+
+func deref(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 type Response struct {

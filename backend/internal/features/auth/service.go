@@ -34,6 +34,13 @@ type Service struct {
 	limiter  Limiter
 	devCode  string // если задан — вместо случайного кода (только dev, см. config.validate)
 	consents ConsentRecorder
+	google   GoogleVerifier // nil — вход через Google выключен
+}
+
+// WithGoogleVerifier включает вход через Google.
+func (s *Service) WithGoogleVerifier(v GoogleVerifier) *Service {
+	s.google = v
+	return s
 }
 
 // ConsentRecorder пишет журнал согласий (consent_events).
@@ -119,9 +126,10 @@ func (s *Service) Verify(ctx context.Context, req *VerifyRequest) (*Response, er
 
 	isNewUser := user == nil
 	if isNewUser {
+		phone := req.Phone
 		user = &domain.User{
 			ID:        uuid.New(),
-			Phone:     req.Phone,
+			Phone:     &phone,
 			Name:      "",
 			Language:  domain.LanguageUz,
 			IsActive:  true,
@@ -131,14 +139,61 @@ func (s *Service) Verify(ctx context.Context, req *VerifyRequest) (*Response, er
 		if err := s.repo.CreateUser(ctx, user); err != nil {
 			return nil, fmt.Errorf("create user: %w", err)
 		}
-		s.recordPrivacyConsent(ctx, user.ID, req)
+		s.recordPrivacyConsent(ctx, user.ID, req.PrivacyVersion, req.IP, req.UserAgent)
 	}
 
-	accessToken, refreshToken, err := s.issueTokenPair(ctx, user, req.DeviceInfo)
+	return s.signIn(ctx, user, req.DeviceInfo, isNewUser)
+}
+
+// GoogleSignIn проверяет Google ID-токен и выдаёт токены. Создаёт пользователя
+// при первом входе; аккаунт связывается по sub, а не по email.
+func (s *Service) GoogleSignIn(ctx context.Context, req *GoogleSignInRequest) (*Response, error) {
+	if s.google == nil {
+		return nil, domain.NewError("GOOGLE_DISABLED", "Вход через Google не настроен", domain.ErrValidation)
+	}
+	id, err := s.google.Verify(ctx, req.IDToken)
+	if err != nil {
+		return nil, domain.NewError("GOOGLE_TOKEN_INVALID", "Недействительный токен Google", domain.ErrUnauthorized)
+	}
+
+	user, err := s.repo.GetUserByGoogleSub(ctx, id.Sub)
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+
+	isNewUser := user == nil
+	if isNewUser {
+		sub := id.Sub
+		user = &domain.User{
+			ID:        uuid.New(),
+			GoogleSub: &sub,
+			Name:      truncateRunes(id.Name, 100),
+			Language:  domain.LanguageUz,
+			IsActive:  true,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		if id.Email != "" {
+			email := id.Email
+			user.Email = &email
+		}
+		if err := s.repo.CreateUser(ctx, user); err != nil {
+			return nil, fmt.Errorf("create user: %w", err)
+		}
+		s.recordPrivacyConsent(ctx, user.ID, req.PrivacyVersion, req.IP, req.UserAgent)
+	}
+	if !user.IsActive {
+		return nil, domain.ErrUnauthorized
+	}
+
+	return s.signIn(ctx, user, req.DeviceInfo, isNewUser)
+}
+
+func (s *Service) signIn(ctx context.Context, user *domain.User, deviceInfo string, isNewUser bool) (*Response, error) {
+	accessToken, refreshToken, err := s.issueTokenPair(ctx, user, deviceInfo)
 	if err != nil {
 		return nil, err
 	}
-
 	return &Response{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -149,24 +204,24 @@ func (s *Service) Verify(ctx context.Context, req *VerifyRequest) (*Response, er
 
 // recordPrivacyConsent сохраняет, с какой версией политики человек согласился
 // при регистрации. Сбой записи не мешает входу — пишем в лог.
-func (s *Service) recordPrivacyConsent(ctx context.Context, userID uuid.UUID, req *VerifyRequest) {
-	if s.consents == nil || req.PrivacyVersion == "" {
+func (s *Service) recordPrivacyConsent(ctx context.Context, userID uuid.UUID, version, ip, userAgent string) {
+	if s.consents == nil || version == "" {
 		return
 	}
 	e := &domain.ConsentEvent{
 		ID:             uuid.New(),
 		UserID:         userID,
 		ConsentType:    ConsentPrivacyPolicy,
-		ConsentVersion: req.PrivacyVersion,
+		ConsentVersion: version,
 		Granted:        true,
 		CreatedAt:      time.Now(),
 	}
-	if ip := net.ParseIP(req.IP); ip != nil {
-		v := ip.String()
+	if parsed := net.ParseIP(ip); parsed != nil {
+		v := parsed.String()
 		e.IPAddress = &v
 	}
-	if req.UserAgent != "" {
-		ua := req.UserAgent
+	if userAgent != "" {
+		ua := userAgent
 		e.UserAgent = &ua
 	}
 	if err := s.consents.RecordConsent(ctx, e); err != nil {
@@ -338,6 +393,15 @@ func (s *Service) issueTokenPair(ctx context.Context, user *domain.User, deviceI
 // чтобы не платить за второй сегмент (проверяется в тесте).
 func verificationMessage(code string) string {
 	return fmt.Sprintf("%s — MaMu Learn code. Don't share it.\nНикому не сообщайте код.", code)
+}
+
+// truncateRunes обрезает имя под VARCHAR(100), не разрывая символ UTF-8.
+func truncateRunes(s string, n int) string {
+	r := []rune(s)
+	if len(r) <= n {
+		return s
+	}
+	return string(r[:n])
 }
 
 func generateCode(length int) (string, error) {
