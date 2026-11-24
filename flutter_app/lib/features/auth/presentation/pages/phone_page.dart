@@ -11,9 +11,11 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/localization/language_switcher.dart';
 import '../../../../core/network/error_message.dart';
 import '../../../../core/router/routes.dart';
+import '../../data/birth_year.dart';
 import '../../data/google_auth.dart';
 import '../after_sign_in.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/age_gate.dart';
 import '../widgets/google_button.dart';
 import '../widgets/phone_input.dart';
 import '../../../../core/localization/l10n.dart';
@@ -158,6 +160,19 @@ class _PhonePageState extends ConsumerState<PhonePage> {
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authProvider).isLoading;
+    final birthYear = ref.watch(birthYearProvider);
+    if (birthYear == null) {
+      return Scaffold(
+        body: SafeArea(
+          child: AgeGate(
+            onSelected: (y) => ref.read(birthYearProvider.notifier).select(y),
+          ),
+        ),
+      );
+    }
+    // Политика Google Play для семей: детям вход через Google не предлагаем.
+    final showGoogle =
+        GoogleAuth.instance.isConfigured && !isChildBirthYear(birthYear);
 
     return Scaffold(
       body: SafeArea(
@@ -206,7 +221,7 @@ class _PhonePageState extends ConsumerState<PhonePage> {
                       : Text(context.l10n.getCode),
                 ),
               ),
-              if (GoogleAuth.instance.isConfigured) ...[
+              if (showGoogle) ...[
                 const SizedBox(height: 16),
                 _OrDivider(label: context.l10n.orDivider),
                 const SizedBox(height: 16),
