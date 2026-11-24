@@ -1,0 +1,10 @@
+{$API_DOMAIN} {
+	reverse_proxy api:8080
+}
+
+{$WEB_DOMAIN} {
+	root * /srv/web
+	try_files {path} /index.html
+	file_server
+	encode gzip
+}
