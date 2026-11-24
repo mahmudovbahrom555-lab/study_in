@@ -61,6 +61,7 @@ services:
     entrypoint: >
       /bin/sh -c "
       for i in $$(seq 1 30); do
+        aws --endpoint-url http://seaweedfs:9000 s3api head-bucket --bucket ${S3_BUCKET:-repetapp-files} && exit 0;
         aws --endpoint-url http://seaweedfs:9000 s3 mb s3://${S3_BUCKET:-repetapp-files} && exit 0;
         sleep 2;
       done;
