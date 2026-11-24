@@ -135,6 +135,7 @@ services:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile
       - ./flutter_app/build/web:/srv/web:ro
       - ./downloads:/srv/downloads:ro
+      - ./deploy/site:/srv/site:ro
       - caddy_data:/data
       - caddy_config:/config
 

@@ -39,5 +39,5 @@ class AppConfig {
 
   /// Версия политики, с которой человек соглашается на экране входа.
   /// Меняется вместе с текстом политики — сервер хранит её в журнале согласий.
-  static const String privacyVersion = '2026-10-17';
+  static const String privacyVersion = '2026-11-24';
 }

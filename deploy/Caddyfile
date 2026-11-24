@@ -6,6 +6,13 @@
 	encode gzip
 
 	# Тестовые сборки APK: кладутся на сервер в ./downloads, вне web-сборки.
+	# Политика конфиденциальности — статическая страница вне Flutter-приложения.
+	handle /privacy {
+		rewrite * /privacy.html
+		root * /srv/site
+		file_server
+	}
+
 	handle /downloads/* {
 		root * /srv
 		file_server
