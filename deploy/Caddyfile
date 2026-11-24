@@ -6,9 +6,11 @@
 	encode gzip
 
 	# Тестовые сборки APK: кладутся на сервер в ./downloads, вне web-сборки.
-	# Политика конфиденциальности — статическая страница вне Flutter-приложения.
-	handle /privacy {
-		rewrite * /privacy.html
+	# Политика и удаление аккаунта — статические страницы вне Flutter-приложения
+	# (ссылки на них требует Google Play).
+	@site path /privacy /delete-account
+	handle @site {
+		rewrite * {path}.html
 		root * /srv/site
 		file_server
 	}
