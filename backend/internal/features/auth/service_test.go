@@ -35,9 +35,20 @@ func newMockRepo() *mockRepo {
 	}
 }
 
+// userKey — ключ в mockRepo.users: телефон или google:<sub>.
+func userKey(u *domain.User) string {
+	if u.Phone != nil {
+		return *u.Phone
+	}
+	return "google:" + *u.GoogleSub
+}
+
 func (m *mockRepo) CreateUser(_ context.Context, u *domain.User) error {
-	m.users[u.Phone] = u
+	m.users[userKey(u)] = u
 	return nil
+}
+func (m *mockRepo) GetUserByGoogleSub(_ context.Context, sub string) (*domain.User, error) {
+	return m.users["google:"+sub], nil
 }
 func (m *mockRepo) GetUserByID(_ context.Context, id uuid.UUID) (*domain.User, error) {
 	for _, u := range m.users {
@@ -51,7 +62,7 @@ func (m *mockRepo) GetUserByPhone(_ context.Context, phone string) (*domain.User
 	return m.users[phone], nil
 }
 func (m *mockRepo) UpdateUser(_ context.Context, u *domain.User) error {
-	m.users[u.Phone] = u
+	m.users[userKey(u)] = u
 	return nil
 }
 func (m *mockRepo) CreateVerificationCode(_ context.Context, phone, code string, exp time.Time) error {
@@ -206,7 +217,7 @@ func TestVerify_ExistingUser(t *testing.T) {
 	phone := "+998901234567"
 	role := domain.RoleTeacher
 	repo.users[phone] = &domain.User{
-		ID: uuid.New(), Phone: phone, Role: &role,
+		ID: uuid.New(), Phone: &phone, Role: &role,
 		Language: domain.LanguageUz, IsActive: true,
 	}
 
@@ -270,7 +281,7 @@ func TestSetRole_AlreadySet(t *testing.T) {
 	phone := "+998901234567"
 	role := domain.RoleStudent
 	repo.users[phone] = &domain.User{
-		ID: uuid.New(), Phone: phone, Role: &role,
+		ID: uuid.New(), Phone: &phone, Role: &role,
 		Language: domain.LanguageUz, IsActive: true,
 	}
 
@@ -286,7 +297,7 @@ func TestUpdateMe_Language(t *testing.T) {
 	svc := buildService(repo, smsMock, allowLimiter{})
 	phone := "+998901234567"
 	repo.users[phone] = &domain.User{
-		ID: uuid.New(), Phone: phone, Language: domain.LanguageUz, IsActive: true,
+		ID: uuid.New(), Phone: &phone, Language: domain.LanguageUz, IsActive: true,
 	}
 	id := repo.users[phone].ID
 
@@ -332,4 +343,56 @@ func TestRefresh_RevokedToken(t *testing.T) {
 	_, err := svc.Refresh(context.Background(), &auth.RefreshRequest{RefreshToken: first.RefreshToken})
 
 	require.Error(t, err)
+}
+
+// ─── Google sign-in ──────────────────────────────────────────────────────────
+
+type fakeGoogle struct {
+	id  *auth.GoogleIdentity
+	err error
+}
+
+func (f fakeGoogle) Verify(_ context.Context, _ string) (*auth.GoogleIdentity, error) {
+	return f.id, f.err
+}
+
+func TestGoogleSignIn_NewThenExistingUser(t *testing.T) {
+	repo := newMockRepo()
+	consents := &memConsents{}
+	svc := buildService(repo, &mockSMS{}, allowLimiter{}).
+		WithConsentRecorder(consents).
+		WithGoogleVerifier(fakeGoogle{id: &auth.GoogleIdentity{Sub: "1234", Email: "a@gmail.com", Name: "Ali"}})
+	req := &auth.GoogleSignInRequest{IDToken: "tok", PrivacyVersion: "2026-10-17"}
+
+	first, err := svc.GoogleSignIn(context.Background(), req)
+	require.NoError(t, err)
+	assert.True(t, first.IsNewUser)
+	assert.NotEmpty(t, first.AccessToken)
+	assert.Equal(t, "a@gmail.com", first.User.Email)
+	assert.Equal(t, "Ali", first.User.Name)
+	assert.Empty(t, first.User.Phone)
+	assert.Len(t, consents.events, 1)
+
+	second, err := svc.GoogleSignIn(context.Background(), req)
+	require.NoError(t, err)
+	assert.False(t, second.IsNewUser)
+	assert.Equal(t, first.User.ID, second.User.ID)
+	assert.Len(t, consents.events, 1)
+}
+
+func TestGoogleSignIn_InvalidToken(t *testing.T) {
+	svc := buildService(newMockRepo(), &mockSMS{}, allowLimiter{}).
+		WithGoogleVerifier(fakeGoogle{err: assert.AnError})
+
+	_, err := svc.GoogleSignIn(context.Background(), &auth.GoogleSignInRequest{IDToken: "bad"})
+
+	assert.ErrorIs(t, err, domain.ErrUnauthorized)
+}
+
+func TestGoogleSignIn_DisabledWithoutVerifier(t *testing.T) {
+	svc := buildService(newMockRepo(), &mockSMS{}, allowLimiter{})
+
+	_, err := svc.GoogleSignIn(context.Background(), &auth.GoogleSignInRequest{IDToken: "tok"})
+
+	assert.Error(t, err)
 }

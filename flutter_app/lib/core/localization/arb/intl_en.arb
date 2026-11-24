@@ -48,6 +48,8 @@
   "loginTitle": "Sign in",
   "loginSubtitle": "Enter your phone number and we'll send you a code",
   "getCode": "Get code",
+  "signInWithGoogle": "Sign in with Google",
+  "orDivider": "or",
   "phoneNumber": "Phone number",
   "enterCodeTitle": "Enter the code",
   "smsSentTo": "We sent an SMS to {phone}",

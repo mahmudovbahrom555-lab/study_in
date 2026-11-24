@@ -42,6 +42,15 @@ android {
     }
 
     signingConfigs {
+        // Постоянный ключ тестовых (debug) сборок: его SHA-1 зарегистрирован в
+        // Google Cloud для входа через Google. Иначе CI каждый раз создаёт новый
+        // ключ и вход ломается. Не секрет (пароль android), в Play не попадает.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (releaseSigningFile.isFile) {
             create("release") {
                 fun signingProperty(name: String): String =

@@ -12,3 +12,5 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+# Исключение: тестовый debug-ключ (не секрет, см. app/build.gradle.kts).
+!app/debug.keystore

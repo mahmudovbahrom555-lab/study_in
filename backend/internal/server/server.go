@@ -35,6 +35,7 @@ import (
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/parents"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/quizzes"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/reports"
+	googleinfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/google"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/minio"
 	openaiinfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/openai"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/postgres"
@@ -122,6 +123,11 @@ func (s *Server) setupRouter() {
 	authService := auth.NewService(authRepo, smsSender, jwtManager, rateLimiter).
 		WithDevCode(s.cfg.SMS.DevCode).
 		WithConsentRecorder(postgres.NewConsentRepository(s.db))
+	if s.cfg.Google.ClientID != "" {
+		authService.WithGoogleVerifier(googleinfra.NewVerifier(s.cfg.Google.ClientID))
+	} else {
+		s.log.Warn("GOOGLE_CLIENT_ID not set: Google sign-in disabled")
+	}
 	if s.cfg.SMS.DevCode != "" {
 		s.log.Warn("SMS_DEV_CODE enabled: fixed verification code for all phones (dev only)")
 	}

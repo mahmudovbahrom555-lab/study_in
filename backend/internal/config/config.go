@@ -26,6 +26,12 @@ type Config struct {
 	Log      LogConfig
 	AI       AIConfig
 	App      AppConfig
+	Google   GoogleConfig
+}
+
+// GoogleConfig — вход через Google. Пустой ClientID — вход выключен.
+type GoogleConfig struct {
+	ClientID string // GOOGLE_CLIENT_ID: OAuth-клиент «Web application»
 }
 
 // AppConfig — настройки мобильного приложения, меняются без релиза в стор.
@@ -221,6 +227,9 @@ func Load() (*Config, error) {
 		App: AppConfig{
 			MinVersion: v.GetString("APP_MIN_VERSION"),
 			Features:   splitList(v.GetString("APP_FEATURES")),
+		},
+		Google: GoogleConfig{
+			ClientID: v.GetString("GOOGLE_CLIENT_ID"),
 		},
 	}
 

@@ -6,6 +6,9 @@ abstract class AuthRepository {
   Future<({String accessToken, String refreshToken, User user, bool isNewUser})>
   verify(String phone, String code, {String deviceInfo});
 
+  Future<({String accessToken, String refreshToken, User user, bool isNewUser})>
+  googleSignIn(String idToken, {String deviceInfo});
+
   Future<({String accessToken, String refreshToken})> refresh(
     String refreshToken,
   );

@@ -30,6 +30,21 @@ class AuthApi {
     return AuthResponseDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }
 
+  Future<AuthResponseDto> googleSignIn(
+    String idToken, {
+    String deviceInfo = '',
+  }) async {
+    final resp = await _dio.post<Map<String, dynamic>>(
+      '/auth/google',
+      data: {
+        'id_token': idToken,
+        'device_info': deviceInfo,
+        'privacy_version': AppConfig.privacyVersion,
+      },
+    );
+    return AuthResponseDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
+  }
+
   Future<({String accessToken, String refreshToken})> refresh(
     String refreshToken,
   ) async {

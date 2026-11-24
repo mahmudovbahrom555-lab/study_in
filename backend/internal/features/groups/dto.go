@@ -74,10 +74,14 @@ func groupToResponse(g *domain.Group) GroupResponse {
 }
 
 func memberToResponse(m *domain.GroupMemberDetail) MemberResponse {
+	phone := ""
+	if m.Phone != nil {
+		phone = *m.Phone
+	}
 	return MemberResponse{
 		StudentID:     m.StudentID,
 		Name:          m.Name,
-		Phone:         m.Phone,
+		Phone:         phone,
 		AvatarURL:     m.AvatarURL,
 		JoinedAt:      m.JoinedAt,
 		PaymentStatus: m.PaymentStatus,

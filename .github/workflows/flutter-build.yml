@@ -7,6 +7,10 @@ on:
         description: 'Backend API URL (must include /api/v1)'
         required: true
         default: 'https://api.mamu.education/api/v1'
+      google_client_id:
+        description: 'Google OAuth Web client ID (empty = no Google button)'
+        required: false
+        default: ''
 
 jobs:
   build:
@@ -29,14 +33,14 @@ jobs:
       - run: flutter pub get
 
       - name: Build web
-        run: flutter build web --dart-define=API_URL=${{ inputs.api_url }} --dart-define=ENV=production
+        run: flutter build web --dart-define=API_URL=${{ inputs.api_url }} --dart-define=ENV=production --dart-define=GOOGLE_CLIENT_ID=${{ inputs.google_client_id }}
       - uses: actions/upload-artifact@v4
         with:
           name: web-build
           path: flutter_app/build/web
 
       - name: Build APK (debug, for phone testing — release needs a Play signing key, see android/key.properties)
-        run: flutter build apk --debug --dart-define=API_URL=${{ inputs.api_url }} --dart-define=ENV=production
+        run: flutter build apk --debug --dart-define=API_URL=${{ inputs.api_url }} --dart-define=ENV=production --dart-define=GOOGLE_CLIENT_ID=${{ inputs.google_client_id }}
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk

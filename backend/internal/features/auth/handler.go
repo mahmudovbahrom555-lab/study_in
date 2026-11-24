@@ -34,6 +34,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	// Public
 	r.Post("/auth/send-code", h.sendCode)
 	r.Post("/auth/verify", h.verify)
+	r.Post("/auth/google", h.googleSignIn)
 	r.Post("/auth/refresh", h.refresh)
 
 	// Protected
@@ -79,6 +80,26 @@ func (h *Handler) verify(w http.ResponseWriter, r *http.Request) {
 	req.IP = clientIP(r)
 	req.UserAgent = r.UserAgent()
 	result, err := h.service.Verify(r.Context(), &req)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+	response.OK(w, result)
+}
+
+func (h *Handler) googleSignIn(w http.ResponseWriter, r *http.Request) {
+	var req GoogleSignInRequest
+	if err := decode(r, &req); err != nil {
+		response.ErrorWithDetails(w, domain.ErrValidation, map[string]any{"parse": err.Error()})
+		return
+	}
+	if err := h.validate.Struct(&req); err != nil {
+		response.ErrorWithDetails(w, domain.ErrValidation, validationDetails(err))
+		return
+	}
+	req.IP = clientIP(r)
+	req.UserAgent = r.UserAgent()
+	result, err := h.service.GoogleSignIn(r.Context(), &req)
 	if err != nil {
 		response.Error(w, err)
 		return

@@ -26,8 +26,8 @@ func NewAuthRepository(db *sqlx.DB) *AuthRepository {
 
 func (r *AuthRepository) CreateUser(ctx context.Context, user *domain.User) error {
 	query := `
-		INSERT INTO users (id, phone, name, role, language, organization_id, is_active, created_at, updated_at)
-		VALUES (:id, :phone, :name, :role, :language, :organization_id, :is_active, :created_at, :updated_at)`
+		INSERT INTO users (id, phone, email, google_sub, name, role, language, organization_id, is_active, created_at, updated_at)
+		VALUES (:id, :phone, :email, :google_sub, :name, :role, :language, :organization_id, :is_active, :created_at, :updated_at)`
 	if _, err := r.db.NamedExecContext(ctx, query, user); err != nil {
 		return fmt.Errorf("create user: %w", err)
 	}
@@ -56,6 +56,19 @@ func (r *AuthRepository) GetUserByPhone(ctx context.Context, phone string) (*dom
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get user by phone: %w", err)
+	}
+	return &user, nil
+}
+
+func (r *AuthRepository) GetUserByGoogleSub(ctx context.Context, sub string) (*domain.User, error) {
+	var user domain.User
+	err := r.db.GetContext(ctx, &user,
+		`SELECT * FROM users WHERE google_sub = $1 AND deleted_at IS NULL`, sub)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get user by google sub: %w", err)
 	}
 	return &user, nil
 }

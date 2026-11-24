@@ -17,6 +17,7 @@ type Repository interface {
 	CreateUser(ctx context.Context, user *domain.User) error
 	GetUserByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
 	GetUserByPhone(ctx context.Context, phone string) (*domain.User, error)
+	GetUserByGoogleSub(ctx context.Context, sub string) (*domain.User, error)
 	UpdateUser(ctx context.Context, user *domain.User) error
 
 	// Verification codes
@@ -33,6 +34,18 @@ type Repository interface {
 
 	// Device tokens
 	UpsertDeviceToken(ctx context.Context, userID uuid.UUID, token, platform string) error
+}
+
+// GoogleIdentity — проверенные данные из Google ID-токена.
+type GoogleIdentity struct {
+	Sub   string
+	Email string
+	Name  string
+}
+
+// GoogleVerifier проверяет подпись, срок и audience Google ID-токена.
+type GoogleVerifier interface {
+	Verify(ctx context.Context, idToken string) (*GoogleIdentity, error)
 }
 
 // Limiter — абстракция rate-limiter для unit-тестируемости сервиса.

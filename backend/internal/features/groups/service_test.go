@@ -123,10 +123,11 @@ func (r *memRepo) ListMembers(_ context.Context, groupID uuid.UUID) ([]*domain.G
 	var out []*domain.GroupMemberDetail
 	for _, m := range r.members {
 		if m.GroupID == groupID {
+			phone := "+998901234567"
 			out = append(out, &domain.GroupMemberDetail{
 				GroupMember: *m,
 				Name:        "Test Student",
-				Phone:       "+998901234567",
+				Phone:       &phone,
 			})
 		}
 	}
