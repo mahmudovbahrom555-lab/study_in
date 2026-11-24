@@ -3,10 +3,10 @@ name: Flutter Build (manual)
 on:
   workflow_dispatch:
     inputs:
-      api_base_url:
-        description: 'Backend API base URL'
+      api_url:
+        description: 'Backend API URL (must include /api/v1)'
         required: true
-        default: 'https://api.mamu.education'
+        default: 'https://api.mamu.education/api/v1'
 
 jobs:
   build:
@@ -29,14 +29,14 @@ jobs:
       - run: flutter pub get
 
       - name: Build web
-        run: flutter build web --dart-define=API_BASE_URL=${{ inputs.api_base_url }}
+        run: flutter build web --dart-define=API_URL=${{ inputs.api_url }} --dart-define=ENV=production
       - uses: actions/upload-artifact@v4
         with:
           name: web-build
           path: flutter_app/build/web
 
       - name: Build APK (release, unsigned)
-        run: flutter build apk --release --dart-define=API_BASE_URL=${{ inputs.api_base_url }} --dart-define=ENV=production
+        run: flutter build apk --release --dart-define=API_URL=${{ inputs.api_url }} --dart-define=ENV=production
       - uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
