@@ -49,6 +49,8 @@
   "loginSubtitle": "Enter your phone number and we'll send you a code",
   "getCode": "Get code",
   "signInWithGoogle": "Sign in with Google",
+  "reactionUnderstood": "Got it",
+  "reactionQuestion": "I have a question",
   "orDivider": "or",
   "ageGateTitle": "Year of birth",
   "ageGateHint": "We use it to show the right ways to sign in",

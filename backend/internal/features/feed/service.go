@@ -68,7 +68,11 @@ func (s *Service) GetPost(ctx context.Context, postID, callerID uuid.UUID, role 
 	if err := s.assertVisible(ctx, p.GroupID, callerID, role); err != nil {
 		return nil, err
 	}
-	return &domain.PostWithMeta{Post: *p}, nil
+	out := []*domain.PostWithMeta{{Post: *p}}
+	if err := s.attachReactions(ctx, out); err != nil {
+		return nil, err
+	}
+	return out[0], nil
 }
 
 // ListPosts returns paginated posts for a group.
@@ -82,7 +86,70 @@ func (s *Service) ListPosts(ctx context.Context, groupID, callerID uuid.UUID, ro
 	if err != nil {
 		return nil, fmt.Errorf("feed.ListPosts: %w", err)
 	}
+	if err := s.attachReactions(ctx, posts); err != nil {
+		return nil, err
+	}
 	return posts, nil
+}
+
+// React ставит или меняет реакцию ученика на объявление.
+func (s *Service) React(ctx context.Context, postID, callerID uuid.UUID, role domain.Role, kind domain.ReactionKind) error {
+	if err := s.assertCanReact(ctx, postID, callerID, role); err != nil {
+		return err
+	}
+	if err := s.repo.SetReaction(ctx, postID, callerID, kind); err != nil {
+		return fmt.Errorf("feed.React: %w", err)
+	}
+	return nil
+}
+
+// Unreact снимает реакцию ученика.
+func (s *Service) Unreact(ctx context.Context, postID, callerID uuid.UUID, role domain.Role) error {
+	if err := s.assertCanReact(ctx, postID, callerID, role); err != nil {
+		return err
+	}
+	if err := s.repo.DeleteReaction(ctx, postID, callerID); err != nil {
+		return fmt.Errorf("feed.Unreact: %w", err)
+	}
+	return nil
+}
+
+// Реагируют только ученики класса: репетитор — автор объявлений, родитель —
+// наблюдатель.
+func (s *Service) assertCanReact(ctx context.Context, postID, callerID uuid.UUID, role domain.Role) error {
+	if role != domain.RoleStudent {
+		return domain.ErrForbidden
+	}
+	p, err := s.repo.GetPostByID(ctx, postID)
+	if err != nil {
+		return fmt.Errorf("feed.assertCanReact: %w", err)
+	}
+	if p == nil {
+		return domain.ErrNotFound
+	}
+	return s.assertVisible(ctx, p.GroupID, callerID, role)
+}
+
+func (s *Service) attachReactions(ctx context.Context, posts []*domain.PostWithMeta) error {
+	if len(posts) == 0 {
+		return nil
+	}
+	ids := make([]uuid.UUID, len(posts))
+	byID := make(map[uuid.UUID]*domain.PostWithMeta, len(posts))
+	for i, p := range posts {
+		ids[i] = p.ID
+		byID[p.ID] = p
+	}
+	reactions, err := s.repo.ListReactions(ctx, ids)
+	if err != nil {
+		return fmt.Errorf("feed.attachReactions: %w", err)
+	}
+	for _, r := range reactions {
+		if p := byID[r.PostID]; p != nil {
+			p.Reactions = append(p.Reactions, r)
+		}
+	}
+	return nil
 }
 
 // UpdatePost edits body or pinned flag (author only).

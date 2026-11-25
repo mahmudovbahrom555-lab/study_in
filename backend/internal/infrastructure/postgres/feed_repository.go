@@ -91,3 +91,43 @@ func (r *FeedRepository) PinPost(ctx context.Context, id uuid.UUID, pinned bool)
 	}
 	return nil
 }
+
+func (r *FeedRepository) SetReaction(ctx context.Context, postID, userID uuid.UUID, kind domain.ReactionKind) error {
+	_, err := r.db.ExecContext(ctx, `
+		INSERT INTO post_reactions (post_id, user_id, kind) VALUES ($1, $2, $3)
+		ON CONFLICT (post_id, user_id) DO UPDATE SET kind = EXCLUDED.kind, created_at = NOW()`,
+		postID, userID, kind)
+	if err != nil {
+		return fmt.Errorf("FeedRepository.SetReaction: %w", err)
+	}
+	return nil
+}
+
+func (r *FeedRepository) DeleteReaction(ctx context.Context, postID, userID uuid.UUID) error {
+	_, err := r.db.ExecContext(ctx,
+		`DELETE FROM post_reactions WHERE post_id=$1 AND user_id=$2`, postID, userID)
+	if err != nil {
+		return fmt.Errorf("FeedRepository.DeleteReaction: %w", err)
+	}
+	return nil
+}
+
+func (r *FeedRepository) ListReactions(ctx context.Context, postIDs []uuid.UUID) ([]domain.PostReaction, error) {
+	if len(postIDs) == 0 {
+		return nil, nil
+	}
+	q, args, err := sqlx.In(`
+		SELECT r.post_id, r.user_id, r.kind, u.name AS user_name
+		FROM post_reactions r
+		JOIN users u ON u.id = r.user_id
+		WHERE r.post_id IN (?)
+		ORDER BY r.created_at`, postIDs)
+	if err != nil {
+		return nil, fmt.Errorf("FeedRepository.ListReactions build: %w", err)
+	}
+	var out []domain.PostReaction
+	if err := r.db.SelectContext(ctx, &out, r.db.Rebind(q), args...); err != nil {
+		return nil, fmt.Errorf("FeedRepository.ListReactions: %w", err)
+	}
+	return out, nil
+}

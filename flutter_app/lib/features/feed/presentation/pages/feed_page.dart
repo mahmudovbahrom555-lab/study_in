@@ -59,7 +59,16 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     );
   }
 
+  Future<void> _react(String postId, String kind) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final error = await ref
+        .read(feedProvider(widget.groupId).notifier)
+        .toggleReaction(postId, kind);
+    if (error != null) messenger.showSnackBar(SnackBar(content: Text(error)));
+  }
+
   Widget _buildBody(dynamic feedState, String userId, bool isTeacher) {
+    final isStudent = ref.watch(authProvider).user?.isStudent ?? false;
     if (feedState.isLoading && feedState.posts.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -99,6 +108,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                       .read(feedProvider(widget.groupId).notifier)
                       .pinPost(post.id, pinned: !post.pinned)
                 : null,
+            onReact: isStudent ? (kind) => _react(post.id, kind) : null,
           );
         },
       ),

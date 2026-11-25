@@ -49,6 +49,8 @@
   "loginSubtitle": "Введите номер телефона — отправим код",
   "getCode": "Получить код",
   "signInWithGoogle": "Войти через Google",
+  "reactionUnderstood": "Понятно",
+  "reactionQuestion": "Есть вопрос",
   "orDivider": "или",
   "ageGateTitle": "Год рождения",
   "ageGateHint": "Нужен, чтобы показать подходящие способы входа",
