@@ -48,7 +48,8 @@ type User struct {
 	GoogleSub      *string    `db:"google_sub"`
 	Name           string     `db:"name"`
 	Role           *Role      `db:"role"`
-	AvatarURL      *string    `db:"avatar_url"`
+	AvatarURL      *string    `db:"avatar_url"` // ключ фото в хранилище, не ссылка
+	AvatarPreset   *string    `db:"avatar_preset"`
 	Language       Language   `db:"language"`
 	OrganizationID *uuid.UUID `db:"organization_id"`
 	IsActive       bool       `db:"is_active"`
@@ -89,4 +90,20 @@ type DeviceToken struct {
 	Platform  string    `db:"platform"`
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
+}
+
+// AvatarPresets — аватары-животные. Ученики выбирают только из них: фото
+// детей в системе не храним (политика Google Play для семей, модерация).
+var AvatarPresets = []string{
+	"fox", "panda", "koala", "lion", "tiger", "frog",
+	"monkey", "penguin", "bear", "rabbit", "cat", "dog",
+}
+
+func ValidAvatarPreset(p string) bool {
+	for _, v := range AvatarPresets {
+		if v == p {
+			return true
+		}
+	}
+	return false
 }

@@ -53,6 +53,7 @@ type MemberResponse struct {
 	Name          string               `json:"name"`
 	Phone         string               `json:"phone,omitempty"` // только репетитору группы
 	AvatarURL     *string              `json:"avatar_url"`
+	AvatarPreset  *string              `json:"avatar_preset"`
 	JoinedAt      time.Time            `json:"joined_at"`
 	PaymentStatus domain.PaymentStatus `json:"payment_status,omitempty"` // только репетитору группы
 	ChatMuted     bool                 `json:"chat_muted,omitempty"`     // только репетитору группы
@@ -82,7 +83,7 @@ func memberToResponse(m *domain.GroupMemberDetail) MemberResponse {
 		StudentID:     m.StudentID,
 		Name:          m.Name,
 		Phone:         phone,
-		AvatarURL:     m.AvatarURL,
+		AvatarPreset:  m.AvatarPreset,
 		JoinedAt:      m.JoinedAt,
 		PaymentStatus: m.PaymentStatus,
 		ChatMuted:     m.ChatMuted,

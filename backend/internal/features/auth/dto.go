@@ -52,6 +52,10 @@ type UpdateMeRequest struct {
 	Language *domain.Language `json:"language"` // проверяет сервис: domain.SupportedLanguages
 }
 
+type AvatarPresetRequest struct {
+	Preset string `json:"preset" validate:"required"`
+}
+
 type AddDeviceTokenRequest struct {
 	Token    string `json:"token"    validate:"required"`
 	Platform string `json:"platform" validate:"required,oneof=ios android"`
@@ -60,26 +64,27 @@ type AddDeviceTokenRequest struct {
 // --- Response DTOs ---
 
 type UserResponse struct {
-	ID        uuid.UUID    `json:"id"`
-	Phone     string       `json:"phone"`
-	Email     string       `json:"email,omitempty"`
-	Name      string       `json:"name"`
-	Role      *domain.Role `json:"role"`
-	AvatarURL *string      `json:"avatar_url"`
-	Language  string       `json:"language"`
-	IsActive  bool         `json:"is_active"`
+	ID           uuid.UUID    `json:"id"`
+	Phone        string       `json:"phone"`
+	Email        string       `json:"email,omitempty"`
+	Name         string       `json:"name"`
+	Role         *domain.Role `json:"role"`
+	AvatarURL    *string      `json:"avatar_url"` // подписанная ссылка на фото
+	AvatarPreset *string      `json:"avatar_preset"`
+	Language     string       `json:"language"`
+	IsActive     bool         `json:"is_active"`
 }
 
 func userToResponse(u *domain.User) UserResponse {
 	return UserResponse{
-		ID:        u.ID,
-		Phone:     deref(u.Phone),
-		Email:     deref(u.Email),
-		Name:      u.Name,
-		Role:      u.Role,
-		AvatarURL: u.AvatarURL,
-		Language:  string(u.Language),
-		IsActive:  u.IsActive,
+		ID:           u.ID,
+		Phone:        deref(u.Phone),
+		Email:        deref(u.Email),
+		Name:         u.Name,
+		Role:         u.Role,
+		AvatarPreset: u.AvatarPreset,
+		Language:     string(u.Language),
+		IsActive:     u.IsActive,
 	}
 }
 

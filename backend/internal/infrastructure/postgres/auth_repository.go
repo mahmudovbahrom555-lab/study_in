@@ -76,7 +76,8 @@ func (r *AuthRepository) GetUserByGoogleSub(ctx context.Context, sub string) (*d
 func (r *AuthRepository) UpdateUser(ctx context.Context, user *domain.User) error {
 	query := `
 		UPDATE users SET name = :name, role = :role, language = :language,
-		                 avatar_url = :avatar_url, updated_at = :updated_at
+		                 avatar_url = :avatar_url, avatar_preset = :avatar_preset,
+		                 updated_at = :updated_at
 		WHERE id = :id AND deleted_at IS NULL`
 	if _, err := r.db.NamedExecContext(ctx, query, user); err != nil {
 		return fmt.Errorf("update user: %w", err)
