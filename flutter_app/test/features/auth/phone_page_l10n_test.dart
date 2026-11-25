@@ -108,6 +108,23 @@ void main() {
     expect(find.text('Получить код'), findsOneWidget);
   });
 
+  testWidgets('маленький экран и крупный шрифт — без переполнения', (
+    tester,
+  ) async {
+    // Как телефон с открытой клавиатурой: по высоте остаётся мало места.
+    tester.view.physicalSize = const Size(360, 420);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    await _pump(tester, 'ru');
+
+    // Переполнение («BOTTOM OVERFLOWED») Flutter сообщает как исключение.
+    expect(tester.takeException(), isNull);
+    expect(find.text('Получить код'), findsOneWidget);
+  });
+
   test('младше 13 — по году рождения, с запасом в год', () {
     final now = DateTime(2026, 11, 24);
     expect(isChildBirthYear(2014, now: now), isTrue);

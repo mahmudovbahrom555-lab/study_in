@@ -46,8 +46,10 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
 
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        // Прокрутка — чтобы клавиатура не обрезала кнопку на маленьких телефонах.
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           child: Form(
             key: _formKey,
             child: Column(

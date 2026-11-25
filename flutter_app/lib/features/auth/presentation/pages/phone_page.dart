@@ -174,10 +174,13 @@ class _PhonePageState extends ConsumerState<PhonePage> {
     final showGoogle =
         GoogleAuth.instance.isConfigured && !isChildBirthYear(birthYear);
 
+    // Прокрутка: с открытой клавиатурой или крупным системным шрифтом экран
+    // не помещается, и без неё низ (вход через Google, согласие) обрезается.
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

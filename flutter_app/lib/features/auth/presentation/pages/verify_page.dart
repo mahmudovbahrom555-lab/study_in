@@ -44,8 +44,10 @@ class _VerifyPageState extends ConsumerState<VerifyPage> {
     return Scaffold(
       appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: SafeArea(
-        child: Padding(
+        // Прокрутка — чтобы клавиатура не обрезала экран на маленьких телефонах.
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -72,7 +74,7 @@ class _VerifyPageState extends ConsumerState<VerifyPage> {
               ),
               const SizedBox(height: 24),
               if (isLoading) const Center(child: CircularProgressIndicator()),
-              const Spacer(),
+              const SizedBox(height: 24),
               TextButton(
                 onPressed: () {
                   ref.read(authProvider.notifier).sendCode(widget.phone);
