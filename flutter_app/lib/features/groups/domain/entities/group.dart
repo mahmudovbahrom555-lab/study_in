@@ -66,12 +66,14 @@ class GroupMember {
     required this.joinedAt,
     required this.paymentStatus,
     this.avatarUrl,
+    this.avatarPreset,
   });
 
   final String studentId;
   final String name;
   final String phone;
   final String? avatarUrl;
+  final String? avatarPreset;
   final DateTime joinedAt;
   final PaymentStatus paymentStatus;
 }

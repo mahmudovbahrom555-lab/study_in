@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../../core/storage/secure_storage.dart';
 import '../domain/entities/user.dart';
 import '../domain/repositories/auth_repository.dart';
@@ -80,6 +82,23 @@ class AuthRepositoryImpl implements AuthRepository {
     final dto = await _api.updateMe(name: name, language: language);
     return dto.toEntity();
   }
+
+  @override
+  Future<User> uploadAvatar({
+    String? path,
+    Uint8List? bytes,
+    required String name,
+  }) async {
+    final dto = await _api.uploadAvatar(path: path, bytes: bytes, name: name);
+    return dto.toEntity();
+  }
+
+  @override
+  Future<User> setAvatarPreset(String preset) async =>
+      (await _api.setAvatarPreset(preset)).toEntity();
+
+  @override
+  Future<User> deleteAvatar() async => (await _api.deleteAvatar()).toEntity();
 
   @override
   Future<void> deleteAccount() async {

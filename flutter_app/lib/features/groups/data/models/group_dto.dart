@@ -56,6 +56,7 @@ class GroupMemberDto {
     // Телефон и оплату сервер отдаёт только репетитору группы.
     phone: json['phone'] as String? ?? '',
     avatarUrl: json['avatar_url'] as String?,
+    avatarPreset: json['avatar_preset'] as String?,
     joinedAt: DateTime.parse(json['joined_at'] as String),
     paymentStatus: PaymentStatus.fromJson(
       json['payment_status'] as String? ?? '',
@@ -69,12 +70,14 @@ class GroupMemberDto {
     required this.joinedAt,
     required this.paymentStatus,
     this.avatarUrl,
+    this.avatarPreset,
   });
 
   final String studentId;
   final String name;
   final String phone;
   final String? avatarUrl;
+  final String? avatarPreset;
   final DateTime joinedAt;
   final PaymentStatus paymentStatus;
 
@@ -83,6 +86,7 @@ class GroupMemberDto {
     name: name,
     phone: phone,
     avatarUrl: avatarUrl,
+    avatarPreset: avatarPreset,
     joinedAt: joinedAt,
     paymentStatus: paymentStatus,
   );

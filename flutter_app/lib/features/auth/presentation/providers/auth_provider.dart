@@ -178,6 +178,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Аватар: фото (только взрослые) или животное. Возвращают текст ошибки
+  /// или null при успехе.
+  Future<String?> uploadAvatar({
+    String? path,
+    Uint8List? bytes,
+    required String name,
+  }) => _avatar(_repo.uploadAvatar(path: path, bytes: bytes, name: name));
+
+  Future<String?> setAvatarPreset(String preset) =>
+      _avatar(_repo.setAvatarPreset(preset));
+
+  Future<String?> deleteAvatar() => _avatar(_repo.deleteAvatar());
+
+  Future<String?> _avatar(Future<User> request) async {
+    try {
+      final user = await request;
+      state = state.copyWith(user: user);
+      return null;
+    } catch (e) {
+      return _message(e);
+    }
+  }
+
   /// Меняет имя в профиле. Возвращает текст ошибки или null при успехе.
   Future<String?> rename(String name) async {
     try {

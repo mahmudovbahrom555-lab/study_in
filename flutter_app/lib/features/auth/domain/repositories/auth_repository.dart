@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../entities/user.dart';
 
 abstract class AuthRepository {
@@ -20,6 +22,17 @@ abstract class AuthRepository {
   Future<User> getMe();
 
   Future<User> updateMe({String? name, String? language});
+
+  /// Фото профиля: путь (телефон) или содержимое (веб).
+  Future<User> uploadAvatar({
+    String? path,
+    Uint8List? bytes,
+    required String name,
+  });
+
+  Future<User> setAvatarPreset(String preset);
+
+  Future<User> deleteAvatar();
 
   /// Удаляет аккаунт со всеми данными и стирает вход на устройстве.
   Future<void> deleteAccount();
