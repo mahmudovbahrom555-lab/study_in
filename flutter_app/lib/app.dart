@@ -18,6 +18,7 @@ class App extends ConsumerWidget {
     final router = ref.watch(routerProvider);
     final locale = ref.watch(localeProvider);
     ref.watch(languageSyncProvider);
+    ref.watch(sessionTabsSyncProvider);
 
     return MaterialApp.router(
       title: 'MaMu Learn',
