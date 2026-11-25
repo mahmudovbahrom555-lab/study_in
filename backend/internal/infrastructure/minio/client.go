@@ -53,7 +53,7 @@ func New(cfg config.S3Config) (*Client, error) {
 	if cfg.PublicEndpoint != "" && cfg.PublicEndpoint != cfg.Endpoint {
 		signer, err = minio.New(cfg.PublicEndpoint, &minio.Options{
 			Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
-			Secure: cfg.UseSSL,
+			Secure: cfg.PublicUseSSL,
 			Region: cfg.Region,
 		})
 		if err != nil {

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../domain/entities/assignment.dart';
@@ -41,16 +43,18 @@ class AssignmentsApi {
 
   /// Загружает файл для будущей сдачи. До сдачи он «ожидает» и через сутки
   /// удаляется сервером, если так и не попал в сдачу.
+  /// Файл передаётся путём (телефон) или содержимым (веб).
   Future<AttachedFile> uploadFile({
-    required String path,
+    String? path,
+    Uint8List? bytes,
     required String name,
     void Function(int sent, int total)? onProgress,
     CancelToken? cancelToken,
   }) async {
-    final form = FormData.fromMap({
-      'purpose': 'submission',
-      'file': await MultipartFile.fromFile(path, filename: name),
-    });
+    final file = bytes != null
+        ? MultipartFile.fromBytes(bytes, filename: name)
+        : await MultipartFile.fromFile(path!, filename: name);
+    final form = FormData.fromMap({'purpose': 'submission', 'file': file});
     final resp = await _dio.post<Map<String, dynamic>>(
       '/files',
       data: form,

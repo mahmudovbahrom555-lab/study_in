@@ -1,5 +1,13 @@
 {$API_DOMAIN} {
-	reverse_proxy api:8080
+	# Файлы по подписанным ссылкам (S3_PUBLIC_ENDPOINT = API-домен). Корзина
+	# приватная: без действующей подписи хранилище отказывает.
+	handle /{$S3_BUCKET}/* {
+		reverse_proxy seaweedfs:9000
+	}
+
+	handle {
+		reverse_proxy api:8080
+	}
 }
 
 {$WEB_DOMAIN} {
