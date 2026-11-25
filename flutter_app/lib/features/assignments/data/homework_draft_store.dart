@@ -20,7 +20,8 @@ class HiveHomeworkDraftStore implements HomeworkDraftStore {
   String? read(String key) => _box.get('hw_draft:$key') as String?;
 
   @override
-  Future<void> write(String key, String text) => _box.put('hw_draft:$key', text);
+  Future<void> write(String key, String text) =>
+      _box.put('hw_draft:$key', text);
 
   @override
   Future<void> clear(String key) => _box.delete('hw_draft:$key');
