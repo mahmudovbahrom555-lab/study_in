@@ -12,6 +12,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/localization/l10n.dart';
 import '../../../../core/network/error_message.dart';
 import '../../../../core/widgets/error_view.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../data/homework_draft_store.dart';
 import '../../domain/entities/assignment.dart';
 import '../../domain/entities/submission.dart';
 import '../providers/assignments_provider.dart';
@@ -70,14 +72,36 @@ class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
   Assignment get _a => widget.assignment;
   bool get _readOnly => _existing?.isGraded ?? false;
 
+  HomeworkDraftStore get _drafts => ref.read(homeworkDraftStoreProvider);
+
+  /// Черновик — свой у каждого аккаунта: устройство бывает общим.
+  String get _draftKey => '${ref.read(authProvider).user?.id}:${_a.id}';
+
+  /// Файлы, выбранные на этом экране и ещё не сданные (у уже сданных нет
+  /// ни пути, ни содержимого).
+  bool get _hasUnsentFiles =>
+      _slots.any((s) => s.path != null || s.bytes != null);
+
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  /// Текст отличается от сданного — сохраняем черновик, совпал — удаляем.
+  void _saveDraft() {
+    if (_readOnly) return;
+    final text = _comment.text;
+    if (text == (_existing?.comment ?? '')) {
+      _drafts.clear(_draftKey);
+    } else {
+      _drafts.write(_draftKey, text);
+    }
+  }
+
   @override
   void dispose() {
+    _comment.removeListener(_saveDraft);
     for (final s in _slots) {
       s.cancel?.cancel();
     }
@@ -95,9 +119,14 @@ class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
           .read(assignmentsRepositoryProvider)
           .mySubmission(_a.groupId, _a.id);
       if (!mounted) return;
+      final draft = _drafts.read(_draftKey);
       setState(() {
         _existing = sub;
-        _comment.text = sub?.comment ?? '';
+        _comment.removeListener(_saveDraft);
+        _comment.text = (!_readOnly && draft != null)
+            ? draft
+            : (sub?.comment ?? '');
+        _comment.addListener(_saveDraft);
         _slots
           ..clear()
           ..addAll((sub?.files ?? const []).map(_Slot.uploaded));
@@ -248,6 +277,7 @@ class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
             fileIds: ids,
           );
       ref.read(assignmentsProvider(_a.groupId).notifier).load();
+      await _drafts.clear(_draftKey);
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -262,8 +292,42 @@ class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
     }
   }
 
+  /// Выход с несданными файлами — спросить: их придётся выбрать заново.
+  /// Текст не теряется — он в черновике.
+  Future<void> _confirmLeave() async {
+    final l10n = context.l10n;
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.hwLeaveTitle),
+        content: Text(l10n.hwLeaveBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.hwLeaveStay),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.hwLeaveExit),
+          ),
+        ],
+      ),
+    );
+    if (leave == true && mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
+    return PopScope(
+      canPop: _sending || !_hasUnsentFiles,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmLeave();
+      },
+      child: _page(context),
+    );
+  }
+
+  Widget _page(BuildContext context) {
     final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(title: Text(_a.title)),
