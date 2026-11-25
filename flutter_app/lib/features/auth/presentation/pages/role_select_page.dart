@@ -15,16 +15,23 @@ class RoleSelectPage extends ConsumerWidget {
     final isLoading = ref.watch(authProvider).isLoading;
 
     Future<void> selectRole(String role) async {
-      await ref.read(authProvider.notifier).setRole(role);
-      if (!context.mounted) return;
-      final error = ref.read(authProvider).error;
-      if (error != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error)));
+      // Берём до ожидания: пока роль сохраняется, экран может пересоздаться,
+      // и переход через старый context молча терялся — человек оставался
+      // на выборе роли и нажимал её снова.
+      final router = GoRouter.of(context);
+      final messenger = ScaffoldMessenger.of(context);
+      final notifier = ref.read(authProvider.notifier);
+
+      final user = await notifier.setRole(role);
+      if (user == null) {
+        final error = notifier.lastError;
+        if (error != null) {
+          messenger.showSnackBar(SnackBar(content: Text(error)));
+        }
         return;
       }
-      context.go(Routes.profileSetup);
+      // Имя уже есть (например, из Google) — сразу на главный экран.
+      router.go(user.name.isEmpty ? Routes.profileSetup : Routes.home);
     }
 
     return Scaffold(

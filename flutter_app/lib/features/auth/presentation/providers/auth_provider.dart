@@ -8,6 +8,7 @@ import '../../../../core/network/error_message.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../../data/auth_api.dart';
 import '../../data/auth_repository_impl.dart';
+import '../../data/session_tabs.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 
@@ -128,14 +129,43 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> setRole(String role) async {
+  /// Сохраняет роль. Возвращает пользователя с ролью или null при ошибке
+  /// (текст — в state.error).
+  Future<User?> setRole(String role) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final user = await _repo.setRole(role);
       state = state.copyWith(isLoading: false, user: user);
+      return user;
+    } catch (e) {
+      if (!_isRoleAlreadySet(e)) {
+        state = state.copyWith(isLoading: false, error: _message(e));
+        return null;
+      }
+    }
+    // Роль уже сохранена (повторное нажатие, другая вкладка) — это не ошибка:
+    // берём её с сервера и перевыпускаем токен, в котором она записана.
+    try {
+      final refreshToken = await _storage.getRefreshToken();
+      if (refreshToken != null) await _repo.refresh(refreshToken);
+      final user = await _repo.getMe();
+      state = state.copyWith(isLoading: false, user: user);
+      return user;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _message(e));
+      return null;
     }
+  }
+
+  /// Текст последней ошибки — для экранов, которые уже не следят за state.
+  String? get lastError => state.error;
+
+  static bool _isRoleAlreadySet(Object e) {
+    if (e is! DioException) return false;
+    final data = e.response?.data;
+    if (data is! Map) return false;
+    final error = data['error'];
+    return error is Map && error['code'] == 'ROLE_ALREADY_SET';
   }
 
   Future<void> updateProfile({String? name, String? language}) async {
@@ -213,6 +243,17 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   );
   ref.listen(sessionExpiredProvider, (_, __) => notifier.sessionExpired());
   return notifier;
+});
+
+/// Веб: если в другой вкладке вошли в другой аккаунт или вышли — эта вкладка
+/// перезагружается. Подключён в App.
+final sessionTabsSyncProvider = Provider<void>((ref) {
+  onSessionUserChangedElsewhere((userId) {
+    if (userId != ref.read(authProvider).user?.id) reloadApp();
+  });
+  ref.listen(authProvider.select((s) => s.user?.id), (previous, id) {
+    if (previous != id) publishSessionUser(id);
+  });
 });
 
 /// Держит язык профиля на сервере равным языку интерфейса: после входа и при
