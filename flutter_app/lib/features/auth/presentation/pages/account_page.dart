@@ -39,11 +39,19 @@ class AccountPage extends ConsumerWidget {
             ),
             onTap: () => _editName(context, ref, user?.name ?? ''),
           ),
-          ListTile(
-            leading: const Icon(LucideIcons.phone),
-            title: Text(user?.phone ?? '—'),
-            subtitle: Text(l10n.phoneNumber),
-          ),
+          // Вошедшие через Google телефона не указывали — показываем их email.
+          if (user != null && user.phone.isEmpty && user.email.isNotEmpty)
+            ListTile(
+              leading: const Icon(LucideIcons.mail),
+              title: Text(user.email),
+              subtitle: Text(l10n.emailLabel),
+            )
+          else
+            ListTile(
+              leading: const Icon(LucideIcons.phone),
+              title: Text(user?.phone ?? '—'),
+              subtitle: Text(l10n.phoneNumber),
+            ),
           ListTile(
             leading: const Icon(LucideIcons.idCard),
             title: Text(_roleName(l10n, user?.role)),
