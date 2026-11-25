@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/colors.dart';
+import '../../../../core/widgets/user_avatar.dart';
 import '../../domain/entities/group.dart';
 import '../../../../core/localization/l10n.dart';
 
@@ -22,13 +23,10 @@ class MemberTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: CircleAvatar(
-        backgroundImage: member.avatarUrl != null
-            ? NetworkImage(member.avatarUrl!)
-            : null,
-        child: member.avatarUrl == null
-            ? Text(member.name.substring(0, 1).toUpperCase())
-            : null,
+      leading: UserAvatar(
+        name: member.name,
+        avatarUrl: member.avatarUrl,
+        avatarPreset: member.avatarPreset,
       ),
       title: Text(member.name),
       // Телефон и оплату ученика видит только репетитор (сервер одноклассникам их не отдаёт).

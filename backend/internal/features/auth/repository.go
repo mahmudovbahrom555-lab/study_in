@@ -3,6 +3,7 @@ package auth
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"github.com/google/uuid"
@@ -51,4 +52,11 @@ type GoogleVerifier interface {
 // Limiter — абстракция rate-limiter для unit-тестируемости сервиса.
 type Limiter interface {
 	Allow(ctx context.Context, key string, limit int, window time.Duration) error
+}
+
+// AvatarStorage — хранилище фото профиля (то же, что у файлов заданий).
+type AvatarStorage interface {
+	PutObject(ctx context.Context, key string, r io.Reader, size int64, contentType string) error
+	RemoveObject(ctx context.Context, key string) error
+	PresignedGetURL(ctx context.Context, objectKey, filename string) (string, error)
 }

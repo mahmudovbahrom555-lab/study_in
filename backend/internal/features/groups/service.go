@@ -20,8 +20,9 @@ const safeAlphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 const inviteCodeLen = 8
 
 type Service struct {
-	repo   Repository
-	unread UnreadCounter
+	repo    Repository
+	unread  UnreadCounter
+	avatars AvatarSigner
 }
 
 // UnreadCounter — непрочитанные сообщения чата по классам (модуль chat).
@@ -34,6 +35,17 @@ func NewService(repo Repository) *Service {
 }
 
 // WithUnread добавляет число непрочитанных сообщений в список классов.
+// AvatarSigner подписывает ссылки на фото профиля (ключ наружу не отдаём).
+type AvatarSigner interface {
+	PresignedGetURL(ctx context.Context, objectKey, filename string) (string, error)
+}
+
+// WithAvatarSigner включает фото участников в списке.
+func (s *Service) WithAvatarSigner(a AvatarSigner) *Service {
+	s.avatars = a
+	return s
+}
+
 func (s *Service) WithUnread(u UnreadCounter) *Service {
 	s.unread = u
 	return s
@@ -269,6 +281,7 @@ func (s *Service) ListMembers(ctx context.Context, groupID, callerID uuid.UUID, 
 	out := make([]MemberResponse, len(members))
 	for i, m := range members {
 		out[i] = memberToResponse(m)
+		out[i].AvatarURL = s.signAvatar(ctx, m.AvatarURL)
 		if !isOwner {
 			out[i].Phone = ""
 			out[i].PaymentStatus = ""
@@ -388,4 +401,15 @@ func nilIfBlank(s string) *string {
 		return nil
 	}
 	return &s
+}
+
+func (s *Service) signAvatar(ctx context.Context, key *string) *string {
+	if key == nil || s.avatars == nil {
+		return nil
+	}
+	url, err := s.avatars.PresignedGetURL(ctx, *key, "")
+	if err != nil {
+		return nil
+	}
+	return &url
 }

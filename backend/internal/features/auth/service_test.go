@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"context"
+	"io"
 	"testing"
 	"time"
 
@@ -395,4 +396,100 @@ func TestGoogleSignIn_DisabledWithoutVerifier(t *testing.T) {
 	_, err := svc.GoogleSignIn(context.Background(), &auth.GoogleSignInRequest{IDToken: "tok"})
 
 	assert.Error(t, err)
+}
+
+// ─── Avatars ─────────────────────────────────────────────────────────────────
+
+type memAvatars struct {
+	objects map[string][]byte
+	removed []string
+}
+
+func (m *memAvatars) PutObject(_ context.Context, key string, r io.Reader, _ int64, _ string) error {
+	b, _ := io.ReadAll(r)
+	m.objects[key] = b
+	return nil
+}
+
+func (m *memAvatars) RemoveObject(_ context.Context, key string) error {
+	delete(m.objects, key)
+	m.removed = append(m.removed, key)
+	return nil
+}
+
+func (m *memAvatars) PresignedGetURL(_ context.Context, key, _ string) (string, error) {
+	return "https://signed/" + key, nil
+}
+
+var pngBytes = []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
+
+func avatarSetup(role domain.Role) (*auth.Service, *mockRepo, *memAvatars, uuid.UUID) {
+	repo := newMockRepo()
+	phone := "+998901111111"
+	id := uuid.New()
+	repo.users[phone] = &domain.User{ID: id, Phone: &phone, Role: &role, IsActive: true}
+	store := &memAvatars{objects: map[string][]byte{}}
+	svc := buildService(repo, &mockSMS{}, allowLimiter{}).WithAvatarStorage(store)
+	return svc, repo, store, id
+}
+
+func TestUploadAvatar_StudentGetsPresetsOnly(t *testing.T) {
+	svc, _, store, id := avatarSetup(domain.RoleStudent)
+
+	_, err := svc.UploadAvatar(context.Background(), id, pngBytes)
+
+	assert.ErrorIs(t, err, domain.ErrForbidden)
+	assert.Empty(t, store.objects)
+}
+
+func TestUploadAvatar_TeacherPhotoReplacesOldAndPreset(t *testing.T) {
+	svc, _, store, id := avatarSetup(domain.RoleTeacher)
+	ctx := context.Background()
+
+	_, err := svc.SetAvatarPreset(ctx, id, "fox")
+	require.NoError(t, err)
+	first, err := svc.UploadAvatar(ctx, id, pngBytes)
+	require.NoError(t, err)
+	require.NotNil(t, first.AvatarURL)
+	assert.Contains(t, *first.AvatarURL, "https://signed/avatars/"+id.String()+"/")
+	assert.Nil(t, first.AvatarPreset)
+
+	second, err := svc.UploadAvatar(ctx, id, pngBytes)
+	require.NoError(t, err)
+	assert.NotEqual(t, *first.AvatarURL, *second.AvatarURL)
+	assert.Len(t, store.objects, 1, "old photo removed")
+}
+
+func TestUploadAvatar_RejectsNonImageAndTooLarge(t *testing.T) {
+	svc, _, _, id := avatarSetup(domain.RoleParent)
+	ctx := context.Background()
+
+	_, err := svc.UploadAvatar(ctx, id, []byte("not an image at all"))
+	assert.ErrorIs(t, err, domain.ErrValidation)
+
+	big := append(append([]byte{}, pngBytes...), make([]byte, auth.MaxAvatarSize)...)
+	_, err = svc.UploadAvatar(ctx, id, big)
+	assert.ErrorIs(t, err, domain.ErrValidation)
+}
+
+func TestAvatarPreset_ValidatesAndDeleteClears(t *testing.T) {
+	svc, _, store, id := avatarSetup(domain.RoleTeacher)
+	ctx := context.Background()
+
+	_, err := svc.SetAvatarPreset(ctx, id, "dragon")
+	assert.ErrorIs(t, err, domain.ErrValidation)
+
+	_, err = svc.UploadAvatar(ctx, id, pngBytes)
+	require.NoError(t, err)
+	withPreset, err := svc.SetAvatarPreset(ctx, id, "panda")
+	require.NoError(t, err)
+	require.NotNil(t, withPreset.AvatarPreset)
+	assert.Equal(t, "panda", *withPreset.AvatarPreset)
+	assert.Nil(t, withPreset.AvatarURL)
+	assert.Empty(t, store.objects, "photo removed when an animal is chosen")
+
+	cleared, err := svc.DeleteAvatar(ctx, id)
+	require.NoError(t, err)
+	assert.Nil(t, cleared.AvatarPreset)
+	assert.Nil(t, cleared.AvatarURL)
 }

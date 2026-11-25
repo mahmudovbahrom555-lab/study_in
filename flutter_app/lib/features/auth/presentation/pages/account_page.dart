@@ -12,7 +12,9 @@ import '../../../../core/localization/language_switcher.dart';
 import '../../../../core/network/error_message.dart';
 import '../../../groups/presentation/providers/groups_provider.dart';
 import '../../../parents/presentation/providers/parents_provider.dart';
+import '../../../../core/widgets/user_avatar.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/avatar_editor.dart';
 
 /// Аккаунт: кто вошёл, язык интерфейса и выход.
 class AccountPage extends ConsumerWidget {
@@ -28,6 +30,22 @@ class AccountPage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          ListTile(
+            leading: UserAvatar(
+              name: user?.name ?? '',
+              avatarUrl: user?.avatarUrl,
+              avatarPreset: user?.avatarPreset,
+              radius: 24,
+            ),
+            title: Text(l10n.avatarTitle),
+            subtitle: Text(
+              user?.isStudent ?? false
+                  ? l10n.avatarHintStudent
+                  : l10n.avatarHintAdult,
+            ),
+            trailing: const Icon(LucideIcons.pencil, size: 18),
+            onTap: () => showAvatarEditor(context),
+          ),
           ListTile(
             leading: const Icon(LucideIcons.user),
             title: Text(user?.name.isNotEmpty == true ? user!.name : '—'),

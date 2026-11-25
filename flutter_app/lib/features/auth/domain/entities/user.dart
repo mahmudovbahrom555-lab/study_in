@@ -6,6 +6,7 @@ class User {
     required this.name,
     this.role,
     this.avatarUrl,
+    this.avatarPreset,
     required this.language,
     required this.isActive,
   });
@@ -18,6 +19,9 @@ class User {
   final String name;
   final String? role;
   final String? avatarUrl;
+
+  /// Аватар-животное ('fox', 'panda'…); у учеников — вместо фото.
+  final String? avatarPreset;
   final String language;
   final bool isActive;
 
@@ -39,6 +43,7 @@ class User {
       name: name ?? this.name,
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      avatarPreset: avatarPreset,
       language: language ?? this.language,
       isActive: isActive,
     );

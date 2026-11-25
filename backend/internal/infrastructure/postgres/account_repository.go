@@ -52,7 +52,9 @@ func (r *AccountRepository) DeleteUser(ctx context.Context, userID uuid.UUID) ([
 		JOIN groups g ON g.id = a.group_id
 		WHERE g.teacher_id = $1
 		UNION
-		SELECT object_key FROM ai_documents WHERE teacher_id = $1`, userID); err != nil {
+		SELECT object_key FROM ai_documents WHERE teacher_id = $1
+		UNION
+		SELECT avatar_url FROM users WHERE id = $1 AND avatar_url IS NOT NULL`, userID); err != nil {
 		return nil, fmt.Errorf("AccountRepository.DeleteUser keys: %w", err)
 	}
 

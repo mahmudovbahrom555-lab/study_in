@@ -154,6 +154,8 @@ func (s *Server) setupRouter() {
 	if minioClient != nil {
 		minioSigner = minioClient
 		minioStore = minioClient
+		authService.WithAvatarStorage(minioClient)
+		groupService.WithAvatarSigner(minioClient)
 	} else {
 		minioSigner = noopSigner{}
 		minioStore = noopStore{}

@@ -161,7 +161,8 @@ func (r *GroupRepository) ListMembers(ctx context.Context, groupID uuid.UUID) ([
 			gm.chat_muted,
 			u.name,
 			u.phone,
-			u.avatar_url
+			u.avatar_url,
+			u.avatar_preset
 		FROM group_members gm
 		JOIN users u ON u.id = gm.student_id
 		WHERE gm.group_id=$1 AND u.deleted_at IS NULL

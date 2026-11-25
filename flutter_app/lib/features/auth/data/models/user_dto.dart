@@ -8,6 +8,7 @@ class UserDto {
     required this.name,
     this.role,
     this.avatarUrl,
+    this.avatarPreset,
     required this.language,
     required this.isActive,
   });
@@ -20,6 +21,7 @@ class UserDto {
       name: (json['name'] as String?) ?? '',
       role: json['role'] as String?,
       avatarUrl: json['avatar_url'] as String?,
+      avatarPreset: json['avatar_preset'] as String?,
       language: (json['language'] as String?) ?? 'uz',
       isActive: (json['is_active'] as bool?) ?? true,
     );
@@ -31,6 +33,7 @@ class UserDto {
   final String name;
   final String? role;
   final String? avatarUrl;
+  final String? avatarPreset;
   final String language;
   final bool isActive;
 
@@ -41,6 +44,7 @@ class UserDto {
     name: name,
     role: role,
     avatarUrl: avatarUrl,
+    avatarPreset: avatarPreset,
     language: language,
     isActive: isActive,
   );

@@ -44,7 +44,8 @@ type GroupMember struct {
 // GroupMemberDetail — GroupMember + данные пользователя (для списка участников).
 type GroupMemberDetail struct {
 	GroupMember
-	Name      string  `db:"name"`
-	Phone     *string `db:"phone"`
-	AvatarURL *string `db:"avatar_url"`
+	Name         string  `db:"name"`
+	Phone        *string `db:"phone"`
+	AvatarURL    *string `db:"avatar_url"`
+	AvatarPreset *string `db:"avatar_preset"`
 }

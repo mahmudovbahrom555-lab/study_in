@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -9,6 +10,7 @@ import (
 	"log/slog"
 	"math/big"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,6 +37,13 @@ type Service struct {
 	devCode  string // если задан — вместо случайного кода (только dev, см. config.validate)
 	consents ConsentRecorder
 	google   GoogleVerifier // nil — вход через Google выключен
+	avatars  AvatarStorage  // nil — загрузка фото выключена
+}
+
+// WithAvatarStorage включает фото профиля.
+func (s *Service) WithAvatarStorage(a AvatarStorage) *Service {
+	s.avatars = a
+	return s
 }
 
 // WithGoogleVerifier включает вход через Google.
@@ -197,7 +206,7 @@ func (s *Service) signIn(ctx context.Context, user *domain.User, deviceInfo stri
 	return &Response{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		User:         userToResponse(user),
+		User:         s.userResponse(ctx, user),
 		IsNewUser:    isNewUser,
 	}, nil
 }
@@ -266,7 +275,7 @@ func (s *Service) Refresh(ctx context.Context, req *RefreshRequest) (*Response, 
 	return &Response{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		User:         userToResponse(user),
+		User:         s.userResponse(ctx, user),
 	}, nil
 }
 
@@ -298,7 +307,7 @@ func (s *Service) SetRole(ctx context.Context, userID uuid.UUID, req *SetRoleReq
 		return nil, fmt.Errorf("update user: %w", err)
 	}
 
-	resp := userToResponse(user)
+	resp := s.userResponse(ctx, user)
 	return &resp, nil
 }
 
@@ -311,7 +320,7 @@ func (s *Service) GetMe(ctx context.Context, userID uuid.UUID) (*UserResponse, e
 	if user == nil {
 		return nil, domain.ErrNotFound
 	}
-	resp := userToResponse(user)
+	resp := s.userResponse(ctx, user)
 	return &resp, nil
 }
 
@@ -340,7 +349,7 @@ func (s *Service) UpdateMe(ctx context.Context, userID uuid.UUID, req *UpdateMeR
 		return nil, fmt.Errorf("update user: %w", err)
 	}
 
-	resp := userToResponse(user)
+	resp := s.userResponse(ctx, user)
 	return &resp, nil
 }
 
@@ -430,4 +439,115 @@ func generateRawToken() (string, error) {
 func hashToken(token string) string {
 	h := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(h[:])
+}
+
+// MaxAvatarSize — лимит фото профиля.
+const MaxAvatarSize = 2 << 20
+
+var avatarTypes = map[string]string{
+	"image/jpeg": ".jpg",
+	"image/png":  ".png",
+	"image/webp": ".webp",
+}
+
+// UploadAvatar сохраняет фото профиля. Только репетитор и родитель: ученики
+// (среди них дети) выбирают животное — фото детей мы не храним.
+func (s *Service) UploadAvatar(ctx context.Context, userID uuid.UUID, data []byte) (*UserResponse, error) {
+	if s.avatars == nil {
+		return nil, domain.NewError("STORAGE_DISABLED", "Загрузка фото недоступна", domain.ErrValidation)
+	}
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+	if user == nil {
+		return nil, domain.ErrNotFound
+	}
+	if user.Role == nil || *user.Role == domain.RoleStudent {
+		return nil, domain.NewError("AVATAR_PRESET_ONLY", "Ученики выбирают аватар из набора", domain.ErrForbidden)
+	}
+	if len(data) > MaxAvatarSize {
+		return nil, domain.NewError("AVATAR_TOO_LARGE", "Фото больше 2 МБ", domain.ErrValidation)
+	}
+	contentType := http.DetectContentType(data)
+	ext, ok := avatarTypes[contentType]
+	if !ok {
+		return nil, domain.NewError("AVATAR_BAD_TYPE", "Нужна картинка JPEG, PNG или WebP", domain.ErrValidation)
+	}
+
+	key := fmt.Sprintf("avatars/%s/%s%s", userID, uuid.New(), ext)
+	if err := s.avatars.PutObject(ctx, key, bytes.NewReader(data), int64(len(data)), contentType); err != nil {
+		return nil, fmt.Errorf("put avatar: %w", err)
+	}
+	old := user.AvatarURL
+	user.AvatarURL = &key
+	user.AvatarPreset = nil
+	if err := s.saveAvatar(ctx, user); err != nil {
+		s.removeAvatarObject(ctx, &key)
+		return nil, err
+	}
+	s.removeAvatarObject(ctx, old)
+	resp := s.userResponse(ctx, user)
+	return &resp, nil
+}
+
+// SetAvatarPreset выбирает аватар-животное (любая роль); фото удаляется.
+func (s *Service) SetAvatarPreset(ctx context.Context, userID uuid.UUID, preset string) (*UserResponse, error) {
+	if !domain.ValidAvatarPreset(preset) {
+		return nil, domain.NewError("AVATAR_PRESET_UNKNOWN", "Нет такого аватара", domain.ErrValidation)
+	}
+	return s.replaceAvatar(ctx, userID, &preset)
+}
+
+// DeleteAvatar убирает и фото, и животное.
+func (s *Service) DeleteAvatar(ctx context.Context, userID uuid.UUID) (*UserResponse, error) {
+	return s.replaceAvatar(ctx, userID, nil)
+}
+
+func (s *Service) replaceAvatar(ctx context.Context, userID uuid.UUID, preset *string) (*UserResponse, error) {
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+	if user == nil {
+		return nil, domain.ErrNotFound
+	}
+	old := user.AvatarURL
+	user.AvatarURL = nil
+	user.AvatarPreset = preset
+	if err := s.saveAvatar(ctx, user); err != nil {
+		return nil, err
+	}
+	s.removeAvatarObject(ctx, old)
+	resp := s.userResponse(ctx, user)
+	return &resp, nil
+}
+
+func (s *Service) saveAvatar(ctx context.Context, user *domain.User) error {
+	user.UpdatedAt = time.Now()
+	if err := s.repo.UpdateUser(ctx, user); err != nil {
+		return fmt.Errorf("update user: %w", err)
+	}
+	return nil
+}
+
+// removeAvatarObject удаляет прежнее фото; сбой не мешает — пишем в лог.
+func (s *Service) removeAvatarObject(ctx context.Context, key *string) {
+	if key == nil || s.avatars == nil {
+		return
+	}
+	if err := s.avatars.RemoveObject(ctx, *key); err != nil {
+		slog.Warn("remove avatar", slog.String("err", err.Error()))
+	}
+}
+
+// userResponse — ответ с подписанной ссылкой на фото (ключ наружу не отдаём).
+func (s *Service) userResponse(ctx context.Context, u *domain.User) UserResponse {
+	resp := userToResponse(u)
+	if u.AvatarURL != nil && s.avatars != nil {
+		if url, err := s.avatars.PresignedGetURL(ctx, *u.AvatarURL, ""); err == nil {
+			resp.AvatarURL = &url
+		}
+	}
+	return resp
 }

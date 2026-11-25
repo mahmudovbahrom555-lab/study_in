@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../../../core/config/app_config.dart';
@@ -85,6 +87,35 @@ class AuthApi {
       if (language != null) 'language': language,
     };
     final resp = await _dio.patch<Map<String, dynamic>>('/me', data: body);
+    return UserDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
+  }
+
+  /// Фото профиля (только взрослые): путь — телефон, содержимое — веб.
+  Future<UserDto> uploadAvatar({
+    String? path,
+    Uint8List? bytes,
+    required String name,
+  }) async {
+    final file = bytes != null
+        ? MultipartFile.fromBytes(bytes, filename: name)
+        : await MultipartFile.fromFile(path!, filename: name);
+    final resp = await _dio.post<Map<String, dynamic>>(
+      '/me/avatar',
+      data: FormData.fromMap({'file': file}),
+    );
+    return UserDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
+  }
+
+  Future<UserDto> setAvatarPreset(String preset) async {
+    final resp = await _dio.put<Map<String, dynamic>>(
+      '/me/avatar/preset',
+      data: {'preset': preset},
+    );
+    return UserDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
+  }
+
+  Future<UserDto> deleteAvatar() async {
+    final resp = await _dio.delete<Map<String, dynamic>>('/me/avatar');
     return UserDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }
 

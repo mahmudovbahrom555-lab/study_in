@@ -175,6 +175,7 @@ class MembersNotifier extends StateNotifier<AsyncValue<List<GroupMember>>> {
                     name: m.name,
                     phone: m.phone,
                     avatarUrl: m.avatarUrl,
+                    avatarPreset: m.avatarPreset,
                     joinedAt: m.joinedAt,
                     paymentStatus: status,
                   )

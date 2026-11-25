@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 
@@ -46,6 +47,8 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Get("/me", h.getMe)
 		r.Patch("/me", h.updateMe)
 		r.Post("/me/avatar", h.uploadAvatar)
+		r.Put("/me/avatar/preset", h.setAvatarPreset)
+		r.Delete("/me/avatar", h.deleteAvatar)
 		r.Post("/me/device-token", h.addDeviceToken)
 	})
 }
@@ -191,9 +194,55 @@ func (h *Handler) updateMe(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, user)
 }
 
-func (h *Handler) uploadAvatar(w http.ResponseWriter, _ *http.Request) {
-	// MinIO интеграция — Этап 4 (см. DECISIONS.md)
-	http.Error(w, `{"error":{"code":"NOT_IMPLEMENTED","message":"Avatar upload available in next release"}}`, http.StatusNotImplemented)
+// POST /me/avatar — фото профиля (multipart, поле file). Только взрослые.
+func (h *Handler) uploadAvatar(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, MaxAvatarSize+(1<<20))
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		response.Error(w, domain.NewError("AVATAR_TOO_LARGE", "Фото больше 2 МБ или не передано", domain.ErrValidation))
+		return
+	}
+	defer file.Close()
+	data, err := io.ReadAll(io.LimitReader(file, MaxAvatarSize+1))
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+	user, err := h.service.UploadAvatar(r.Context(), apimw.UserIDFromCtx(r.Context()), data)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+	response.OK(w, user)
+}
+
+// PUT /me/avatar/preset — аватар-животное.
+func (h *Handler) setAvatarPreset(w http.ResponseWriter, r *http.Request) {
+	var req AvatarPresetRequest
+	if err := decode(r, &req); err != nil {
+		response.ErrorWithDetails(w, domain.ErrValidation, map[string]any{"parse": err.Error()})
+		return
+	}
+	if err := h.validate.Struct(&req); err != nil {
+		response.ErrorWithDetails(w, domain.ErrValidation, validationDetails(err))
+		return
+	}
+	user, err := h.service.SetAvatarPreset(r.Context(), apimw.UserIDFromCtx(r.Context()), req.Preset)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+	response.OK(w, user)
+}
+
+// DELETE /me/avatar — убрать фото и животное.
+func (h *Handler) deleteAvatar(w http.ResponseWriter, r *http.Request) {
+	user, err := h.service.DeleteAvatar(r.Context(), apimw.UserIDFromCtx(r.Context()))
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+	response.OK(w, user)
 }
 
 func (h *Handler) addDeviceToken(w http.ResponseWriter, r *http.Request) {
