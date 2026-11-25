@@ -36,6 +36,8 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 			r.Delete("/", h.deletePost)
 			r.Post("/pin", h.pinPost)
 			r.Post("/unpin", h.unpinPost)
+			r.Put("/reaction", h.react)
+			r.Delete("/reaction", h.unreact)
 		})
 	})
 }
@@ -59,7 +61,7 @@ func (h *Handler) listPosts(w http.ResponseWriter, r *http.Request) {
 
 	out := make([]PostResponse, len(posts))
 	for i, p := range posts {
-		out[i] = postToResponse(p)
+		out[i] = postToResponse(p, callerID, role == domain.RoleTeacher)
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -93,7 +95,7 @@ func (h *Handler) createPost(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, postToResponse(p))
+	writeJSON(w, http.StatusCreated, postToResponse(p, callerID, role == domain.RoleTeacher))
 }
 
 // GET /groups/{groupID}/feed/{postID}
@@ -115,7 +117,7 @@ func (h *Handler) getPost(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, postToResponse(p))
+	writeJSON(w, http.StatusOK, postToResponse(p, callerID, role == domain.RoleTeacher))
 }
 
 // PATCH /groups/{groupID}/feed/{postID}
@@ -141,7 +143,8 @@ func (h *Handler) updatePost(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, postToResponse(p))
+	// Править может только автор — репетитор класса (проверяет сервис).
+	writeJSON(w, http.StatusOK, postToResponse(p, callerID, true))
 }
 
 // DELETE /groups/{groupID}/feed/{postID}
@@ -181,7 +184,8 @@ func (h *Handler) setPinned(w http.ResponseWriter, r *http.Request, pinned bool)
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, postToResponse(p))
+	// Закрепляет только репетитор класса (проверяет сервис).
+	writeJSON(w, http.StatusOK, postToResponse(p, callerID, true))
 }
 
 // --- helpers (same pattern as groups/handler.go) ---
@@ -237,4 +241,43 @@ func writeServiceError(w http.ResponseWriter, err error) {
 	default:
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "internal server error")
 	}
+}
+
+// PUT /groups/{groupID}/feed/{postID}/reaction — ученик: «Понятно» или «Есть вопрос».
+func (h *Handler) react(w http.ResponseWriter, r *http.Request) {
+	postID, ok := parseUUID(w, chi.URLParam(r, "postID"))
+	if !ok {
+		return
+	}
+	var req ReactRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid JSON")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		writeValidationError(w, err)
+		return
+	}
+	callerID := apimw.UserIDFromCtx(r.Context())
+	role := apimw.RoleFromCtx(r.Context())
+	if err := h.svc.React(r.Context(), postID, callerID, role, req.Kind); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// DELETE /groups/{groupID}/feed/{postID}/reaction — снять свою реакцию.
+func (h *Handler) unreact(w http.ResponseWriter, r *http.Request) {
+	postID, ok := parseUUID(w, chi.URLParam(r, "postID"))
+	if !ok {
+		return
+	}
+	callerID := apimw.UserIDFromCtx(r.Context())
+	role := apimw.RoleFromCtx(r.Context())
+	if err := h.svc.Unreact(r.Context(), postID, callerID, role); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

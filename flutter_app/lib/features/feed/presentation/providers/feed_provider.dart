@@ -114,6 +114,28 @@ class FeedNotifier extends StateNotifier<FeedState> {
     }
   }
 
+  /// Нажатие ученика на реакцию: счётчик меняется сразу, при ошибке
+  /// возвращается. Возвращает текст ошибки или null.
+  Future<String?> toggleReaction(String postId, String kind) async {
+    final before = state.posts.where((p) => p.id == postId).firstOrNull;
+    if (before == null) return null;
+    final after = before.reactions.toggled(kind);
+    _replace(before.copyWith(reactions: after));
+    try {
+      await _repo.setReaction(postId, after.mine);
+      return null;
+    } catch (e) {
+      _replace(before);
+      return userErrorMessage(e);
+    }
+  }
+
+  void _replace(Post post) {
+    state = state.copyWith(
+      posts: state.posts.map((p) => p.id == post.id ? post : p).toList(),
+    );
+  }
+
   Future<void> pinPost(String postId, {required bool pinned}) async {
     try {
       final updated = await _repo.pinPost(postId, pinned: pinned);

@@ -53,6 +53,13 @@ class FeedApi {
   Future<void> deletePost(String postId, String groupId) =>
       _dio.delete<void>('/groups/$groupId/feed/$postId');
 
+  /// [kind] — 'understood' или 'question'; null — снять свою реакцию.
+  Future<void> setReaction(String postId, String groupId, String? kind) {
+    final path = '/groups/$groupId/feed/$postId/reaction';
+    if (kind == null) return _dio.delete<void>(path);
+    return _dio.put<void>(path, data: {'kind': kind});
+  }
+
   Future<PostDto> pinPost(
     String postId,
     String groupId, {

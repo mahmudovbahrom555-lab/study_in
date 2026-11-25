@@ -20,5 +20,22 @@ type Post struct {
 // PostWithMeta — пост плюс имя автора (для ответа API).
 type PostWithMeta struct {
 	Post
-	AuthorName string `db:"author_name"`
+	AuthorName string         `db:"author_name"`
+	Reactions  []PostReaction `db:"-"`
+}
+
+// ReactionKind — реакция ученика на объявление.
+type ReactionKind string
+
+const (
+	ReactionUnderstood ReactionKind = "understood"
+	ReactionQuestion   ReactionKind = "question"
+)
+
+// PostReaction — реакция с именем ученика; имена видит только репетитор.
+type PostReaction struct {
+	PostID   uuid.UUID    `db:"post_id"`
+	UserID   uuid.UUID    `db:"user_id"`
+	Kind     ReactionKind `db:"kind"`
+	UserName string       `db:"user_name"`
 }

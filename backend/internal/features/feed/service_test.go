@@ -16,11 +16,37 @@ import (
 // --- in-memory feed repo ---
 
 type memFeedRepo struct {
-	posts map[uuid.UUID]*domain.Post
+	posts     map[uuid.UUID]*domain.Post
+	reactions map[[2]uuid.UUID]domain.ReactionKind // [post, user]
 }
 
 func newMemFeedRepo() *memFeedRepo {
-	return &memFeedRepo{posts: make(map[uuid.UUID]*domain.Post)}
+	return &memFeedRepo{
+		posts:     make(map[uuid.UUID]*domain.Post),
+		reactions: make(map[[2]uuid.UUID]domain.ReactionKind),
+	}
+}
+
+func (r *memFeedRepo) SetReaction(_ context.Context, postID, userID uuid.UUID, kind domain.ReactionKind) error {
+	r.reactions[[2]uuid.UUID{postID, userID}] = kind
+	return nil
+}
+
+func (r *memFeedRepo) DeleteReaction(_ context.Context, postID, userID uuid.UUID) error {
+	delete(r.reactions, [2]uuid.UUID{postID, userID})
+	return nil
+}
+
+func (r *memFeedRepo) ListReactions(_ context.Context, postIDs []uuid.UUID) ([]domain.PostReaction, error) {
+	var out []domain.PostReaction
+	for _, id := range postIDs {
+		for key, kind := range r.reactions {
+			if key[0] == id {
+				out = append(out, domain.PostReaction{PostID: id, UserID: key[1], Kind: kind, UserName: "Student"})
+			}
+		}
+	}
+	return out, nil
 }
 
 func (r *memFeedRepo) CreatePost(_ context.Context, p *domain.Post) error {
@@ -235,4 +261,40 @@ func TestPinPost_NonTeacherForbidden(t *testing.T) {
 
 	_, err := svc.PinPost(context.Background(), p.ID, studentID, true)
 	assert.ErrorIs(t, err, domain.ErrForbidden)
+}
+
+// --- reactions ---
+
+func TestReact_StudentMarksAndChangesAndClears(t *testing.T) {
+	svc, _, gid := buildSvc()
+	ctx := context.Background()
+	p, _ := svc.CreatePost(ctx, teacherID, gid, feed.CreatePostRequest{Body: "Exam on Friday"})
+
+	require.NoError(t, svc.React(ctx, p.ID, studentID, domain.RoleStudent, domain.ReactionUnderstood))
+	require.NoError(t, svc.React(ctx, p.ID, studentID, domain.RoleStudent, domain.ReactionQuestion))
+
+	posts, err := svc.ListPosts(ctx, gid, teacherID, domain.RoleTeacher, 10, 0)
+	require.NoError(t, err)
+	require.Len(t, posts[0].Reactions, 1, "one reaction per student")
+	assert.Equal(t, domain.ReactionQuestion, posts[0].Reactions[0].Kind)
+
+	require.NoError(t, svc.Unreact(ctx, p.ID, studentID, domain.RoleStudent))
+	posts, _ = svc.ListPosts(ctx, gid, teacherID, domain.RoleTeacher, 10, 0)
+	assert.Empty(t, posts[0].Reactions)
+}
+
+func TestReact_OnlyStudentsOfTheGroup(t *testing.T) {
+	svc, _, gid := buildSvc()
+	ctx := context.Background()
+	p, _ := svc.CreatePost(ctx, teacherID, gid, feed.CreatePostRequest{Body: "x"})
+
+	assert.ErrorIs(t,
+		svc.React(ctx, p.ID, teacherID, domain.RoleTeacher, domain.ReactionUnderstood),
+		domain.ErrForbidden)
+	assert.ErrorIs(t,
+		svc.React(ctx, p.ID, uuid.New(), domain.RoleStudent, domain.ReactionUnderstood),
+		domain.ErrForbidden)
+	assert.ErrorIs(t,
+		svc.React(ctx, uuid.New(), studentID, domain.RoleStudent, domain.ReactionUnderstood),
+		domain.ErrNotFound)
 }

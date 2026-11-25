@@ -14,4 +14,7 @@ abstract class FeedRepository {
   Future<Post> updatePost(String postId, {String? body, bool? pinned});
   Future<void> deletePost(String postId);
   Future<Post> pinPost(String postId, {required bool pinned});
+
+  /// null — снять свою реакцию.
+  Future<void> setReaction(String postId, String? kind);
 }

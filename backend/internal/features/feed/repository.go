@@ -16,6 +16,10 @@ type Repository interface {
 	UpdatePost(ctx context.Context, p *domain.Post) error
 	SoftDeletePost(ctx context.Context, id uuid.UUID) error
 	PinPost(ctx context.Context, id uuid.UUID, pinned bool) error
+
+	SetReaction(ctx context.Context, postID, userID uuid.UUID, kind domain.ReactionKind) error
+	DeleteReaction(ctx context.Context, postID, userID uuid.UUID) error
+	ListReactions(ctx context.Context, postIDs []uuid.UUID) ([]domain.PostReaction, error)
 }
 
 // GroupChecker — минимальный интерфейс для проверки членства,

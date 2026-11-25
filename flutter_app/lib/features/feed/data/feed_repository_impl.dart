@@ -43,6 +43,10 @@ class FeedRepositoryImpl implements FeedRepository {
   Future<void> deletePost(String postId) => _api.deletePost(postId, _groupId);
 
   @override
+  Future<void> setReaction(String postId, String? kind) =>
+      _api.setReaction(postId, _groupId, kind);
+
+  @override
   Future<Post> pinPost(String postId, {required bool pinned}) async {
     final dto = await _api.pinPost(postId, _groupId, pinned: pinned);
     return dto.toDomain();
