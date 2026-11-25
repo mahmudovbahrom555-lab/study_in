@@ -4,6 +4,7 @@ class UserDto {
   const UserDto({
     required this.id,
     required this.phone,
+    this.email = '',
     required this.name,
     this.role,
     this.avatarUrl,
@@ -14,7 +15,8 @@ class UserDto {
   factory UserDto.fromJson(Map<String, dynamic> json) {
     return UserDto(
       id: json['id'] as String,
-      phone: json['phone'] as String,
+      phone: (json['phone'] as String?) ?? '',
+      email: (json['email'] as String?) ?? '',
       name: (json['name'] as String?) ?? '',
       role: json['role'] as String?,
       avatarUrl: json['avatar_url'] as String?,
@@ -25,6 +27,7 @@ class UserDto {
 
   final String id;
   final String phone;
+  final String email;
   final String name;
   final String? role;
   final String? avatarUrl;
@@ -34,6 +37,7 @@ class UserDto {
   User toEntity() => User(
     id: id,
     phone: phone,
+    email: email,
     name: name,
     role: role,
     avatarUrl: avatarUrl,

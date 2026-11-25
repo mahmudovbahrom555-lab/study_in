@@ -2,6 +2,7 @@ class User {
   const User({
     required this.id,
     required this.phone,
+    this.email = '',
     required this.name,
     this.role,
     this.avatarUrl,
@@ -11,6 +12,9 @@ class User {
 
   final String id;
   final String phone;
+
+  /// Email из Google-аккаунта; пусто у вошедших по телефону.
+  final String email;
   final String name;
   final String? role;
   final String? avatarUrl;
@@ -31,6 +35,7 @@ class User {
     return User(
       id: id,
       phone: phone,
+      email: email,
       name: name ?? this.name,
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,

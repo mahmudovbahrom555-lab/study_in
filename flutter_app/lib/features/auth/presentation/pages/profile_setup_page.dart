@@ -64,7 +64,7 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  context.l10n.profileNameHint,
+                  _nameHint(context, ref.watch(authProvider).user?.role),
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
@@ -109,3 +109,10 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
     );
   }
 }
+
+/// Кто увидит имя — зависит от роли.
+String _nameHint(BuildContext context, String? role) => switch (role) {
+  'teacher' => context.l10n.profileNameHint,
+  'student' => context.l10n.profileNameHintStudent,
+  _ => context.l10n.profileNameHintOther,
+};
