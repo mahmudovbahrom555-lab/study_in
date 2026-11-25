@@ -1,4 +1,20 @@
+# Журнал запросов — в постоянный том caddy_data: журналы контейнеров
+# пропадают при каждом пересоздании, а по ним разбираем жалобы тестировщиков.
+# Заголовки с токенами (Authorization, Cookie) Caddy не пишет.
+(access_log) {
+	log {
+		output file /data/logs/access.log {
+			roll_size 20MiB
+			roll_keep 10
+			roll_keep_for 720h
+		}
+		format json
+	}
+}
+
 {$API_DOMAIN} {
+	import access_log
+
 	# Файлы по подписанным ссылкам (S3_PUBLIC_ENDPOINT = API-домен). Корзина
 	# приватная: без действующей подписи хранилище отказывает.
 	handle /{$S3_BUCKET}/* {
@@ -11,6 +27,8 @@
 }
 
 {$WEB_DOMAIN} {
+	import access_log
+
 	encode gzip
 
 	# Тестовые сборки APK: кладутся на сервер в ./downloads, вне web-сборки.
