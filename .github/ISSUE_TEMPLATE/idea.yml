@@ -1,0 +1,26 @@
+name: Предложение
+description: Как сделать удобнее, чего не хватает
+title: "[Идея] "
+labels: ["идея"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какая задача или неудобство
+      description: Что хочется сделать и что мешает — не сразу решение.
+      placeholder: Репетитор ставит оценки по 10-балльной шкале, а за ДЗ максимум всегда 100.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Как это могло бы работать
+  - type: dropdown
+    id: role
+    attributes:
+      label: Для кого
+      multiple: true
+      options:
+        - Репетитор
+        - Ученик
+        - Родитель
