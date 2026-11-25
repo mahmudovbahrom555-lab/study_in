@@ -79,11 +79,14 @@ type S3Config struct {
 	// Сервер ходит в MinIO по Endpoint (в Docker — «minio:9000»), а телефон
 	// такой адрес не видит. Пусто = Endpoint.
 	PublicEndpoint string
-	AccessKey      string
-	SecretKey      string
-	Bucket         string
-	UseSSL         bool
-	Region         string
+	// PublicUseSSL — https для ссылок по PublicEndpoint (в проде он за Caddy с
+	// TLS, а сервер ходит в хранилище по http внутри Docker).
+	PublicUseSSL bool
+	AccessKey    string
+	SecretKey    string
+	Bucket       string
+	UseSSL       bool
+	Region       string
 }
 
 type SMSConfig struct {
@@ -189,6 +192,7 @@ func Load() (*Config, error) {
 		S3: S3Config{
 			Endpoint:       v.GetString("S3_ENDPOINT"),
 			PublicEndpoint: v.GetString("S3_PUBLIC_ENDPOINT"),
+			PublicUseSSL:   v.GetBool("S3_PUBLIC_USE_SSL"),
 			AccessKey:      v.GetString("S3_ACCESS_KEY"),
 			SecretKey:      v.GetString("S3_SECRET_KEY"),
 			Bucket:         v.GetString("S3_BUCKET"),

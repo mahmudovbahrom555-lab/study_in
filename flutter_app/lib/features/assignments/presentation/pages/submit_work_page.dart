@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -34,10 +35,18 @@ class SubmitWorkPage extends ConsumerStatefulWidget {
 
 /// Вложение на экране: уже на сервере или ещё загружается с телефона.
 class _Slot {
-  _Slot.local(this.path, this.name);
-  _Slot.uploaded(AttachedFile f) : path = null, name = f.name, file = f;
+  _Slot.local({this.path, this.bytes, required this.name});
+  _Slot.uploaded(AttachedFile f)
+    : path = null,
+      bytes = null,
+      name = f.name,
+      file = f;
 
+  /// Путь к файлу — на телефоне.
   final String? path;
+
+  /// Содержимое файла — в браузере: пути к файлу там нет.
+  final Uint8List? bytes;
   final String name;
   AttachedFile? file;
   double progress = 0;
@@ -46,8 +55,8 @@ class _Slot {
 
   bool get isUploading => file == null && error == null;
   bool get isLocalImage =>
-      path != null &&
-      RegExp(r'\.(jpe?g|png|heic)$', caseSensitive: false).hasMatch(path!);
+      (path != null || bytes != null) &&
+      RegExp(r'\.(jpe?g|png|heic)$', caseSensitive: false).hasMatch(name);
 }
 
 class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
@@ -113,7 +122,7 @@ class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
       maxHeight: _photoMaxSide,
       imageQuality: _photoQuality,
     );
-    if (x != null) _add([_Slot.local(x.path, x.name)]);
+    if (x != null) _add([await _localSlot(x)]);
   }
 
   Future<void> _fromGallery() async {
@@ -136,19 +145,28 @@ class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
                 case final x?)
               x,
           ];
-    _add(picked.map((x) => _Slot.local(x.path, x.name)).toList());
+    _add([for (final x in picked) await _localSlot(x)]);
   }
+
+  /// Веб: путь у XFile — временная ссылка, читать её как файл нельзя.
+  Future<_Slot> _localSlot(XFile x) async => kIsWeb
+      ? _Slot.local(bytes: await x.readAsBytes(), name: x.name)
+      : _Slot.local(path: x.path, name: x.name);
 
   Future<void> _fromFiles() async {
     final res = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['pdf', 'doc', 'docx'],
       allowMultiple: _free > 1,
+      withData: kIsWeb,
     );
     if (res == null) return;
     _add([
       for (final f in res.files)
-        if (f.path != null) _Slot.local(f.path!, f.name),
+        if (kIsWeb && f.bytes != null)
+          _Slot.local(bytes: f.bytes, name: f.name)
+        else if (!kIsWeb && f.path != null)
+          _Slot.local(path: f.path, name: f.name),
     ]);
   }
 
@@ -176,7 +194,8 @@ class _SubmitWorkPageState extends ConsumerState<SubmitWorkPage> {
       final f = await ref
           .read(assignmentsRepositoryProvider)
           .uploadFile(
-            path: s.path!,
+            path: s.path,
+            bytes: s.bytes,
             name: s.name,
             cancelToken: s.cancel,
             onProgress: (sent, total) {
@@ -419,7 +438,7 @@ class _SlotTile extends StatelessWidget {
     final l10n = context.l10n;
     final f = slot.file;
     final Widget? preview = slot.isLocalImage
-        ? Image.file(File(slot.path!), fit: BoxFit.cover, width: 48, height: 48)
+        ? _localPreview(slot)
         : (f != null && f.isImage)
         ? networkPreview(f)
         : null;
@@ -460,3 +479,7 @@ class _SlotTile extends StatelessWidget {
     );
   }
 }
+
+Widget _localPreview(_Slot slot) => slot.bytes != null
+    ? Image.memory(slot.bytes!, fit: BoxFit.cover, width: 48, height: 48)
+    : Image.file(File(slot.path!), fit: BoxFit.cover, width: 48, height: 48);

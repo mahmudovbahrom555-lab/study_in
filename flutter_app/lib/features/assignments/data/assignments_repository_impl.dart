@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../domain/entities/assignment.dart';
@@ -33,12 +35,14 @@ class AssignmentsRepositoryImpl implements AssignmentsRepository {
 
   @override
   Future<AttachedFile> uploadFile({
-    required String path,
+    String? path,
+    Uint8List? bytes,
     required String name,
     void Function(int sent, int total)? onProgress,
     CancelToken? cancelToken,
   }) => _api.uploadFile(
     path: path,
+    bytes: bytes,
     name: name,
     onProgress: onProgress,
     cancelToken: cancelToken,

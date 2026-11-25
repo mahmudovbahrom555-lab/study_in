@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../entities/assignment.dart';
@@ -13,8 +15,10 @@ abstract class AssignmentsRepository {
   });
   Future<void> deleteAssignment(String groupId, String assignmentId);
 
+  /// Путь к файлу (телефон) или его содержимое (веб).
   Future<AttachedFile> uploadFile({
-    required String path,
+    String? path,
+    Uint8List? bytes,
     required String name,
     void Function(int sent, int total)? onProgress,
     CancelToken? cancelToken,

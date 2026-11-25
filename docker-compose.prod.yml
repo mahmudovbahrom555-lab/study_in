@@ -100,6 +100,10 @@ services:
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       S3_BUCKET: ${S3_BUCKET:-repetapp-files}
       S3_USE_SSL: "false"
+      # Ссылки на файлы для браузера и телефона: хранилище доступно снаружи
+      # только через Caddy (api-домен, путь /<bucket>/…), с подписью.
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-}
+      S3_PUBLIC_USE_SSL: ${S3_PUBLIC_USE_SSL:-false}
       SMS_PROVIDER: ${SMS_PROVIDER:-mock}
       SMS_ESKIZ_EMAIL: ${SMS_ESKIZ_EMAIL:-}
       SMS_ESKIZ_PASSWORD: ${SMS_ESKIZ_PASSWORD:-}
@@ -128,6 +132,7 @@ services:
     environment:
       API_DOMAIN: ${API_DOMAIN}
       WEB_DOMAIN: ${WEB_DOMAIN}
+      S3_BUCKET: ${S3_BUCKET:-repetapp-files}
     ports:
       - "80:80"
       - "443:443"
