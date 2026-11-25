@@ -1,0 +1,60 @@
+name: Ошибка
+description: Что-то работает не так, как ожидалось
+title: "[Ошибка] "
+labels: ["ошибка"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: Что случилось
+      description: Коротко, своими словами.
+      placeholder: Ученик не может прикрепить фото к заданию — ничего не происходит.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Что делали — по шагам
+      placeholder: |
+        1. Вошёл как ученик
+        2. Открыл группу → Задания → «Эссе»
+        3. Нажал «Фото» и выбрал снимок
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Что ожидали увидеть
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Где
+      options:
+        - Сайт mamu.education (компьютер)
+        - Сайт mamu.education (телефон)
+        - Приложение Android
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Под какой ролью
+      options:
+        - Репетитор
+        - Ученик
+        - Родитель
+    validations:
+      required: true
+  - type: input
+    id: when
+    attributes:
+      label: Когда (дата и время)
+      description: По времени можно найти запросы в журнале сервера.
+      placeholder: 25.11 11:26
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Скриншот или видео
+      description: Перетащите файл сюда.
