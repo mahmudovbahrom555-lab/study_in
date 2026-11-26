@@ -8,6 +8,7 @@ import '../../../../core/widgets/brand_mark.dart';
 import '../../../../core/widgets/user_avatar.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../groups/presentation/pages/groups_page.dart';
+import '../../../groups/presentation/pending_join.dart';
 import '../../../notifications/presentation/providers/notifications_provider.dart';
 import '../../../parents/presentation/pages/parents_page.dart';
 import '../../../../core/localization/l10n.dart';
@@ -62,6 +63,13 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(notificationsProvider.notifier).load());
+    final code = pendingJoinCode;
+    if (code != null) {
+      pendingJoinCode = null;
+      Future.microtask(() {
+        if (mounted) context.push(Routes.joinGroup(code));
+      });
+    }
   }
 
   @override

@@ -346,5 +346,17 @@
   "codeValidUntil": "Действует до {time}",
   "copy": "Скопировать",
   "copied": "Скопировано",
-  "newCode": "Новый код"
+  "newCode": "Новый код",
+  "copyJoinLink": "Скопировать ссылку",
+  "joinLinkCopied": "Ссылка скопирована — отправьте её ученикам в мессенджере",
+  "joinRequests": "Заявки ({count})",
+  "declineRequest": "Отклонить",
+  "sendJoinRequest": "Отправить заявку",
+  "joinRequestSent": "Заявка отправлена — дождитесь, пока репетитор её примет",
+  "pendingJoinRequests": "Ждут ответа репетитора",
+  "joinOnlyStudents": "Вступить в группу может только ученик. Войдите в аккаунт ученика.",
+  "groupTutor": "Репетитор: {name}",
+  "groupStudentsCount": "Учеников: {count}",
+  "joinLinkInvalid": "Ссылка неверная или группы больше нет",
+  "toMyGroups": "К моим группам"
 }

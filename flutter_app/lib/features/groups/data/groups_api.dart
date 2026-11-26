@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 
+import '../domain/entities/join_request.dart';
 import 'models/group_dto.dart';
+import 'models/join_request_dto.dart';
 
 class GroupsApi {
   GroupsApi(this._dio);
@@ -60,12 +62,47 @@ class GroupsApi {
     return GroupDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }
 
-  Future<GroupDto> joinGroup(String inviteCode) async {
+  /// Заявка в группу; в группу ученик попадёт, когда репетитор её примет.
+  Future<JoinRequest> joinGroup(String inviteCode) async {
     final resp = await _dio.post<Map<String, dynamic>>(
       '/groups/join',
       data: {'invite_code': inviteCode},
     );
-    return GroupDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
+    return joinRequestFromJson(resp.data!['data'] as Map<String, dynamic>);
+  }
+
+  Future<GroupPreview> previewGroup(String inviteCode) async {
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '/groups/preview/$inviteCode',
+    );
+    return groupPreviewFromJson(resp.data!['data'] as Map<String, dynamic>);
+  }
+
+  Future<List<JoinRequest>> myJoinRequests() async {
+    final resp = await _dio.get<Map<String, dynamic>>('/groups/requests/mine');
+    final list = resp.data!['data'] as List<dynamic>? ?? const [];
+    return list
+        .map((e) => joinRequestFromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<JoinRequestItem>> listJoinRequests(String groupId) async {
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '/groups/$groupId/requests',
+    );
+    final list = resp.data!['data'] as List<dynamic>? ?? const [];
+    return list
+        .map((e) => joinRequestItemFromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> decideJoinRequest(
+    String groupId,
+    String requestId, {
+    required bool accept,
+  }) async {
+    final action = accept ? 'accept' : 'decline';
+    await _dio.post<void>('/groups/$groupId/requests/$requestId/$action');
   }
 
   Future<void> leaveGroup(String groupId) =>

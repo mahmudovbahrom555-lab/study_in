@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/remote_config/remote_config.dart';
 import '../../../../core/remote_config/remote_config_provider.dart';
 import '../../../../core/router/routes.dart';
@@ -11,6 +12,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/group.dart';
 import '../providers/groups_provider.dart';
 import '../widgets/group_form_sheet.dart';
+import '../widgets/join_requests_section.dart';
 import '../widgets/member_tile.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../../../core/localization/l10n.dart';
@@ -86,6 +88,7 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
           const Divider(height: 1),
           _QuickActions(groupId: widget.groupId, isTeacher: isTeacher),
           const Divider(height: 1),
+          if (isOwner) JoinRequestsSection(groupId: widget.groupId),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Text(
@@ -357,8 +360,10 @@ class _GroupInfoCard extends StatelessWidget {
             Text(group.description!),
             const SizedBox(height: 8),
           ],
+          // Wrap, а не Row: на узком экране кнопка ссылки уходит на 2-ю строку.
           if (isOwner)
-            Row(
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(
                   context.l10n.inviteCode(group.inviteCode),
@@ -377,10 +382,23 @@ class _GroupInfoCard extends StatelessWidget {
                     );
                   },
                 ),
+                TextButton.icon(
+                  icon: const Icon(LucideIcons.link, size: 18),
+                  label: Text(context.l10n.copyJoinLink),
+                  onPressed: () => _copyLink(context),
+                ),
               ],
             ),
         ],
       ),
     );
+  }
+
+  Future<void> _copyLink(BuildContext context) async {
+    final link = AppConfig.joinLink(group.inviteCode);
+    await Clipboard.setData(ClipboardData(text: link));
+    if (!context.mounted) return;
+    final text = context.l10n.joinLinkCopied;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 }

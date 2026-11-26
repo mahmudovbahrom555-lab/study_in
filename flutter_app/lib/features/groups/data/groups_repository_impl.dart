@@ -1,4 +1,5 @@
 import '../domain/entities/group.dart';
+import '../domain/entities/join_request.dart';
 import '../domain/repositories/groups_repository.dart';
 import 'groups_api.dart';
 
@@ -59,10 +60,26 @@ class GroupsRepositoryImpl implements GroupsRepository {
   }
 
   @override
-  Future<Group> joinGroup(String inviteCode) async {
-    final dto = await _api.joinGroup(inviteCode);
-    return dto.toDomain();
-  }
+  Future<JoinRequest> joinGroup(String inviteCode) =>
+      _api.joinGroup(inviteCode);
+
+  @override
+  Future<GroupPreview> previewGroup(String inviteCode) =>
+      _api.previewGroup(inviteCode);
+
+  @override
+  Future<List<JoinRequest>> myJoinRequests() => _api.myJoinRequests();
+
+  @override
+  Future<List<JoinRequestItem>> listJoinRequests(String groupId) =>
+      _api.listJoinRequests(groupId);
+
+  @override
+  Future<void> decideJoinRequest(
+    String groupId,
+    String requestId, {
+    required bool accept,
+  }) => _api.decideJoinRequest(groupId, requestId, accept: accept);
 
   @override
   Future<void> leaveGroup(String groupId) => _api.leaveGroup(groupId);

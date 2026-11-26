@@ -1,4 +1,5 @@
 import '../entities/group.dart';
+import '../entities/join_request.dart';
 
 abstract class GroupsRepository {
   Future<List<Group>> listMyGroups();
@@ -16,7 +17,15 @@ abstract class GroupsRepository {
   });
   Future<void> deleteGroup(String id);
   Future<Group> archiveGroup(String id);
-  Future<Group> joinGroup(String inviteCode);
+  Future<JoinRequest> joinGroup(String inviteCode);
+  Future<GroupPreview> previewGroup(String inviteCode);
+  Future<List<JoinRequest>> myJoinRequests();
+  Future<List<JoinRequestItem>> listJoinRequests(String groupId);
+  Future<void> decideJoinRequest(
+    String groupId,
+    String requestId, {
+    required bool accept,
+  });
   Future<void> leaveGroup(String groupId);
   Future<List<GroupMember>> listMembers(String groupId);
   Future<void> removeMember(String groupId, String studentId);
