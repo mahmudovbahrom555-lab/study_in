@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/router/routes.dart';
 import '../../../../core/widgets/brand_mark.dart';
+import '../../../../core/widgets/user_avatar.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../groups/presentation/pages/groups_page.dart';
 import '../../../notifications/presentation/providers/notifications_provider.dart';
@@ -65,7 +66,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    final role = ref.watch(authProvider).user?.role ?? 'student';
+    final user = ref.watch(authProvider).user;
+    final role = user?.role ?? 'student';
+    final hasAvatar = user?.avatarUrl != null || user?.avatarPreset != null;
     final tabs = [
       for (final t in _tabs)
         if (t.visible(role)) t,
@@ -90,7 +93,15 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           ),
           IconButton(
             tooltip: context.l10n.account,
-            icon: const Icon(LucideIcons.circleUser),
+            // Свой аватар виден на каждом экране; без аватара — значок.
+            icon: hasAvatar
+                ? UserAvatar(
+                    name: user?.name ?? '',
+                    avatarUrl: user?.avatarUrl,
+                    avatarPreset: user?.avatarPreset,
+                    radius: 14,
+                  )
+                : const Icon(LucideIcons.circleUser),
             onPressed: () => context.push(Routes.account),
           ),
           const SizedBox(width: 4),
