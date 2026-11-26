@@ -44,6 +44,9 @@ dependencies:
   file_picker: ^11.0.3
   url_launcher: ^6.3.2
 
+  # QR-код ссылки-приглашения в группу (рисуется в приложении, без сети)
+  qr_flutter: ^4.1.0
+
   # Вход через Google: на Android — Credential Manager, на вебе — кнопка GIS
   google_sign_in: ^7.2.0
   google_sign_in_web: ^1.1.3

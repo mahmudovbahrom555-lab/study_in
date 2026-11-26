@@ -12,6 +12,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/group.dart';
 import '../providers/groups_provider.dart';
 import '../widgets/group_form_sheet.dart';
+import '../widgets/group_qr_dialog.dart';
 import '../widgets/join_requests_section.dart';
 import '../widgets/member_tile.dart';
 import '../../../../core/widgets/error_view.dart';
@@ -381,6 +382,14 @@ class _GroupInfoCard extends StatelessWidget {
                       SnackBar(content: Text(context.l10n.copied)),
                     );
                   },
+                ),
+                IconButton(
+                  tooltip: context.l10n.groupQr,
+                  icon: const Icon(LucideIcons.qrCode, size: 18),
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (_) => GroupQrDialog(group: group),
+                  ),
                 ),
                 TextButton.icon(
                   icon: const Icon(LucideIcons.link, size: 18),

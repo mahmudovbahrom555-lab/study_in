@@ -417,5 +417,7 @@
   "errUsernameTaken": "This username is already taken",
   "errAlreadyMember": "You are already in this group",
   "errBannedFromGroup": "The tutor has removed you from this group",
-  "errRequestDecided": "This request has already been answered"
+  "errRequestDecided": "This request has already been answered",
+  "groupQr": "QR code",
+  "groupQrHint": "Show it to a student: they point the camera and send a join request."
 }
