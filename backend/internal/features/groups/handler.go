@@ -30,6 +30,8 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Post("/", h.createGroup)
 		r.Get("/", h.listGroups)
 		r.Post("/join", h.joinGroup)
+		r.Get("/preview/{code}", h.previewGroup)
+		r.Get("/requests/mine", h.myJoinRequests)
 
 		r.Route("/{groupID}", func(r chi.Router) {
 			r.Get("/", h.getGroup)
@@ -41,6 +43,10 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 			r.Delete("/members/{studentID}", h.removeMember)
 			r.Post("/members/leave", h.leaveGroup)
 			r.Patch("/members/{studentID}/payment", h.updatePayment)
+
+			r.Get("/requests", h.listJoinRequests)
+			r.Post("/requests/{requestID}/accept", h.decideJoinRequest(true))
+			r.Post("/requests/{requestID}/decline", h.decideJoinRequest(false))
 		})
 	})
 }
@@ -112,6 +118,60 @@ func (h *Handler) joinGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// GET /groups/preview/{code} — карточка группы по ссылке, до заявки.
+func (h *Handler) previewGroup(w http.ResponseWriter, r *http.Request) {
+	resp, err := h.svc.PreviewGroup(r.Context(), chi.URLParam(r, "code"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// GET /groups/requests/mine — свои ожидающие заявки ученика.
+func (h *Handler) myJoinRequests(w http.ResponseWriter, r *http.Request) {
+	resp, err := h.svc.MyJoinRequests(r.Context(), apimw.UserIDFromCtx(r.Context()))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// GET /groups/{groupID}/requests — заявки в группу (репетитор).
+func (h *Handler) listJoinRequests(w http.ResponseWriter, r *http.Request) {
+	groupID, ok := parseUUID(w, chi.URLParam(r, "groupID"))
+	if !ok {
+		return
+	}
+	resp, err := h.svc.ListJoinRequests(r.Context(), groupID, apimw.UserIDFromCtx(r.Context()))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// POST /groups/{groupID}/requests/{requestID}/accept|decline (репетитор).
+func (h *Handler) decideJoinRequest(accept bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		groupID, ok := parseUUID(w, chi.URLParam(r, "groupID"))
+		if !ok {
+			return
+		}
+		requestID, ok := parseUUID(w, chi.URLParam(r, "requestID"))
+		if !ok {
+			return
+		}
+		callerID := apimw.UserIDFromCtx(r.Context())
+		if err := h.svc.DecideJoinRequest(r.Context(), groupID, requestID, callerID, accept); err != nil {
+			writeServiceError(w, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 // GET /groups/{groupID}

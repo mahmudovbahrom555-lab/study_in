@@ -389,5 +389,20 @@
   "@codeValidUntil": {"placeholders": {"time": {"type": "String"}}},
   "copy": "Copy",
   "copied": "Copied",
-  "newCode": "New code"
+  "newCode": "New code",
+  "copyJoinLink": "Copy link",
+  "joinLinkCopied": "Link copied — send it to your students in a messenger",
+  "joinRequests": "Requests ({count})",
+  "@joinRequests": {"placeholders": {"count": {"type": "int"}}},
+  "declineRequest": "Decline",
+  "sendJoinRequest": "Send request",
+  "joinRequestSent": "Request sent — wait for the tutor to accept it",
+  "pendingJoinRequests": "Waiting for the tutor to accept",
+  "joinOnlyStudents": "Only a student can join a group. Sign in with a student account.",
+  "groupTutor": "Tutor: {name}",
+  "@groupTutor": {"placeholders": {"name": {"type": "String"}}},
+  "groupStudentsCount": "Students: {count}",
+  "@groupStudentsCount": {"placeholders": {"count": {"type": "int"}}},
+  "joinLinkInvalid": "The link is invalid or the group no longer exists",
+  "toMyGroups": "To my groups"
 }

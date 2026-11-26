@@ -37,6 +37,15 @@ class AppConfig {
     defaultValue: 'https://mamu.education/privacy',
   );
 
+  /// Адрес веб-версии: из него собираются ссылки-приглашения в группы.
+  static const String webUrl = String.fromEnvironment(
+    'WEB_URL',
+    defaultValue: 'https://mamu.education',
+  );
+
+  /// Ссылка, которую репетитор отправляет ученикам в мессенджере.
+  static String joinLink(String inviteCode) => '$webUrl/#/join/$inviteCode';
+
   /// Версия политики, с которой человек соглашается на экране входа.
   /// Меняется вместе с текстом политики — сервер хранит её в журнале согласий.
   static const String privacyVersion = '2026-11-26';

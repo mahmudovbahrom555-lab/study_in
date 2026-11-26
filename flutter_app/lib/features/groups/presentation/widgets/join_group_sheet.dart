@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/groups_provider.dart';
 import '../../../../core/localization/l10n.dart';
+import '../../../../core/network/error_message.dart';
 
 class JoinGroupSheet extends ConsumerStatefulWidget {
   const JoinGroupSheet({super.key});
@@ -14,6 +15,7 @@ class JoinGroupSheet extends ConsumerStatefulWidget {
 class _JoinGroupSheetState extends ConsumerState<JoinGroupSheet> {
   final _formKey = GlobalKey<FormState>();
   final _codeCtrl = TextEditingController();
+  bool _sending = false;
 
   @override
   void dispose() {
@@ -23,8 +25,6 @@ class _JoinGroupSheetState extends ConsumerState<JoinGroupSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(groupsProvider).isLoading;
-
     return Padding(
       padding: EdgeInsets.only(
         left: 16,
@@ -56,8 +56,8 @@ class _JoinGroupSheetState extends ConsumerState<JoinGroupSheet> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: isLoading ? null : _submit,
-              child: isLoading
+              onPressed: _sending ? null : _submit,
+              child: _sending
                   ? const SizedBox(
                       height: 20,
                       width: 20,
@@ -73,9 +73,18 @@ class _JoinGroupSheetState extends ConsumerState<JoinGroupSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref
-        .read(groupsProvider.notifier)
-        .joinGroup(_codeCtrl.text.trim().toUpperCase());
-    if (mounted) Navigator.of(context).pop();
+    final messenger = ScaffoldMessenger.of(context);
+    final sent = context.l10n.joinRequestSent;
+    final code = _codeCtrl.text.trim().toUpperCase();
+    setState(() => _sending = true);
+    try {
+      await ref.read(groupsRepositoryProvider).joinGroup(code);
+      ref.invalidate(myJoinRequestsProvider);
+      messenger.showSnackBar(SnackBar(content: Text(sent)));
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(userErrorMessage(e))));
+      if (mounted) setState(() => _sending = false);
+    }
   }
 }

@@ -28,4 +28,14 @@ type Repository interface {
 	UpdateMemberPayment(ctx context.Context, groupID, studentID uuid.UUID, status domain.PaymentStatus) error
 	// IsBanned — репетитор заблокировал пользователя в классе (вступить снова нельзя).
 	IsBanned(ctx context.Context, groupID, userID uuid.UUID) (bool, error)
+
+	GetGroupPreviewByCode(ctx context.Context, code string) (*domain.GroupPreview, error)
+	// UpsertJoinRequest создаёт заявку или снова делает прежнюю ожидающей.
+	UpsertJoinRequest(ctx context.Context, groupID, studentID uuid.UUID) (*domain.GroupJoinRequest, error)
+	GetJoinRequest(ctx context.Context, id uuid.UUID) (*domain.GroupJoinRequest, error)
+	ListPendingJoinRequests(ctx context.Context, groupID uuid.UUID) ([]*domain.JoinRequestDetail, error)
+	ListMyPendingJoinRequests(ctx context.Context, studentID uuid.UUID) ([]*domain.MyJoinRequest, error)
+	// AcceptJoinRequest в одной транзакции добавляет ученика и закрывает заявку.
+	AcceptJoinRequest(ctx context.Context, requestID uuid.UUID, m *domain.GroupMember) error
+	DeclineJoinRequest(ctx context.Context, requestID uuid.UUID) error
 }

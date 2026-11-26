@@ -183,3 +183,112 @@ func (r *GroupRepository) UpdateMemberPayment(ctx context.Context, groupID, stud
 	}
 	return nil
 }
+
+// --- Заявки на вступление ---
+
+func (r *GroupRepository) GetGroupPreviewByCode(ctx context.Context, code string) (*domain.GroupPreview, error) {
+	var p domain.GroupPreview
+	err := r.db.GetContext(ctx, &p, `
+		SELECT g.id, g.name, g.subject, g.description, g.is_archived,
+		       u.name AS teacher_name,
+		       u.avatar_url AS teacher_avatar_url,
+		       u.avatar_preset AS teacher_avatar_preset,
+		       (SELECT COUNT(*) FROM group_members m WHERE m.group_id = g.id) AS member_count
+		FROM groups g
+		JOIN users u ON u.id = g.teacher_id
+		WHERE g.invite_code = $1 AND g.deleted_at IS NULL`, code)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("GroupRepository.GetGroupPreviewByCode: %w", err)
+	}
+	return &p, nil
+}
+
+func (r *GroupRepository) UpsertJoinRequest(ctx context.Context, groupID, studentID uuid.UUID) (*domain.GroupJoinRequest, error) {
+	var jr domain.GroupJoinRequest
+	err := r.db.GetContext(ctx, &jr, `
+		INSERT INTO group_join_requests (group_id, student_id) VALUES ($1, $2)
+		ON CONFLICT (group_id, student_id) DO UPDATE
+		    SET status = 'pending', created_at = NOW(), decided_at = NULL
+		RETURNING *`, groupID, studentID)
+	if err != nil {
+		return nil, fmt.Errorf("GroupRepository.UpsertJoinRequest: %w", err)
+	}
+	return &jr, nil
+}
+
+func (r *GroupRepository) GetJoinRequest(ctx context.Context, id uuid.UUID) (*domain.GroupJoinRequest, error) {
+	var jr domain.GroupJoinRequest
+	err := r.db.GetContext(ctx, &jr, `SELECT * FROM group_join_requests WHERE id = $1`, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("GroupRepository.GetJoinRequest: %w", err)
+	}
+	return &jr, nil
+}
+
+func (r *GroupRepository) ListPendingJoinRequests(ctx context.Context, groupID uuid.UUID) ([]*domain.JoinRequestDetail, error) {
+	var out []*domain.JoinRequestDetail
+	err := r.db.SelectContext(ctx, &out, `
+		SELECT jr.*, u.name AS student_name, u.avatar_url, u.avatar_preset
+		FROM group_join_requests jr
+		JOIN users u ON u.id = jr.student_id
+		WHERE jr.group_id = $1 AND jr.status = 'pending'
+		ORDER BY jr.created_at`, groupID)
+	if err != nil {
+		return nil, fmt.Errorf("GroupRepository.ListPendingJoinRequests: %w", err)
+	}
+	return out, nil
+}
+
+func (r *GroupRepository) ListMyPendingJoinRequests(ctx context.Context, studentID uuid.UUID) ([]*domain.MyJoinRequest, error) {
+	var out []*domain.MyJoinRequest
+	err := r.db.SelectContext(ctx, &out, `
+		SELECT jr.*, g.name AS group_name
+		FROM group_join_requests jr
+		JOIN groups g ON g.id = jr.group_id AND g.deleted_at IS NULL
+		WHERE jr.student_id = $1 AND jr.status = 'pending'
+		ORDER BY jr.created_at DESC`, studentID)
+	if err != nil {
+		return nil, fmt.Errorf("GroupRepository.ListMyPendingJoinRequests: %w", err)
+	}
+	return out, nil
+}
+
+func (r *GroupRepository) AcceptJoinRequest(ctx context.Context, requestID uuid.UUID, m *domain.GroupMember) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("GroupRepository.AcceptJoinRequest begin: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }() // после Commit — no-op
+
+	if _, err := tx.NamedExecContext(ctx, `
+		INSERT INTO group_members (group_id, student_id, joined_at, payment_status)
+		VALUES (:group_id, :student_id, :joined_at, :payment_status)
+		ON CONFLICT DO NOTHING`, m); err != nil {
+		return fmt.Errorf("GroupRepository.AcceptJoinRequest member: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE group_join_requests SET status = 'accepted', decided_at = NOW()
+		WHERE id = $1`, requestID); err != nil {
+		return fmt.Errorf("GroupRepository.AcceptJoinRequest status: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("GroupRepository.AcceptJoinRequest commit: %w", err)
+	}
+	return nil
+}
+
+func (r *GroupRepository) DeclineJoinRequest(ctx context.Context, requestID uuid.UUID) error {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE group_join_requests SET status = 'declined', decided_at = NOW()
+		WHERE id = $1`, requestID)
+	if err != nil {
+		return fmt.Errorf("GroupRepository.DeclineJoinRequest: %w", err)
+	}
+	return nil
+}

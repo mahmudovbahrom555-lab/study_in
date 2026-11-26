@@ -9,6 +9,7 @@ import '../providers/groups_provider.dart';
 import '../widgets/group_card.dart';
 import '../widgets/group_form_sheet.dart';
 import '../widgets/join_group_sheet.dart';
+import '../widgets/pending_requests_banner.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../../../core/localization/l10n.dart';
 
@@ -23,7 +24,13 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(groupsProvider.notifier).load());
+    Future.microtask(_reload);
+  }
+
+  /// Заявку могли принять, пока экран был закрыт — обновляем и её.
+  Future<void> _reload() async {
+    ref.invalidate(myJoinRequestsProvider);
+    await ref.read(groupsProvider.notifier).load();
   }
 
   @override
@@ -51,7 +58,14 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
               child: const Icon(LucideIcons.plus),
             )
           : null,
-      body: _buildBody(state, isTeacher),
+      body: isTeacher
+          ? _buildBody(state, isTeacher)
+          : Column(
+              children: [
+                const PendingRequestsBanner(),
+                Expanded(child: _buildBody(state, isTeacher)),
+              ],
+            ),
     );
   }
 
@@ -60,10 +74,7 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
       return const Center(child: CircularProgressIndicator());
     }
     if (state.error != null && state.groups.isEmpty) {
-      return ErrorView(
-        message: state.error!,
-        onRetry: () => ref.read(groupsProvider.notifier).load(),
-      );
+      return ErrorView(message: state.error!, onRetry: _reload);
     }
     if (state.groups.isEmpty) {
       return isTeacher
@@ -72,7 +83,7 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
     }
 
     return RefreshIndicator(
-      onRefresh: () => ref.read(groupsProvider.notifier).load(),
+      onRefresh: _reload,
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: state.groups.length,

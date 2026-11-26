@@ -10,6 +10,8 @@ import '../../features/auth/presentation/pages/profile_setup_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/feed/presentation/pages/feed_page.dart';
 import '../../features/groups/presentation/pages/group_detail_page.dart';
+import '../../features/groups/presentation/pages/join_group_page.dart';
+import '../../features/groups/presentation/pending_join.dart';
 import '../../features/quizzes/presentation/pages/quizzes_page.dart';
 import '../../features/quizzes/presentation/pages/quiz_detail_page.dart';
 import '../../features/quizzes/presentation/pages/quiz_attempt_page.dart';
@@ -42,6 +44,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuth = authState.isAuthenticated;
       final isLoading = authState.isLoading;
       final loc = state.matchedLocation;
+
+      // Ссылка-приглашение: код ждёт входа, главный экран откроет карточку.
+      if (loc.startsWith('/join/')) {
+        pendingJoinCode = state.pathParameters['code'];
+        return Routes.splash;
+      }
 
       if (isLoading) return null;
 
@@ -76,6 +84,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.profileSetup,
         builder: (_, __) => const ProfileSetupPage(),
+      ),
+      GoRoute(path: '/join/:code', builder: (_, __) => const SplashPage()),
+      GoRoute(
+        path: '/join-group/:code',
+        builder: (_, state) =>
+            JoinGroupPage(code: state.pathParameters['code']!),
       ),
       GoRoute(path: Routes.home, builder: (_, __) => const HomeShell()),
       GoRoute(path: Routes.groups, builder: (_, __) => const HomeShell()),

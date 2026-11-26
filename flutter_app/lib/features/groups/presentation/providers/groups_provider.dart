@@ -4,6 +4,7 @@ import '../../../../core/network/api_client.dart';
 import '../../data/groups_api.dart';
 import '../../data/groups_repository_impl.dart';
 import '../../domain/entities/group.dart';
+import '../../domain/entities/join_request.dart';
 import '../../domain/repositories/groups_repository.dart';
 import '../../../../core/network/error_message.dart';
 
@@ -72,16 +73,6 @@ class GroupsNotifier extends StateNotifier<GroupsState> {
     }
   }
 
-  Future<void> joinGroup(String inviteCode) async {
-    state = state.copyWith(isLoading: true, clearError: true);
-    try {
-      final g = await _repo.joinGroup(inviteCode);
-      state = state.copyWith(isLoading: false, groups: [g, ...state.groups]);
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: userErrorMessage(e));
-    }
-  }
-
   Future<void> updateGroup(
     String id, {
     required String name,
@@ -133,6 +124,30 @@ final groupsProvider = StateNotifierProvider<GroupsNotifier, GroupsState>((
 ) {
   return GroupsNotifier(ref.watch(groupsRepositoryProvider));
 });
+
+// ─── Join requests ───────────────────────────────────────────────────────────
+
+/// Карточка группы по коду из ссылки.
+final groupPreviewProvider = FutureProvider.autoDispose
+    .family<GroupPreview, String>((ref, code) {
+      final repo = ref.watch(groupsRepositoryProvider);
+      return repo.previewGroup(code);
+    });
+
+/// Ожидающие заявки ученика.
+final myJoinRequestsProvider = FutureProvider.autoDispose<List<JoinRequest>>((
+  ref,
+) {
+  final repo = ref.watch(groupsRepositoryProvider);
+  return repo.myJoinRequests();
+});
+
+/// Ожидающие заявки в группу (видит только её репетитор).
+final joinRequestsProvider = FutureProvider.autoDispose
+    .family<List<JoinRequestItem>, String>((ref, groupId) {
+      final repo = ref.watch(groupsRepositoryProvider);
+      return repo.listJoinRequests(groupId);
+    });
 
 // ─── Members list ─────────────────────────────────────────────────────────────
 
