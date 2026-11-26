@@ -371,5 +371,7 @@
   "errUsernameTaken": "Это имя пользователя уже занято",
   "errAlreadyMember": "Вы уже в этой группе",
   "errBannedFromGroup": "Репетитор исключил вас из этой группы",
-  "errRequestDecided": "На эту заявку уже ответили"
+  "errRequestDecided": "На эту заявку уже ответили",
+  "groupQr": "QR-код",
+  "groupQrHint": "Покажите ученику: он наводит камеру и отправляет заявку в группу."
 }
