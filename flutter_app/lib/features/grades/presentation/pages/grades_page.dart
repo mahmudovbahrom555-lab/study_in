@@ -34,6 +34,16 @@ class _GradesPageState extends ConsumerState<GradesPage> {
   void _load() {
     if (widget.isTeacher) {
       ref.read(groupGradesProvider(widget.groupId).notifier).load();
+      return;
+    }
+    // Ученик: свежие оценки при каждом открытии. Список живёт всю сессию, и
+    // без этого новая оценка была не видна до перезагрузки приложения.
+    final params = (
+      groupId: widget.groupId,
+      studentId: ref.read(authProvider).user?.id ?? '',
+    );
+    if (!ref.read(studentGradesProvider(params)).isLoading) {
+      ref.read(studentGradesProvider(params).notifier).load();
     }
   }
 

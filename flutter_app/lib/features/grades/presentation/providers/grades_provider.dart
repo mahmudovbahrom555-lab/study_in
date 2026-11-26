@@ -121,7 +121,8 @@ class StudentGradesNotifier extends StateNotifier<AsyncValue<List<Grade>>> {
   final String _studentId;
 
   Future<void> load() async {
-    state = const AsyncValue.loading();
+    // Повторная загрузка — без мигания: старый список виден, пока идёт новая.
+    if (!state.hasValue) state = const AsyncValue.loading();
     try {
       final gs = await _repo.listStudentGrades(_groupId, _studentId);
       state = AsyncValue.data(gs);
