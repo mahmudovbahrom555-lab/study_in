@@ -25,6 +25,12 @@ class _FeedPageState extends ConsumerState<FeedPage> {
   void initState() {
     super.initState();
     _scrollCtrl.addListener(_onScroll);
+    // Лента живёт всю сессию — при повторном открытии берём свежие объявления
+    // (при первом её уже загружает сам провайдер).
+    Future.microtask(() {
+      final notifier = ref.read(feedProvider(widget.groupId).notifier);
+      if (!ref.read(feedProvider(widget.groupId)).isLoading) notifier.load();
+    });
   }
 
   @override
