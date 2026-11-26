@@ -214,9 +214,11 @@ func (s *Service) DeleteGroup(ctx context.Context, id, teacherID uuid.UUID) erro
 	return nil
 }
 
-// JoinGroup lets a student join via invite code.
-func (s *Service) JoinGroup(ctx context.Context, studentID uuid.UUID, req JoinGroupRequest) (*GroupResponse, error) {
-	g, err := s.repo.GetGroupByInviteCode(ctx, strings.ToUpper(strings.TrimSpace(req.InviteCode)))
+// JoinGroup — заявка ученика в группу по коду или ссылке. В группу ученик
+// попадает, только когда репетитор примет заявку (решение владельцев,
+// 2026-11-26). Повторная заявка возвращает ту же ожидающую.
+func (s *Service) JoinGroup(ctx context.Context, studentID uuid.UUID, req JoinGroupRequest) (*JoinRequestResponse, error) {
+	g, err := s.repo.GetGroupByInviteCode(ctx, normalizeCode(req.InviteCode))
 	if err != nil {
 		return nil, fmt.Errorf("groups.JoinGroup lookup: %w", err)
 	}
@@ -242,18 +244,119 @@ func (s *Service) JoinGroup(ctx context.Context, studentID uuid.UUID, req JoinGr
 		return nil, errBannedFromGroup
 	}
 
+	jr, err := s.repo.UpsertJoinRequest(ctx, g.ID, studentID)
+	if err != nil {
+		return nil, fmt.Errorf("groups.JoinGroup request: %w", err)
+	}
+	return &JoinRequestResponse{ID: jr.ID, GroupID: g.ID, GroupName: g.Name, Status: jr.Status}, nil
+}
+
+// PreviewGroup — карточка группы по коду: показывается ученику до заявки.
+func (s *Service) PreviewGroup(ctx context.Context, code string) (*GroupPreviewResponse, error) {
+	p, err := s.repo.GetGroupPreviewByCode(ctx, normalizeCode(code))
+	if err != nil {
+		return nil, fmt.Errorf("groups.PreviewGroup: %w", err)
+	}
+	if p == nil || p.IsArchived {
+		return nil, domain.ErrNotFound
+	}
+	return &GroupPreviewResponse{
+		ID:                  p.ID,
+		Name:                p.Name,
+		Subject:             p.Subject,
+		Description:         p.Description,
+		TeacherName:         p.TeacherName,
+		TeacherAvatarURL:    s.signAvatar(ctx, p.TeacherAvatarURL),
+		TeacherAvatarPreset: p.TeacherAvatarPreset,
+		MemberCount:         p.MemberCount,
+	}, nil
+}
+
+// ListJoinRequests — ожидающие заявки (только репетитор группы).
+func (s *Service) ListJoinRequests(ctx context.Context, groupID, teacherID uuid.UUID) ([]JoinRequestItem, error) {
+	if err := s.assertOwner(ctx, groupID, teacherID); err != nil {
+		return nil, err
+	}
+	reqs, err := s.repo.ListPendingJoinRequests(ctx, groupID)
+	if err != nil {
+		return nil, fmt.Errorf("groups.ListJoinRequests: %w", err)
+	}
+	out := make([]JoinRequestItem, len(reqs))
+	for i, r := range reqs {
+		out[i] = JoinRequestItem{
+			ID:           r.ID,
+			StudentID:    r.StudentID,
+			StudentName:  r.StudentName,
+			AvatarURL:    s.signAvatar(ctx, r.AvatarURL),
+			AvatarPreset: r.AvatarPreset,
+			CreatedAt:    r.CreatedAt,
+		}
+	}
+	return out, nil
+}
+
+// MyJoinRequests — свои ожидающие заявки ученика.
+func (s *Service) MyJoinRequests(ctx context.Context, studentID uuid.UUID) ([]JoinRequestResponse, error) {
+	reqs, err := s.repo.ListMyPendingJoinRequests(ctx, studentID)
+	if err != nil {
+		return nil, fmt.Errorf("groups.MyJoinRequests: %w", err)
+	}
+	out := make([]JoinRequestResponse, len(reqs))
+	for i, r := range reqs {
+		out[i] = JoinRequestResponse{ID: r.ID, GroupID: r.GroupID, GroupName: r.GroupName, Status: r.Status}
+	}
+	return out, nil
+}
+
+// DecideJoinRequest — репетитор принимает или отклоняет заявку.
+func (s *Service) DecideJoinRequest(ctx context.Context, groupID, requestID, teacherID uuid.UUID, accept bool) error {
+	if err := s.assertOwner(ctx, groupID, teacherID); err != nil {
+		return err
+	}
+	jr, err := s.repo.GetJoinRequest(ctx, requestID)
+	if err != nil {
+		return fmt.Errorf("groups.DecideJoinRequest: %w", err)
+	}
+	if jr == nil || jr.GroupID != groupID {
+		return domain.ErrNotFound
+	}
+	if jr.Status != domain.JoinRequestPending {
+		return domain.NewError("REQUEST_DECIDED", "Заявка уже рассмотрена", domain.ErrConflict)
+	}
+	if !accept {
+		if err := s.repo.DeclineJoinRequest(ctx, requestID); err != nil {
+			return fmt.Errorf("groups.DecideJoinRequest decline: %w", err)
+		}
+		return nil
+	}
 	m := &domain.GroupMember{
-		GroupID:       g.ID,
-		StudentID:     studentID,
+		GroupID:       groupID,
+		StudentID:     jr.StudentID,
 		JoinedAt:      time.Now(),
 		PaymentStatus: domain.PaymentStatusTrial,
 	}
-	if err := s.repo.AddMember(ctx, m); err != nil {
-		return nil, fmt.Errorf("groups.JoinGroup add member: %w", err)
+	if err := s.repo.AcceptJoinRequest(ctx, requestID, m); err != nil {
+		return fmt.Errorf("groups.DecideJoinRequest accept: %w", err)
 	}
+	return nil
+}
 
-	resp := groupToResponse(g)
-	return &resp, nil
+func (s *Service) assertOwner(ctx context.Context, groupID, teacherID uuid.UUID) error {
+	g, err := s.repo.GetGroupByID(ctx, groupID)
+	if err != nil {
+		return fmt.Errorf("groups.assertOwner: %w", err)
+	}
+	if g == nil {
+		return domain.ErrNotFound
+	}
+	if g.TeacherID != teacherID {
+		return domain.ErrForbidden
+	}
+	return nil
+}
+
+func normalizeCode(code string) string {
+	return strings.ToUpper(strings.TrimSpace(code))
 }
 
 // ListMembers returns members of a group (teacher only, or members themselves).

@@ -2,6 +2,7 @@ package groups_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,17 +17,83 @@ import (
 // --- in-memory repository ---
 
 type memRepo struct {
-	groups  map[uuid.UUID]*domain.Group
-	members map[string]*domain.GroupMember // "groupID:studentID" → member
-	bans    map[string]bool
+	groups   map[uuid.UUID]*domain.Group
+	members  map[string]*domain.GroupMember // "groupID:studentID" → member
+	bans     map[string]bool
+	requests map[uuid.UUID]*domain.GroupJoinRequest
 }
 
 func newMemRepo() *memRepo {
 	return &memRepo{
-		groups:  make(map[uuid.UUID]*domain.Group),
-		members: make(map[string]*domain.GroupMember),
-		bans:    make(map[string]bool),
+		groups:   make(map[uuid.UUID]*domain.Group),
+		members:  make(map[string]*domain.GroupMember),
+		bans:     make(map[string]bool),
+		requests: make(map[uuid.UUID]*domain.GroupJoinRequest),
 	}
+}
+
+func (r *memRepo) GetGroupPreviewByCode(_ context.Context, code string) (*domain.GroupPreview, error) {
+	for _, g := range r.groups {
+		if g.InviteCode == code && g.DeletedAt == nil {
+			return &domain.GroupPreview{ID: g.ID, Name: g.Name, IsArchived: g.IsArchived, TeacherName: "Teacher"}, nil
+		}
+	}
+	return nil, nil
+}
+
+func (r *memRepo) UpsertJoinRequest(_ context.Context, groupID, studentID uuid.UUID) (*domain.GroupJoinRequest, error) {
+	for _, jr := range r.requests {
+		if jr.GroupID == groupID && jr.StudentID == studentID {
+			jr.Status = domain.JoinRequestPending
+			cp := *jr
+			return &cp, nil
+		}
+	}
+	jr := &domain.GroupJoinRequest{ID: uuid.New(), GroupID: groupID, StudentID: studentID, Status: domain.JoinRequestPending}
+	r.requests[jr.ID] = jr
+	cp := *jr
+	return &cp, nil
+}
+
+func (r *memRepo) GetJoinRequest(_ context.Context, id uuid.UUID) (*domain.GroupJoinRequest, error) {
+	jr, ok := r.requests[id]
+	if !ok {
+		return nil, nil
+	}
+	cp := *jr
+	return &cp, nil
+}
+
+func (r *memRepo) ListPendingJoinRequests(_ context.Context, groupID uuid.UUID) ([]*domain.JoinRequestDetail, error) {
+	var out []*domain.JoinRequestDetail
+	for _, jr := range r.requests {
+		if jr.GroupID == groupID && jr.Status == domain.JoinRequestPending {
+			out = append(out, &domain.JoinRequestDetail{GroupJoinRequest: *jr, StudentName: "Student"})
+		}
+	}
+	return out, nil
+}
+
+func (r *memRepo) ListMyPendingJoinRequests(_ context.Context, studentID uuid.UUID) ([]*domain.MyJoinRequest, error) {
+	var out []*domain.MyJoinRequest
+	for _, jr := range r.requests {
+		if jr.StudentID == studentID && jr.Status == domain.JoinRequestPending {
+			out = append(out, &domain.MyJoinRequest{GroupJoinRequest: *jr, GroupName: r.groups[jr.GroupID].Name})
+		}
+	}
+	return out, nil
+}
+
+func (r *memRepo) AcceptJoinRequest(_ context.Context, requestID uuid.UUID, m *domain.GroupMember) error {
+	cp := *m
+	r.members[memberKey(m.GroupID, m.StudentID)] = &cp
+	r.requests[requestID].Status = domain.JoinRequestAccepted
+	return nil
+}
+
+func (r *memRepo) DeclineJoinRequest(_ context.Context, requestID uuid.UUID) error {
+	r.requests[requestID].Status = domain.JoinRequestDeclined
+	return nil
 }
 
 func memberKey(gid, sid uuid.UUID) string {
@@ -152,6 +219,14 @@ func buildSvc() *groups.Service {
 	return groups.NewService(newMemRepo())
 }
 
+// join — заявка ученика и её одобрение репетитором (так ученик попадает в группу).
+func join(t *testing.T, svc *groups.Service, g *groups.GroupResponse, sid uuid.UUID) {
+	t.Helper()
+	jr, err := svc.JoinGroup(context.Background(), sid, groups.JoinGroupRequest{InviteCode: g.InviteCode})
+	require.NoError(t, err)
+	require.NoError(t, svc.DecideJoinRequest(context.Background(), g.ID, jr.ID, teacherID, true))
+}
+
 var (
 	teacherID = uuid.New()
 	studentID = uuid.New()
@@ -195,8 +270,7 @@ func TestListMyGroups_Teacher(t *testing.T) {
 func TestListMembers_PrivateFieldsOnlyForOwner(t *testing.T) {
 	svc := buildSvc()
 	g, _ := svc.CreateGroup(context.Background(), teacherID, groups.CreateGroupRequest{Name: "Physics"})
-	_, err := svc.JoinGroup(context.Background(), studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
-	require.NoError(t, err)
+	join(t, svc, g, studentID)
 
 	asTeacher, err := svc.ListMembers(context.Background(), g.ID, teacherID, domain.RoleTeacher)
 	require.NoError(t, err)
@@ -218,14 +292,76 @@ func TestJoinGroup_Success(t *testing.T) {
 
 	resp, err := svc.JoinGroup(context.Background(), studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
 	require.NoError(t, err)
-	assert.Equal(t, g.ID, resp.ID)
+	assert.Equal(t, g.ID, resp.GroupID)
+	assert.Equal(t, domain.JoinRequestPending, resp.Status)
+
+	// До одобрения ученик не в группе; заявка видна репетитору и ученику.
+	members, err := svc.ListMembers(context.Background(), g.ID, teacherID, domain.RoleTeacher)
+	require.NoError(t, err)
+	assert.Empty(t, members)
+	reqs, err := svc.ListJoinRequests(context.Background(), g.ID, teacherID)
+	require.NoError(t, err)
+	require.Len(t, reqs, 1)
+	mine, err := svc.MyJoinRequests(context.Background(), studentID)
+	require.NoError(t, err)
+	require.Len(t, mine, 1)
+	assert.Equal(t, "Physics", mine[0].GroupName)
+
+	require.NoError(t, svc.DecideJoinRequest(context.Background(), g.ID, resp.ID, teacherID, true))
+	members, _ = svc.ListMembers(context.Background(), g.ID, teacherID, domain.RoleTeacher)
+	assert.Len(t, members, 1)
+	reqs, _ = svc.ListJoinRequests(context.Background(), g.ID, teacherID)
+	assert.Empty(t, reqs)
+}
+
+func TestJoinRequest_DeclineThenRequestAgain(t *testing.T) {
+	svc := buildSvc()
+	ctx := context.Background()
+	g, _ := svc.CreateGroup(ctx, teacherID, groups.CreateGroupRequest{Name: "Chem"})
+	jr, _ := svc.JoinGroup(ctx, studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
+
+	require.NoError(t, svc.DecideJoinRequest(ctx, g.ID, jr.ID, teacherID, false))
+	members, _ := svc.ListMembers(ctx, g.ID, teacherID, domain.RoleTeacher)
+	assert.Empty(t, members)
+
+	again, err := svc.JoinGroup(ctx, studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
+	require.NoError(t, err)
+	assert.Equal(t, domain.JoinRequestPending, again.Status)
+}
+
+func TestJoinRequest_OnlyOwnerDecides(t *testing.T) {
+	svc := buildSvc()
+	ctx := context.Background()
+	g, _ := svc.CreateGroup(ctx, teacherID, groups.CreateGroupRequest{Name: "Geo"})
+	jr, _ := svc.JoinGroup(ctx, studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
+
+	err := svc.DecideJoinRequest(ctx, g.ID, jr.ID, uuid.New(), true)
+	assert.ErrorIs(t, err, domain.ErrForbidden)
+	_, err = svc.ListJoinRequests(ctx, g.ID, studentID)
+	assert.ErrorIs(t, err, domain.ErrForbidden)
+
+	require.NoError(t, svc.DecideJoinRequest(ctx, g.ID, jr.ID, teacherID, true))
+	err = svc.DecideJoinRequest(ctx, g.ID, jr.ID, teacherID, false)
+	assert.ErrorIs(t, err, domain.ErrConflict, "already decided")
+}
+
+func TestPreviewGroup_ByCodeCaseInsensitive(t *testing.T) {
+	svc := buildSvc()
+	g, _ := svc.CreateGroup(context.Background(), teacherID, groups.CreateGroupRequest{Name: "History"})
+
+	p, err := svc.PreviewGroup(context.Background(), " "+strings.ToLower(g.InviteCode)+" ")
+	require.NoError(t, err)
+	assert.Equal(t, "History", p.Name)
+
+	_, err = svc.PreviewGroup(context.Background(), "NOPE1234")
+	assert.ErrorIs(t, err, domain.ErrNotFound)
 }
 
 func TestJoinGroup_AlreadyMember(t *testing.T) {
 	svc := buildSvc()
 	g, _ := svc.CreateGroup(context.Background(), teacherID, groups.CreateGroupRequest{Name: "Bio"})
 
-	_, _ = svc.JoinGroup(context.Background(), studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
+	join(t, svc, g, studentID)
 	_, err := svc.JoinGroup(context.Background(), studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
 	assert.ErrorIs(t, err, domain.ErrAlreadyMember)
 }
@@ -314,7 +450,7 @@ func TestUpdateGroup_ForbiddenForNonOwner(t *testing.T) {
 func TestUpdatePayment_Success(t *testing.T) {
 	svc := buildSvc()
 	g, _ := svc.CreateGroup(context.Background(), teacherID, groups.CreateGroupRequest{Name: "Math"})
-	_, _ = svc.JoinGroup(context.Background(), studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
+	join(t, svc, g, studentID)
 
 	err := svc.UpdatePayment(context.Background(), g.ID, studentID, teacherID,
 		groups.UpdatePaymentRequest{Status: domain.PaymentStatusPaid})
@@ -334,12 +470,12 @@ func TestUpdatePayment_NotMember(t *testing.T) {
 func TestLeaveGroup_Success(t *testing.T) {
 	svc := buildSvc()
 	g, _ := svc.CreateGroup(context.Background(), teacherID, groups.CreateGroupRequest{Name: "PE"})
-	_, _ = svc.JoinGroup(context.Background(), studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
+	join(t, svc, g, studentID)
 
 	err := svc.LeaveGroup(context.Background(), g.ID, studentID)
 	require.NoError(t, err)
 
-	// Joining again should succeed after leaving
+	// После выхода можно снова подать заявку
 	_, err = svc.JoinGroup(context.Background(), studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
 	require.NoError(t, err)
 }

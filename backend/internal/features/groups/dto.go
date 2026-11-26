@@ -89,3 +89,33 @@ func memberToResponse(m *domain.GroupMemberDetail) MemberResponse {
 		ChatMuted:     m.ChatMuted,
 	}
 }
+
+// JoinRequestResponse — заявка ученика (ему же в ответ на «вступить»).
+type JoinRequestResponse struct {
+	ID        uuid.UUID                `json:"id"`
+	GroupID   uuid.UUID                `json:"group_id"`
+	GroupName string                   `json:"group_name"`
+	Status    domain.JoinRequestStatus `json:"status"`
+}
+
+// JoinRequestItem — заявка в списке репетитора.
+type JoinRequestItem struct {
+	ID           uuid.UUID `json:"id"`
+	StudentID    uuid.UUID `json:"student_id"`
+	StudentName  string    `json:"student_name"`
+	AvatarURL    *string   `json:"avatar_url"`
+	AvatarPreset *string   `json:"avatar_preset"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// GroupPreviewResponse — карточка группы по ссылке, до вступления.
+type GroupPreviewResponse struct {
+	ID                  uuid.UUID `json:"id"`
+	Name                string    `json:"name"`
+	Subject             *string   `json:"subject"`
+	Description         *string   `json:"description"`
+	TeacherName         string    `json:"teacher_name"`
+	TeacherAvatarURL    *string   `json:"teacher_avatar_url"`
+	TeacherAvatarPreset *string   `json:"teacher_avatar_preset"`
+	MemberCount         int       `json:"member_count"`
+}
