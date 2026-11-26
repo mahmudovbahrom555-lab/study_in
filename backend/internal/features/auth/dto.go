@@ -52,6 +52,9 @@ type UpdateMeRequest struct {
 	Language *domain.Language `json:"language"` // проверяет сервис: domain.SupportedLanguages
 	// @username репетитора (по нему ученики находят его открытые группы); "" — убрать.
 	Username *string `json:"username"`
+	// true — ученик младше 13 по возрастному экрану в приложении: его заявки
+	// в группы ждут согласия родителя. Снять признак через API нельзя.
+	IsChild *bool `json:"is_child"`
 }
 
 type AvatarPresetRequest struct {
@@ -71,6 +74,7 @@ type UserResponse struct {
 	Email        string       `json:"email,omitempty"`
 	Name         string       `json:"name"`
 	Username     *string      `json:"username"`
+	IsChild      bool         `json:"is_child"`
 	Role         *domain.Role `json:"role"`
 	AvatarURL    *string      `json:"avatar_url"` // подписанная ссылка на фото
 	AvatarPreset *string      `json:"avatar_preset"`
@@ -85,6 +89,7 @@ func userToResponse(u *domain.User) UserResponse {
 		Email:        deref(u.Email),
 		Name:         u.Name,
 		Username:     u.Username,
+		IsChild:      u.IsChild,
 		Role:         u.Role,
 		AvatarPreset: u.AvatarPreset,
 		Language:     string(u.Language),

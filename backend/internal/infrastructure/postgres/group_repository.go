@@ -231,13 +231,13 @@ func (r *GroupRepository) SearchPublicGroups(ctx context.Context, pattern, usern
 	return out, nil
 }
 
-func (r *GroupRepository) UpsertJoinRequest(ctx context.Context, groupID, studentID uuid.UUID) (*domain.GroupJoinRequest, error) {
+func (r *GroupRepository) UpsertJoinRequest(ctx context.Context, groupID, studentID uuid.UUID, status domain.JoinRequestStatus) (*domain.GroupJoinRequest, error) {
 	var jr domain.GroupJoinRequest
 	err := r.db.GetContext(ctx, &jr, `
-		INSERT INTO group_join_requests (group_id, student_id) VALUES ($1, $2)
+		INSERT INTO group_join_requests (group_id, student_id, status) VALUES ($1, $2, $3)
 		ON CONFLICT (group_id, student_id) DO UPDATE
-		    SET status = 'pending', created_at = NOW(), decided_at = NULL
-		RETURNING *`, groupID, studentID)
+		    SET status = $3, created_at = NOW(), decided_at = NULL, approved_by_parent = NULL
+		RETURNING *`, groupID, studentID, status)
 	if err != nil {
 		return nil, fmt.Errorf("GroupRepository.UpsertJoinRequest: %w", err)
 	}
@@ -259,9 +259,11 @@ func (r *GroupRepository) GetJoinRequest(ctx context.Context, id uuid.UUID) (*do
 func (r *GroupRepository) ListPendingJoinRequests(ctx context.Context, groupID uuid.UUID) ([]*domain.JoinRequestDetail, error) {
 	var out []*domain.JoinRequestDetail
 	err := r.db.SelectContext(ctx, &out, `
-		SELECT jr.*, u.name AS student_name, u.avatar_url, u.avatar_preset
+		SELECT jr.*, u.name AS student_name, u.avatar_url, u.avatar_preset,
+		       p.name AS approved_by_parent_name
 		FROM group_join_requests jr
 		JOIN users u ON u.id = jr.student_id
+		LEFT JOIN users p ON p.id = jr.approved_by_parent
 		WHERE jr.group_id = $1 AND jr.status = 'pending'
 		ORDER BY jr.created_at`, groupID)
 	if err != nil {
@@ -276,12 +278,74 @@ func (r *GroupRepository) ListMyPendingJoinRequests(ctx context.Context, student
 		SELECT jr.*, g.name AS group_name
 		FROM group_join_requests jr
 		JOIN groups g ON g.id = jr.group_id AND g.deleted_at IS NULL
-		WHERE jr.student_id = $1 AND jr.status = 'pending'
+		WHERE jr.student_id = $1 AND jr.status IN ('pending', 'parent_pending')
 		ORDER BY jr.created_at DESC`, studentID)
 	if err != nil {
 		return nil, fmt.Errorf("GroupRepository.ListMyPendingJoinRequests: %w", err)
 	}
 	return out, nil
+}
+
+func (r *GroupRepository) GetApplicant(ctx context.Context, studentID uuid.UUID) (*domain.Applicant, error) {
+	var a domain.Applicant
+	err := r.db.GetContext(ctx, &a, `SELECT name, is_child FROM users WHERE id = $1`, studentID)
+	if err != nil {
+		return nil, fmt.Errorf("GroupRepository.GetApplicant: %w", err)
+	}
+	return &a, nil
+}
+
+func (r *GroupRepository) ListParents(ctx context.Context, studentID uuid.UUID) ([]domain.ParentRef, error) {
+	var out []domain.ParentRef
+	err := r.db.SelectContext(ctx, &out, `
+		SELECT u.id, u.language
+		FROM parent_links pl
+		JOIN users u ON u.id = pl.parent_id
+		WHERE pl.student_id = $1`, studentID)
+	if err != nil {
+		return nil, fmt.Errorf("GroupRepository.ListParents: %w", err)
+	}
+	return out, nil
+}
+
+func (r *GroupRepository) ListParentConsents(ctx context.Context, parentID uuid.UUID) ([]*domain.ParentConsent, error) {
+	var out []*domain.ParentConsent
+	err := r.db.SelectContext(ctx, &out, `
+		SELECT jr.id, jr.student_id, s.name AS student_name, jr.group_id,
+		       g.name AS group_name, g.subject, t.name AS teacher_name, jr.created_at
+		FROM group_join_requests jr
+		JOIN parent_links pl ON pl.student_id = jr.student_id AND pl.parent_id = $1
+		JOIN users s ON s.id = jr.student_id
+		JOIN groups g ON g.id = jr.group_id AND g.deleted_at IS NULL
+		JOIN users t ON t.id = g.teacher_id
+		WHERE jr.status = 'parent_pending'
+		ORDER BY jr.created_at DESC`, parentID)
+	if err != nil {
+		return nil, fmt.Errorf("GroupRepository.ListParentConsents: %w", err)
+	}
+	return out, nil
+}
+
+// DecideParentConsent переводит заявку из parent_pending: разрешил — к
+// репетитору (pending), отказал — declined. false — заявка уже не ждала родителя.
+func (r *GroupRepository) DecideParentConsent(ctx context.Context, requestID, parentID uuid.UUID, approve bool) (bool, error) {
+	res, err := r.db.ExecContext(ctx, `
+		UPDATE group_join_requests
+		SET status = CASE WHEN $3 THEN 'pending' ELSE 'declined' END,
+		    approved_by_parent = CASE WHEN $3 THEN $2::uuid END,
+		    decided_at = CASE WHEN $3 THEN NULL ELSE NOW() END
+		WHERE id = $1 AND status = 'parent_pending'
+		  AND EXISTS (SELECT 1 FROM parent_links pl
+		              WHERE pl.parent_id = $2 AND pl.student_id = group_join_requests.student_id)`,
+		requestID, parentID, approve)
+	if err != nil {
+		return false, fmt.Errorf("GroupRepository.DecideParentConsent: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("GroupRepository.DecideParentConsent rows: %w", err)
+	}
+	return n == 1, nil
 }
 
 func (r *GroupRepository) AcceptJoinRequest(ctx context.Context, requestID uuid.UUID, m *domain.GroupMember) error {

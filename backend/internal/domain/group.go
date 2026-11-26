@@ -55,9 +55,11 @@ type GroupMemberDetail struct {
 type JoinRequestStatus string
 
 const (
-	JoinRequestPending  JoinRequestStatus = "pending"
-	JoinRequestAccepted JoinRequestStatus = "accepted"
-	JoinRequestDeclined JoinRequestStatus = "declined"
+	// JoinRequestParentPending — заявка ребёнка младше 13 ждёт согласия родителя.
+	JoinRequestParentPending JoinRequestStatus = "parent_pending"
+	JoinRequestPending       JoinRequestStatus = "pending"
+	JoinRequestAccepted      JoinRequestStatus = "accepted"
+	JoinRequestDeclined      JoinRequestStatus = "declined"
 )
 
 // GroupJoinRequest — заявка ученика; репетитор принимает или отклоняет.
@@ -68,6 +70,8 @@ type GroupJoinRequest struct {
 	Status    JoinRequestStatus `db:"status"`
 	CreatedAt time.Time         `db:"created_at"`
 	DecidedAt *time.Time        `db:"decided_at"`
+	// Родитель, разрешивший заявку ребёнка (миграция 000032).
+	ApprovedByParent *uuid.UUID `db:"approved_by_parent"`
 }
 
 // JoinRequestDetail — заявка с данными ученика (для репетитора).
@@ -76,12 +80,39 @@ type JoinRequestDetail struct {
 	StudentName  string  `db:"student_name"`
 	AvatarURL    *string `db:"avatar_url"`
 	AvatarPreset *string `db:"avatar_preset"`
+	// Имя родителя, разрешившего заявку ребёнка; nil у учеников 13+.
+	ApprovedByParentName *string `db:"approved_by_parent_name"`
 }
 
 // MyJoinRequest — своя заявка ученика с названием группы.
 type MyJoinRequest struct {
 	GroupJoinRequest
 	GroupName string `db:"group_name"`
+}
+
+// Applicant — кто подаёт заявку: имя (для уведомления родителю) и признак
+// ребёнка младше 13.
+type Applicant struct {
+	Name    string `db:"name"`
+	IsChild bool   `db:"is_child"`
+}
+
+// ParentRef — привязанный родитель ученика и язык его уведомлений.
+type ParentRef struct {
+	ID       uuid.UUID `db:"id"`
+	Language Language  `db:"language"`
+}
+
+// ParentConsent — заявка ребёнка, ждущая согласия родителя.
+type ParentConsent struct {
+	ID          uuid.UUID `db:"id"`
+	StudentID   uuid.UUID `db:"student_id"`
+	StudentName string    `db:"student_name"`
+	GroupID     uuid.UUID `db:"group_id"`
+	GroupName   string    `db:"group_name"`
+	Subject     *string   `db:"subject"`
+	TeacherName string    `db:"teacher_name"`
+	CreatedAt   time.Time `db:"created_at"`
 }
 
 // GroupPreview — карточка группы по коду или ссылке: что видит ученик до
