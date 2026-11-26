@@ -26,6 +26,7 @@ class Group {
     this.subject,
     this.description,
     this.memberCount = 0,
+    this.isPublic = false,
   });
 
   final String id;
@@ -37,6 +38,9 @@ class Group {
   final bool isArchived;
   final int memberCount;
   final DateTime createdAt;
+
+  /// Открытая группа видна в поиске; закрытая — только по ссылке или коду.
+  final bool isPublic;
 
   Group copyWith({
     String? name,
@@ -54,6 +58,7 @@ class Group {
     isArchived: isArchived ?? this.isArchived,
     memberCount: memberCount ?? this.memberCount,
     createdAt: createdAt,
+    isPublic: isPublic,
   );
 }
 

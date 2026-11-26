@@ -26,6 +26,7 @@ class GroupsApi {
     required String name,
     String? subject,
     String? description,
+    bool isPublic = false,
   }) async {
     final resp = await _dio.post<Map<String, dynamic>>(
       '/groups',
@@ -33,6 +34,7 @@ class GroupsApi {
         'name': name,
         if (subject != null) 'subject': subject,
         if (description != null) 'description': description,
+        'is_public': isPublic,
       },
     );
     return GroupDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
@@ -43,6 +45,7 @@ class GroupsApi {
     String? name,
     String? subject,
     String? description,
+    bool? isPublic,
   }) async {
     final resp = await _dio.patch<Map<String, dynamic>>(
       '/groups/$id',
@@ -50,6 +53,7 @@ class GroupsApi {
         if (name != null) 'name': name,
         if (subject != null) 'subject': subject,
         if (description != null) 'description': description,
+        if (isPublic != null) 'is_public': isPublic,
       },
     );
     return GroupDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
@@ -76,6 +80,18 @@ class GroupsApi {
       '/groups/preview/$inviteCode',
     );
     return groupPreviewFromJson(resp.data!['data'] as Map<String, dynamic>);
+  }
+
+  /// Открытые группы по названию, предмету или @username репетитора.
+  Future<List<GroupPreview>> searchGroups(String query) async {
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '/groups/search',
+      queryParameters: {'q': query},
+    );
+    final list = resp.data!['data'] as List<dynamic>? ?? const [];
+    return list
+        .map((e) => groupPreviewFromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<List<JoinRequest>> myJoinRequests() async {

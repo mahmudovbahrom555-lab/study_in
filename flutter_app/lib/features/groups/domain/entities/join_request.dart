@@ -34,7 +34,8 @@ class JoinRequestItem {
   final String? avatarPreset;
 }
 
-/// Карточка группы по ссылке — что видит ученик до заявки.
+/// Карточка группы по ссылке — что видит ученик до заявки. В поиске
+/// открытых групп у неё есть ещё код (для заявки) и @username репетитора.
 @immutable
 class GroupPreview {
   const GroupPreview({
@@ -46,6 +47,8 @@ class GroupPreview {
     this.description,
     this.teacherAvatarUrl,
     this.teacherAvatarPreset,
+    this.inviteCode,
+    this.teacherUsername,
   });
 
   final String id;
@@ -56,4 +59,6 @@ class GroupPreview {
   final String? description;
   final String? teacherAvatarUrl;
   final String? teacherAvatarPreset;
+  final String? inviteCode;
+  final String? teacherUsername;
 }

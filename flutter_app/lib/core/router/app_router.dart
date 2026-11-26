@@ -10,6 +10,7 @@ import '../../features/auth/presentation/pages/profile_setup_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/feed/presentation/pages/feed_page.dart';
 import '../../features/groups/presentation/pages/group_detail_page.dart';
+import '../../features/groups/presentation/pages/group_search_page.dart';
 import '../../features/groups/presentation/pages/join_group_page.dart';
 import '../../features/groups/presentation/pending_join.dart';
 import '../../features/quizzes/presentation/pages/quizzes_page.dart';
@@ -90,6 +91,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/join-group/:code',
         builder: (_, state) =>
             JoinGroupPage(code: state.pathParameters['code']!),
+      ),
+      GoRoute(
+        path: Routes.groupSearch,
+        builder: (_, __) => const GroupSearchPage(),
       ),
       GoRoute(path: Routes.home, builder: (_, __) => const HomeShell()),
       GoRoute(path: Routes.groups, builder: (_, __) => const HomeShell()),

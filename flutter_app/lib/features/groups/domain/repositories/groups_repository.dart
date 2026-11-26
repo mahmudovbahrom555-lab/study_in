@@ -8,17 +8,20 @@ abstract class GroupsRepository {
     required String name,
     String? subject,
     String? description,
+    bool isPublic = false,
   });
   Future<Group> updateGroup(
     String id, {
     String? name,
     String? subject,
     String? description,
+    bool? isPublic,
   });
   Future<void> deleteGroup(String id);
   Future<Group> archiveGroup(String id);
   Future<JoinRequest> joinGroup(String inviteCode);
   Future<GroupPreview> previewGroup(String inviteCode);
+  Future<List<GroupPreview>> searchGroups(String query);
   Future<List<JoinRequest>> myJoinRequests();
   Future<List<JoinRequestItem>> listJoinRequests(String groupId);
   Future<void> decideJoinRequest(

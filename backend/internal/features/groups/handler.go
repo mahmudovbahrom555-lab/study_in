@@ -426,7 +426,9 @@ func writeServiceError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "not found")
 	case errors.Is(err, domain.ErrForbidden):
 		writeError(w, http.StatusForbidden, "FORBIDDEN", "forbidden")
-	case errors.Is(err, domain.ErrConflict), errors.Is(err, domain.ErrAlreadyMember):
+	case errors.Is(err, domain.ErrAlreadyMember):
+		writeError(w, http.StatusConflict, "ALREADY_MEMBER", "already a member of this group")
+	case errors.Is(err, domain.ErrConflict):
 		writeError(w, http.StatusConflict, "CONFLICT", err.Error())
 	case errors.Is(err, domain.ErrNotMember):
 		writeError(w, http.StatusNotFound, "NOT_MEMBER", "not a member of this group")

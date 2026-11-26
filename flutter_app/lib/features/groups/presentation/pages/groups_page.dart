@@ -45,6 +45,12 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
         actions: [
           if (!isTeacher)
             IconButton(
+              icon: const Icon(LucideIcons.search),
+              tooltip: context.l10n.findGroup,
+              onPressed: () => context.push(Routes.groupSearch),
+            ),
+          if (!isTeacher)
+            IconButton(
               icon: const Icon(LucideIcons.link),
               tooltip: context.l10n.joinByCode,
               onPressed: () => _showJoinSheet(context),

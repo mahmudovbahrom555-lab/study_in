@@ -20,6 +20,7 @@ class _GroupFormSheetState extends ConsumerState<GroupFormSheet> {
   late final _nameCtrl = TextEditingController(text: widget.group?.name);
   late final _subjectCtrl = TextEditingController(text: widget.group?.subject);
   late final _descCtrl = TextEditingController(text: widget.group?.description);
+  late bool _isPublic = widget.group?.isPublic ?? false;
 
   bool get _isEdit => widget.group != null;
 
@@ -73,7 +74,15 @@ class _GroupFormSheetState extends ConsumerState<GroupFormSheet> {
               decoration: InputDecoration(labelText: context.l10n.description),
               maxLines: 2,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(context.l10n.groupPublic),
+              subtitle: Text(context.l10n.groupPublicHint),
+              value: _isPublic,
+              onChanged: (v) => setState(() => _isPublic = v),
+            ),
+            const SizedBox(height: 12),
             ElevatedButton(
               onPressed: isLoading ? null : _submit,
               child: isLoading
@@ -103,12 +112,14 @@ class _GroupFormSheetState extends ConsumerState<GroupFormSheet> {
         name: name,
         subject: subject,
         description: description,
+        isPublic: _isPublic,
       );
     } else {
       await notifier.createGroup(
         name: name,
         subject: subject.isEmpty ? null : subject,
         description: description.isEmpty ? null : description,
+        isPublic: _isPublic,
       );
     }
     if (mounted) Navigator.of(context).pop();

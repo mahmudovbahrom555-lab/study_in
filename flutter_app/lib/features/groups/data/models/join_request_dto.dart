@@ -24,4 +24,6 @@ GroupPreview groupPreviewFromJson(Map<String, dynamic> json) => GroupPreview(
   description: json['description'] as String?,
   teacherAvatarUrl: json['teacher_avatar_url'] as String?,
   teacherAvatarPreset: json['teacher_avatar_preset'] as String?,
+  inviteCode: json['invite_code'] as String?,
+  teacherUsername: json['teacher_username'] as String?,
 );

@@ -17,7 +17,11 @@ class _Repo extends Fake implements AuthRepository {
   Future<User> getMe() async => user;
 
   @override
-  Future<User> updateMe({String? name, String? language}) async {
+  Future<User> updateMe({
+    String? name,
+    String? language,
+    String? username,
+  }) async {
     sent.add(language!);
     return user = user.copyWith(language: language);
   }

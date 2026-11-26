@@ -15,6 +15,7 @@ import '../../../parents/presentation/providers/parents_provider.dart';
 import '../../../../core/widgets/user_avatar.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/avatar_editor.dart';
+import '../widgets/username_dialog.dart';
 
 /// Аккаунт: кто вошёл, язык интерфейса и выход.
 class AccountPage extends ConsumerWidget {
@@ -69,6 +70,18 @@ class AccountPage extends ConsumerWidget {
               leading: const Icon(LucideIcons.phone),
               title: Text(user?.phone ?? '—'),
               subtitle: Text(l10n.phoneNumber),
+            ),
+          // Учеников по имени не находят — username только у репетитора.
+          if (user != null && user.isTeacher)
+            ListTile(
+              leading: const Icon(LucideIcons.atSign),
+              title: Text(user.username == null ? '—' : '@${user.username}'),
+              subtitle: Text(context.l10n.usernameLabel),
+              trailing: const Icon(LucideIcons.pencil, size: 18),
+              onTap: () => showDialog<void>(
+                context: context,
+                builder: (_) => UsernameDialog(initial: user.username ?? ''),
+              ),
             ),
           ListTile(
             leading: const Icon(LucideIcons.idCard),

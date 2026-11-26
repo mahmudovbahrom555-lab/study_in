@@ -9,6 +9,7 @@ abstract class Routes {
   static const groups = '/groups';
   static String group(String id) => '/groups/$id';
   static String joinGroup(String code) => '/join-group/$code';
+  static const groupSearch = '/group-search';
   static String groupFeed(String id) => '/groups/$id/feed';
   static String groupQuizzes(String id) => '/groups/$id/quizzes';
   static String quiz(String groupId, String quizId) =>

@@ -21,7 +21,7 @@ abstract class AuthRepository {
 
   Future<User> getMe();
 
-  Future<User> updateMe({String? name, String? language});
+  Future<User> updateMe({String? name, String? language, String? username});
 
   /// Фото профиля: путь (телефон) или содержимое (веб).
   Future<User> uploadAvatar({

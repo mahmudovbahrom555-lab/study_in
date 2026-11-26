@@ -53,6 +53,11 @@ String? _byCode(AppLocalizations l10n, String? code) => switch (code) {
   'GRADE_ABOVE_MAX' => l10n.errGradeAboveMax,
   'STUDENT_NOT_IN_GROUP' => l10n.errStudentNotInGroup,
   'HOMEWORK_GRADE_READONLY' => l10n.homeworkGradeReadonly,
+  'ALREADY_MEMBER' => l10n.errAlreadyMember,
+  'BANNED_FROM_GROUP' => l10n.errBannedFromGroup,
+  'REQUEST_DECIDED' => l10n.errRequestDecided,
+  'USERNAME_TAKEN' => l10n.errUsernameTaken,
+  'INVALID_USERNAME' => l10n.usernameRules,
   _ => null,
 };
 

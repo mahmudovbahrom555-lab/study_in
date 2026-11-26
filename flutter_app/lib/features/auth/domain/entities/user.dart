@@ -7,6 +7,7 @@ class User {
     this.role,
     this.avatarUrl,
     this.avatarPreset,
+    this.username,
     required this.language,
     required this.isActive,
   });
@@ -22,6 +23,9 @@ class User {
 
   /// Аватар-животное ('fox', 'panda'…); у учеников — вместо фото.
   final String? avatarPreset;
+
+  /// @username репетитора (без @): по нему ученики находят его открытые группы.
+  final String? username;
   final String language;
   final bool isActive;
 
@@ -44,6 +48,7 @@ class User {
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       avatarPreset: avatarPreset,
+      username: username,
       language: language ?? this.language,
       isActive: isActive,
     );
