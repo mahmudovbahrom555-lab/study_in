@@ -50,6 +50,8 @@ type SetRoleRequest struct {
 type UpdateMeRequest struct {
 	Name     *string          `json:"name"     validate:"omitempty,min=1,max=100"`
 	Language *domain.Language `json:"language"` // проверяет сервис: domain.SupportedLanguages
+	// @username репетитора (по нему ученики находят его открытые группы); "" — убрать.
+	Username *string `json:"username"`
 }
 
 type AvatarPresetRequest struct {
@@ -68,6 +70,7 @@ type UserResponse struct {
 	Phone        string       `json:"phone"`
 	Email        string       `json:"email,omitempty"`
 	Name         string       `json:"name"`
+	Username     *string      `json:"username"`
 	Role         *domain.Role `json:"role"`
 	AvatarURL    *string      `json:"avatar_url"` // подписанная ссылка на фото
 	AvatarPreset *string      `json:"avatar_preset"`
@@ -81,6 +84,7 @@ func userToResponse(u *domain.User) UserResponse {
 		Phone:        deref(u.Phone),
 		Email:        deref(u.Email),
 		Name:         u.Name,
+		Username:     u.Username,
 		Role:         u.Role,
 		AvatarPreset: u.AvatarPreset,
 		Language:     string(u.Language),

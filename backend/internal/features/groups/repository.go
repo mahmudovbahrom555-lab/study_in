@@ -29,6 +29,7 @@ type Repository interface {
 	// IsBanned — репетитор заблокировал пользователя в классе (вступить снова нельзя).
 	IsBanned(ctx context.Context, groupID, userID uuid.UUID) (bool, error)
 
+	SearchPublicGroups(ctx context.Context, pattern, username string, limit int) ([]*domain.GroupPreview, error)
 	GetGroupPreviewByCode(ctx context.Context, code string) (*domain.GroupPreview, error)
 	// UpsertJoinRequest создаёт заявку или снова делает прежнюю ожидающей.
 	UpsertJoinRequest(ctx context.Context, groupID, studentID uuid.UUID) (*domain.GroupJoinRequest, error)

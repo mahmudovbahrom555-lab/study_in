@@ -22,6 +22,7 @@ type Group struct {
 	Description *string    `db:"description"`
 	InviteCode  string     `db:"invite_code"`
 	IsArchived  bool       `db:"is_archived"`
+	IsPublic    bool       `db:"is_public"` // открытая группа видна в поиске
 	CreatedAt   time.Time  `db:"created_at"`
 	UpdatedAt   time.Time  `db:"updated_at"`
 	DeletedAt   *time.Time `db:"deleted_at"`
@@ -91,7 +92,9 @@ type GroupPreview struct {
 	Subject             *string   `db:"subject"`
 	Description         *string   `db:"description"`
 	IsArchived          bool      `db:"is_archived"`
+	InviteCode          string    `db:"invite_code"`
 	TeacherName         string    `db:"teacher_name"`
+	TeacherUsername     *string   `db:"teacher_username"`
 	TeacherAvatarURL    *string   `db:"teacher_avatar_url"`
 	TeacherAvatarPreset *string   `db:"teacher_avatar_preset"`
 	MemberCount         int       `db:"member_count"`
