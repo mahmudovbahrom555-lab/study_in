@@ -74,10 +74,7 @@ class _GroupsPageState extends ConsumerState<GroupsPage> {
       return const Center(child: CircularProgressIndicator());
     }
     if (state.error != null && state.groups.isEmpty) {
-      return ErrorView(
-        message: state.error!,
-        onRetry: _reload,
-      );
+      return ErrorView(message: state.error!, onRetry: _reload);
     }
     if (state.groups.isEmpty) {
       return isTeacher

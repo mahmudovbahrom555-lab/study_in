@@ -135,11 +135,12 @@ final groupPreviewProvider = FutureProvider.autoDispose
     });
 
 /// Ожидающие заявки ученика.
-final myJoinRequestsProvider =
-    FutureProvider.autoDispose<List<JoinRequest>>((ref) {
-      final repo = ref.watch(groupsRepositoryProvider);
-      return repo.myJoinRequests();
-    });
+final myJoinRequestsProvider = FutureProvider.autoDispose<List<JoinRequest>>((
+  ref,
+) {
+  final repo = ref.watch(groupsRepositoryProvider);
+  return repo.myJoinRequests();
+});
 
 /// Ожидающие заявки в группу (видит только её репетитор).
 final joinRequestsProvider = FutureProvider.autoDispose
