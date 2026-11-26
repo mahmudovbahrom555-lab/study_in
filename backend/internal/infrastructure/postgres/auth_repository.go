@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmoiron/sqlx"
 
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/domain"
@@ -75,11 +76,15 @@ func (r *AuthRepository) GetUserByGoogleSub(ctx context.Context, sub string) (*d
 
 func (r *AuthRepository) UpdateUser(ctx context.Context, user *domain.User) error {
 	query := `
-		UPDATE users SET name = :name, role = :role, language = :language,
+		UPDATE users SET name = :name, username = :username, role = :role, language = :language,
 		                 avatar_url = :avatar_url, avatar_preset = :avatar_preset,
 		                 updated_at = :updated_at
 		WHERE id = :id AND deleted_at IS NULL`
 	if _, err := r.db.NamedExecContext(ctx, query, user); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "idx_users_username" {
+			return domain.NewError("USERNAME_TAKEN", "username is taken", domain.ErrConflict)
+		}
 		return fmt.Errorf("update user: %w", err)
 	}
 	return nil

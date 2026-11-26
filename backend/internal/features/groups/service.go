@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 
@@ -69,6 +70,7 @@ func (s *Service) CreateGroup(ctx context.Context, teacherID uuid.UUID, req Crea
 		Description: req.Description,
 		InviteCode:  code,
 		IsArchived:  false,
+		IsPublic:    req.IsPublic,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 		// Те же значения, что DEFAULT в БД, — чтобы ответ совпадал с сохранённым.
@@ -160,6 +162,9 @@ func (s *Service) UpdateGroup(ctx context.Context, id, teacherID uuid.UUID, req 
 	}
 	if req.Description != nil {
 		g.Description = nilIfBlank(*req.Description)
+	}
+	if req.IsPublic != nil {
+		g.IsPublic = *req.IsPublic
 	}
 	g.UpdatedAt = time.Now()
 
@@ -260,7 +265,12 @@ func (s *Service) PreviewGroup(ctx context.Context, code string) (*GroupPreviewR
 	if p == nil || p.IsArchived {
 		return nil, domain.ErrNotFound
 	}
-	return &GroupPreviewResponse{
+	resp := s.previewResponse(ctx, p)
+	return &resp, nil
+}
+
+func (s *Service) previewResponse(ctx context.Context, p *domain.GroupPreview) GroupPreviewResponse {
+	return GroupPreviewResponse{
 		ID:                  p.ID,
 		Name:                p.Name,
 		Subject:             p.Subject,
@@ -269,8 +279,51 @@ func (s *Service) PreviewGroup(ctx context.Context, code string) (*GroupPreviewR
 		TeacherAvatarURL:    s.signAvatar(ctx, p.TeacherAvatarURL),
 		TeacherAvatarPreset: p.TeacherAvatarPreset,
 		MemberCount:         p.MemberCount,
-	}, nil
+	}
 }
+
+// searchLimit — сколько групп отдаёт поиск: это подбор, а не каталог.
+const searchLimit = 20
+
+// SearchGroups ищет открытые группы: "@username" — группы этого репетитора,
+// иначе — по названию или предмету (и по username, если запрос похож на него).
+// Ищутся только группы и репетиторы, ученики в поиск не попадают.
+func (s *Service) SearchGroups(ctx context.Context, query string) ([]GroupSearchItem, error) {
+	q := strings.TrimSpace(query)
+	username := ""
+	pattern := ""
+	if strings.HasPrefix(q, "@") {
+		username = domain.NormalizeUsername(q)
+	} else {
+		if utf8.RuneCountInString(q) < 2 {
+			return nil, domain.NewError("QUERY_TOO_SHORT", "query must be at least 2 characters", domain.ErrValidation)
+		}
+		pattern = "%" + likeEscaper.Replace(q) + "%"
+		if domain.ValidUsername(strings.ToLower(q)) {
+			username = strings.ToLower(q)
+		}
+	}
+	if username == "" && pattern == "" {
+		return []GroupSearchItem{}, nil
+	}
+
+	found, err := s.repo.SearchPublicGroups(ctx, pattern, username, searchLimit)
+	if err != nil {
+		return nil, fmt.Errorf("groups.SearchGroups: %w", err)
+	}
+	out := make([]GroupSearchItem, len(found))
+	for i, p := range found {
+		out[i] = GroupSearchItem{
+			GroupPreviewResponse: s.previewResponse(ctx, p),
+			InviteCode:           p.InviteCode,
+			TeacherUsername:      p.TeacherUsername,
+		}
+	}
+	return out, nil
+}
+
+// likeEscaper экранирует символы шаблона ILIKE в запросе пользователя.
+var likeEscaper = strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`)
 
 // ListJoinRequests — ожидающие заявки (только репетитор группы).
 func (s *Service) ListJoinRequests(ctx context.Context, groupID, teacherID uuid.UUID) ([]JoinRequestItem, error) {

@@ -31,6 +31,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Get("/", h.listGroups)
 		r.Post("/join", h.joinGroup)
 		r.Get("/preview/{code}", h.previewGroup)
+		r.Get("/search", h.searchGroups)
 		r.Get("/requests/mine", h.myJoinRequests)
 
 		r.Route("/{groupID}", func(r chi.Router) {
@@ -123,6 +124,16 @@ func (h *Handler) joinGroup(w http.ResponseWriter, r *http.Request) {
 // GET /groups/preview/{code} — карточка группы по ссылке, до заявки.
 func (h *Handler) previewGroup(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.svc.PreviewGroup(r.Context(), chi.URLParam(r, "code"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// GET /groups/search?q= — открытые группы по названию, предмету или @username.
+func (h *Handler) searchGroups(w http.ResponseWriter, r *http.Request) {
+	resp, err := h.svc.SearchGroups(r.Context(), r.URL.Query().Get("q"))
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -415,7 +426,9 @@ func writeServiceError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "not found")
 	case errors.Is(err, domain.ErrForbidden):
 		writeError(w, http.StatusForbidden, "FORBIDDEN", "forbidden")
-	case errors.Is(err, domain.ErrConflict), errors.Is(err, domain.ErrAlreadyMember):
+	case errors.Is(err, domain.ErrAlreadyMember):
+		writeError(w, http.StatusConflict, "ALREADY_MEMBER", "already a member of this group")
+	case errors.Is(err, domain.ErrConflict):
 		writeError(w, http.StatusConflict, "CONFLICT", err.Error())
 	case errors.Is(err, domain.ErrNotMember):
 		writeError(w, http.StatusNotFound, "NOT_MEMBER", "not a member of this group")

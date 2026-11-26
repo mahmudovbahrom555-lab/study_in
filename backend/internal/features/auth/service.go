@@ -343,6 +343,11 @@ func (s *Service) UpdateMe(ctx context.Context, userID uuid.UUID, req *UpdateMeR
 	if req.Language != nil {
 		user.Language = *req.Language
 	}
+	if req.Username != nil {
+		if err := setUsername(user, *req.Username); err != nil {
+			return nil, err
+		}
+	}
 	user.UpdatedAt = time.Now()
 
 	if err := s.repo.UpdateUser(ctx, user); err != nil {
@@ -351,6 +356,24 @@ func (s *Service) UpdateMe(ctx context.Context, userID uuid.UUID, req *UpdateMeR
 
 	resp := s.userResponse(ctx, user)
 	return &resp, nil
+}
+
+// setUsername: username бывает только у репетитора — учеников не находят
+// по имени (дети), родителей искать незачем.
+func setUsername(user *domain.User, raw string) error {
+	u := domain.NormalizeUsername(raw)
+	if u == "" {
+		user.Username = nil
+		return nil
+	}
+	if user.Role == nil || *user.Role != domain.RoleTeacher {
+		return domain.NewError("USERNAME_TEACHERS_ONLY", "only tutors can have a username", domain.ErrForbidden)
+	}
+	if !domain.ValidUsername(u) {
+		return domain.NewError("INVALID_USERNAME", "4-32 latin letters, digits or _, starting with a letter", domain.ErrValidation)
+	}
+	user.Username = &u
+	return nil
 }
 
 // AddDeviceToken сохраняет FCM-токен устройства.

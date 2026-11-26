@@ -59,6 +59,7 @@ class GroupsNotifier extends StateNotifier<GroupsState> {
     required String name,
     String? subject,
     String? description,
+    bool isPublic = false,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
@@ -66,6 +67,7 @@ class GroupsNotifier extends StateNotifier<GroupsState> {
         name: name,
         subject: subject,
         description: description,
+        isPublic: isPublic,
       );
       state = state.copyWith(isLoading: false, groups: [g, ...state.groups]);
     } catch (e) {
@@ -78,6 +80,7 @@ class GroupsNotifier extends StateNotifier<GroupsState> {
     required String name,
     required String subject,
     required String description,
+    required bool isPublic,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
@@ -86,6 +89,7 @@ class GroupsNotifier extends StateNotifier<GroupsState> {
         name: name,
         subject: subject,
         description: description,
+        isPublic: isPublic,
       );
       state = state.copyWith(
         isLoading: false,
@@ -132,6 +136,14 @@ final groupPreviewProvider = FutureProvider.autoDispose
     .family<GroupPreview, String>((ref, code) {
       final repo = ref.watch(groupsRepositoryProvider);
       return repo.previewGroup(code);
+    });
+
+/// Поиск открытых групп; пустой запрос — пустой список без похода на сервер.
+final groupSearchProvider = FutureProvider.autoDispose
+    .family<List<GroupPreview>, String>((ref, query) {
+      if (query.isEmpty) return Future.value(const []);
+      final repo = ref.watch(groupsRepositoryProvider);
+      return repo.searchGroups(query);
     });
 
 /// Ожидающие заявки ученика.

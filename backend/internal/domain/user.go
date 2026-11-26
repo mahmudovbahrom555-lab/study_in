@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -47,6 +49,7 @@ type User struct {
 	Email          *string    `db:"email"`
 	GoogleSub      *string    `db:"google_sub"`
 	Name           string     `db:"name"`
+	Username       *string    `db:"username"` // @username репетитора, у других ролей nil
 	Role           *Role      `db:"role"`
 	AvatarURL      *string    `db:"avatar_url"` // ключ фото в хранилище, не ссылка
 	AvatarPreset   *string    `db:"avatar_preset"`
@@ -57,6 +60,17 @@ type User struct {
 	CreatedAt      time.Time  `db:"created_at"`
 	UpdatedAt      time.Time  `db:"updated_at"`
 	DeletedAt      *time.Time `db:"deleted_at"`
+}
+
+// usernameRe — @username репетитора: латиница в нижнем регистре, цифры и _,
+// 4–32 символа, первая — буква.
+var usernameRe = regexp.MustCompile(`^[a-z][a-z0-9_]{3,31}$`)
+
+func ValidUsername(s string) bool { return usernameRe.MatchString(s) }
+
+// NormalizeUsername убирает пробелы и ведущий @ и приводит к нижнему регистру.
+func NormalizeUsername(s string) string {
+	return strings.ToLower(strings.TrimPrefix(strings.TrimSpace(s), "@"))
 }
 
 func (u *User) HasRole() bool {

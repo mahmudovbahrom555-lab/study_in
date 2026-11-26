@@ -404,5 +404,18 @@
   "groupStudentsCount": "Students: {count}",
   "@groupStudentsCount": {"placeholders": {"count": {"type": "int"}}},
   "joinLinkInvalid": "The link is invalid or the group no longer exists",
-  "toMyGroups": "To my groups"
+  "toMyGroups": "To my groups",
+  "groupPublic": "Open group",
+  "groupPublicHint": "Students find it in search and send a request. A closed group is reached only by link or code.",
+  "findGroup": "Find a group",
+  "findGroupHint": "Name, subject or @tutor",
+  "findGroupBody": "Search shows only open groups. A tutor may also send you a link or a code.",
+  "findGroupEmpty": "No open groups found. Ask the tutor for a link or a code.",
+  "usernameLabel": "Username",
+  "usernameHint": "Students find your open groups by @username. Leave empty to remove it.",
+  "usernameRules": "4–32 latin letters, digits or _, starting with a letter",
+  "errUsernameTaken": "This username is already taken",
+  "errAlreadyMember": "You are already in this group",
+  "errBannedFromGroup": "The tutor has removed you from this group",
+  "errRequestDecided": "This request has already been answered"
 }

@@ -14,12 +14,14 @@ type CreateGroupRequest struct {
 	Name        string  `json:"name"        validate:"required,min=2,max=200"`
 	Subject     *string `json:"subject"     validate:"omitempty,max=100"`
 	Description *string `json:"description"`
+	IsPublic    bool    `json:"is_public"`
 }
 
 type UpdateGroupRequest struct {
 	Name        *string `json:"name"        validate:"omitempty,min=2,max=200"`
 	Subject     *string `json:"subject"     validate:"omitempty,max=100"`
 	Description *string `json:"description"`
+	IsPublic    *bool   `json:"is_public"`
 }
 
 type JoinGroupRequest struct {
@@ -40,6 +42,7 @@ type GroupResponse struct {
 	Description *string   `json:"description"`
 	InviteCode  string    `json:"invite_code"`
 	IsArchived  bool      `json:"is_archived"`
+	IsPublic    bool      `json:"is_public"`
 	MemberCount int       `json:"member_count,omitempty"`
 	// Чат класса (docs/design/CHAT.md): непрочитанные — только в списке своих классов.
 	UnreadCount    int       `json:"unread_count"`
@@ -68,6 +71,7 @@ func groupToResponse(g *domain.Group) GroupResponse {
 		Description:    g.Description,
 		InviteCode:     g.InviteCode,
 		IsArchived:     g.IsArchived,
+		IsPublic:       g.IsPublic,
 		ChatTTLSeconds: g.ChatTTLSeconds,
 		ChatMode:       string(g.ChatMode),
 		CreatedAt:      g.CreatedAt,
@@ -118,4 +122,12 @@ type GroupPreviewResponse struct {
 	TeacherAvatarURL    *string   `json:"teacher_avatar_url"`
 	TeacherAvatarPreset *string   `json:"teacher_avatar_preset"`
 	MemberCount         int       `json:"member_count"`
+}
+
+// GroupSearchItem — открытая группа в поиске: карточка + код, по которому
+// ученик отправляет заявку (сама группа всё равно ждёт одобрения репетитора).
+type GroupSearchItem struct {
+	GroupPreviewResponse
+	InviteCode      string  `json:"invite_code"`
+	TeacherUsername *string `json:"teacher_username"`
 }

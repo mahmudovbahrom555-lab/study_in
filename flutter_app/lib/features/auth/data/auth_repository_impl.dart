@@ -78,8 +78,16 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<User> updateMe({String? name, String? language}) async {
-    final dto = await _api.updateMe(name: name, language: language);
+  Future<User> updateMe({
+    String? name,
+    String? language,
+    String? username,
+  }) async {
+    final dto = await _api.updateMe(
+      name: name,
+      language: language,
+      username: username,
+    );
     return dto.toEntity();
   }
 

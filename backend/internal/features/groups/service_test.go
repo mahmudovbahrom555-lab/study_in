@@ -21,6 +21,9 @@ type memRepo struct {
 	members  map[string]*domain.GroupMember // "groupID:studentID" → member
 	bans     map[string]bool
 	requests map[uuid.UUID]*domain.GroupJoinRequest
+
+	// Последний поиск: шаблон и username, которые сервис передал в SQL.
+	searchPattern, searchUsername string
 }
 
 func newMemRepo() *memRepo {
@@ -30,6 +33,19 @@ func newMemRepo() *memRepo {
 		bans:     make(map[string]bool),
 		requests: make(map[uuid.UUID]*domain.GroupJoinRequest),
 	}
+}
+
+// SearchPublicGroups отдаёт открытые неархивные группы; сам шаблон ILIKE
+// проверяет SQL, здесь важно, что сервис передал и что не отдал закрытые.
+func (r *memRepo) SearchPublicGroups(_ context.Context, pattern, username string, _ int) ([]*domain.GroupPreview, error) {
+	r.searchPattern, r.searchUsername = pattern, username
+	var out []*domain.GroupPreview
+	for _, g := range r.groups {
+		if g.IsPublic && !g.IsArchived && g.DeletedAt == nil {
+			out = append(out, &domain.GroupPreview{ID: g.ID, Name: g.Name, InviteCode: g.InviteCode})
+		}
+	}
+	return out, nil
 }
 
 func (r *memRepo) GetGroupPreviewByCode(_ context.Context, code string) (*domain.GroupPreview, error) {
@@ -478,4 +494,62 @@ func TestLeaveGroup_Success(t *testing.T) {
 	// После выхода можно снова подать заявку
 	_, err = svc.JoinGroup(context.Background(), studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
 	require.NoError(t, err)
+}
+
+func TestSearchGroups_OnlyPublicWithCode(t *testing.T) {
+	svc := buildSvc()
+	ctx := context.Background()
+	open, _ := svc.CreateGroup(ctx, teacherID, groups.CreateGroupRequest{Name: "Math A", IsPublic: true})
+	_, _ = svc.CreateGroup(ctx, teacherID, groups.CreateGroupRequest{Name: "Math B"})
+
+	found, err := svc.SearchGroups(ctx, "math")
+	require.NoError(t, err)
+	require.Len(t, found, 1)
+	assert.Equal(t, open.ID, found[0].ID)
+	assert.Equal(t, open.InviteCode, found[0].InviteCode)
+}
+
+func TestSearchGroups_ClosingHidesGroup(t *testing.T) {
+	svc := buildSvc()
+	ctx := context.Background()
+	g, _ := svc.CreateGroup(ctx, teacherID, groups.CreateGroupRequest{Name: "Chem", IsPublic: true})
+	closed := false
+	_, err := svc.UpdateGroup(ctx, g.ID, teacherID, groups.UpdateGroupRequest{IsPublic: &closed})
+	require.NoError(t, err)
+
+	found, err := svc.SearchGroups(ctx, "chem")
+	require.NoError(t, err)
+	assert.Empty(t, found)
+}
+
+func TestSearchGroups_QueryShapes(t *testing.T) {
+	repo := newMemRepo()
+	svc := groups.NewService(repo)
+	ctx := context.Background()
+
+	_, err := svc.SearchGroups(ctx, " a ")
+	assert.ErrorIs(t, err, domain.ErrValidation)
+
+	// "@" — только username репетитора, без поиска по названию.
+	_, err = svc.SearchGroups(ctx, " @Anna_T ")
+	require.NoError(t, err)
+	assert.Equal(t, "", repo.searchPattern)
+	assert.Equal(t, "anna_t", repo.searchUsername)
+
+	// Символы шаблона из запроса ищутся буквально.
+	_, err = svc.SearchGroups(ctx, "50%_")
+	require.NoError(t, err)
+	assert.Equal(t, `%50\%\_%`, repo.searchPattern)
+	assert.Equal(t, "", repo.searchUsername)
+
+	// Похожее на username ищется и как название, и как username.
+	_, err = svc.SearchGroups(ctx, "English")
+	require.NoError(t, err)
+	assert.Equal(t, "%English%", repo.searchPattern)
+	assert.Equal(t, "english", repo.searchUsername)
+
+	// Кириллица: длина в символах, не в байтах.
+	_, err = svc.SearchGroups(ctx, "ок")
+	require.NoError(t, err)
+	assert.Equal(t, "%ок%", repo.searchPattern)
 }

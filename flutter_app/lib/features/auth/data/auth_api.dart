@@ -81,10 +81,16 @@ class AuthApi {
     return UserDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }
 
-  Future<UserDto> updateMe({String? name, String? language}) async {
+  /// [username] "" убирает @username.
+  Future<UserDto> updateMe({
+    String? name,
+    String? language,
+    String? username,
+  }) async {
     final body = <String, dynamic>{
       if (name != null) 'name': name,
       if (language != null) 'language': language,
+      if (username != null) 'username': username,
     };
     final resp = await _dio.patch<Map<String, dynamic>>('/me', data: body);
     return UserDto.fromJson(resp.data!['data'] as Map<String, dynamic>);

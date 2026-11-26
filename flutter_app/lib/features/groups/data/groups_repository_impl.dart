@@ -25,11 +25,13 @@ class GroupsRepositoryImpl implements GroupsRepository {
     required String name,
     String? subject,
     String? description,
+    bool isPublic = false,
   }) async {
     final dto = await _api.createGroup(
       name: name,
       subject: subject,
       description: description,
+      isPublic: isPublic,
     );
     return dto.toDomain();
   }
@@ -40,12 +42,14 @@ class GroupsRepositoryImpl implements GroupsRepository {
     String? name,
     String? subject,
     String? description,
+    bool? isPublic,
   }) async {
     final dto = await _api.updateGroup(
       id,
       name: name,
       subject: subject,
       description: description,
+      isPublic: isPublic,
     );
     return dto.toDomain();
   }
@@ -66,6 +70,10 @@ class GroupsRepositoryImpl implements GroupsRepository {
   @override
   Future<GroupPreview> previewGroup(String inviteCode) =>
       _api.previewGroup(inviteCode);
+
+  @override
+  Future<List<GroupPreview>> searchGroups(String query) =>
+      _api.searchGroups(query);
 
   @override
   Future<List<JoinRequest>> myJoinRequests() => _api.myJoinRequests();

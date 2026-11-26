@@ -12,6 +12,7 @@ class GroupDto {
     isArchived: json['is_archived'] as bool? ?? false,
     memberCount: json['member_count'] as int? ?? 0,
     createdAt: DateTime.parse(json['created_at'] as String),
+    isPublic: json['is_public'] as bool? ?? false,
   );
 
   const GroupDto({
@@ -24,6 +25,7 @@ class GroupDto {
     this.subject,
     this.description,
     this.memberCount = 0,
+    this.isPublic = false,
   });
 
   final String id;
@@ -35,6 +37,7 @@ class GroupDto {
   final bool isArchived;
   final int memberCount;
   final DateTime createdAt;
+  final bool isPublic;
 
   Group toDomain() => Group(
     id: id,
@@ -46,6 +49,7 @@ class GroupDto {
     isArchived: isArchived,
     memberCount: memberCount,
     createdAt: createdAt,
+    isPublic: isPublic,
   );
 }
 

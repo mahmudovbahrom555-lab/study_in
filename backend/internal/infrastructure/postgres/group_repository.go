@@ -24,8 +24,8 @@ func NewGroupRepository(db *sqlx.DB) groups.Repository {
 
 func (r *GroupRepository) CreateGroup(ctx context.Context, g *domain.Group) error {
 	query := `
-		INSERT INTO groups (id, teacher_id, name, subject, description, invite_code, is_archived, created_at, updated_at)
-		VALUES (:id, :teacher_id, :name, :subject, :description, :invite_code, :is_archived, :created_at, :updated_at)`
+		INSERT INTO groups (id, teacher_id, name, subject, description, invite_code, is_archived, is_public, created_at, updated_at)
+		VALUES (:id, :teacher_id, :name, :subject, :description, :invite_code, :is_archived, :is_public, :created_at, :updated_at)`
 	_, err := r.db.NamedExecContext(ctx, query, g)
 	if err != nil {
 		return fmt.Errorf("GroupRepository.CreateGroup: %w", err)
@@ -87,7 +87,7 @@ func (r *GroupRepository) UpdateGroup(ctx context.Context, g *domain.Group) erro
 	query := `
 		UPDATE groups
 		SET name=:name, subject=:subject, description=:description,
-		    is_archived=:is_archived, updated_at=:updated_at
+		    is_archived=:is_archived, is_public=:is_public, updated_at=:updated_at
 		WHERE id=:id AND deleted_at IS NULL`
 	_, err := r.db.NamedExecContext(ctx, query, g)
 	if err != nil {
@@ -204,6 +204,31 @@ func (r *GroupRepository) GetGroupPreviewByCode(ctx context.Context, code string
 		return nil, fmt.Errorf("GroupRepository.GetGroupPreviewByCode: %w", err)
 	}
 	return &p, nil
+}
+
+// SearchPublicGroups ищет открытые группы по названию или предмету (pattern —
+// готовый шаблон ILIKE, "" — не искать) или по @username репетитора.
+func (r *GroupRepository) SearchPublicGroups(ctx context.Context, pattern, username string, limit int) ([]*domain.GroupPreview, error) {
+	var out []*domain.GroupPreview
+	err := r.db.SelectContext(ctx, &out, `
+		SELECT g.id, g.name, g.subject, g.description, g.is_archived, g.invite_code,
+		       u.name AS teacher_name,
+		       u.username AS teacher_username,
+		       u.avatar_url AS teacher_avatar_url,
+		       u.avatar_preset AS teacher_avatar_preset,
+		       (SELECT COUNT(*) FROM group_members m WHERE m.group_id = g.id) AS member_count
+		FROM groups g
+		JOIN users u ON u.id = g.teacher_id
+		WHERE g.is_public AND NOT g.is_archived AND g.deleted_at IS NULL
+		  AND u.deleted_at IS NULL
+		  AND (($1 <> '' AND (g.name ILIKE $1 ESCAPE '\' OR g.subject ILIKE $1 ESCAPE '\'))
+		       OR ($2 <> '' AND u.username = $2))
+		ORDER BY g.created_at DESC
+		LIMIT $3`, pattern, username, limit)
+	if err != nil {
+		return nil, fmt.Errorf("GroupRepository.SearchPublicGroups: %w", err)
+	}
+	return out, nil
 }
 
 func (r *GroupRepository) UpsertJoinRequest(ctx context.Context, groupID, studentID uuid.UUID) (*domain.GroupJoinRequest, error) {

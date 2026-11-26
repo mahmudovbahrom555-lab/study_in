@@ -314,6 +314,40 @@ func TestUpdateMe_Language(t *testing.T) {
 	assert.Equal(t, "UNSUPPORTED_LANGUAGE", domErr.Code)
 }
 
+func TestUpdateMe_Username(t *testing.T) {
+	repo, smsMock := newMockRepo(), &mockSMS{}
+	svc := buildService(repo, smsMock, allowLimiter{})
+	teacher, student := domain.RoleTeacher, domain.RoleStudent
+	tPhone, sPhone := "+998901111111", "+998902222222"
+	repo.users[tPhone] = &domain.User{ID: uuid.New(), Phone: &tPhone, Role: &teacher, IsActive: true}
+	repo.users[sPhone] = &domain.User{ID: uuid.New(), Phone: &sPhone, Role: &student, IsActive: true}
+	ctx := context.Background()
+	code := func(err error) string {
+		var domErr *domain.Error
+		require.ErrorAs(t, err, &domErr)
+		return domErr.Code
+	}
+	str := func(s string) *string { return &s }
+
+	resp, err := svc.UpdateMe(ctx, repo.users[tPhone].ID, &auth.UpdateMeRequest{Username: str(" @Anna_Math ")})
+	require.NoError(t, err)
+	require.NotNil(t, resp.Username)
+	assert.Equal(t, "anna_math", *resp.Username)
+
+	_, err = svc.UpdateMe(ctx, repo.users[tPhone].ID, &auth.UpdateMeRequest{Username: str("1abc")})
+	assert.Equal(t, "INVALID_USERNAME", code(err))
+	_, err = svc.UpdateMe(ctx, repo.users[tPhone].ID, &auth.UpdateMeRequest{Username: str("анна")})
+	assert.Equal(t, "INVALID_USERNAME", code(err))
+
+	// Ученика (ребёнка) нельзя сделать находимым по имени.
+	_, err = svc.UpdateMe(ctx, repo.users[sPhone].ID, &auth.UpdateMeRequest{Username: str("kid_one")})
+	assert.Equal(t, "USERNAME_TEACHERS_ONLY", code(err))
+
+	resp, err = svc.UpdateMe(ctx, repo.users[tPhone].ID, &auth.UpdateMeRequest{Username: str("")})
+	require.NoError(t, err)
+	assert.Nil(t, resp.Username)
+}
+
 func TestRefresh_TokenRotation(t *testing.T) {
 	repo, smsMock := newMockRepo(), &mockSMS{}
 	svc := buildService(repo, smsMock, allowLimiter{})
