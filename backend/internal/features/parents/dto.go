@@ -113,3 +113,9 @@ func mapAll[T any, R any](in []*T, f func(*T) R) []R {
 	}
 	return out
 }
+
+// CreateLinkCodeRequest — invite: код для ссылки-приглашения родителю
+// (дольше живёт и длиннее), иначе обычный код на 24 часа.
+type CreateLinkCodeRequest struct {
+	Invite bool `json:"invite"`
+}

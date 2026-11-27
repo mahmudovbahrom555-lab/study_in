@@ -10,6 +10,8 @@ import '../../../auth/data/birth_year.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../groups/presentation/pages/groups_page.dart';
 import '../../../groups/presentation/pending_join.dart';
+import '../../../parents/presentation/parent_invite.dart';
+import '../../../parents/presentation/providers/parents_provider.dart';
 import '../../../notifications/presentation/providers/notifications_provider.dart';
 import '../../../parents/presentation/pages/parents_page.dart';
 import '../../../../core/localization/l10n.dart';
@@ -68,6 +70,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     if (birthYear != null && isChildBirthYear(birthYear)) {
       Future.microtask(() => ref.read(authProvider.notifier).markChild());
     }
+    final parentCode = pendingParentCode;
+    if (parentCode != null) {
+      pendingParentCode = null;
+      Future.microtask(() => _linkInvitedParent(parentCode));
+    }
     final code = pendingJoinCode;
     if (code != null) {
       pendingJoinCode = null;
@@ -75,6 +82,20 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         if (mounted) context.push(Routes.joinGroup(code));
       });
     }
+  }
+
+  /// Родитель открыл ссылку ребёнка: привязываем и показываем «Дети» —
+  /// там же ждут согласия заявки ребёнка в группы.
+  Future<void> _linkInvitedParent(String code) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
+    if (ref.read(authProvider).user?.role != 'parent') {
+      final text = l10n.parentInviteForParents;
+      messenger.showSnackBar(SnackBar(content: Text(text)));
+      return;
+    }
+    final err = await ref.read(childrenProvider.notifier).linkChildByCode(code);
+    messenger.showSnackBar(SnackBar(content: Text(err ?? l10n.childLinked)));
   }
 
   @override

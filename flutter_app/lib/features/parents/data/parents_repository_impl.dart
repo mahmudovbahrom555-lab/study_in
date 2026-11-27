@@ -17,8 +17,9 @@ class ParentsRepositoryImpl implements ParentsRepository {
   }
 
   @override
-  Future<({String code, DateTime expiresAt})> createLinkCode() =>
-      _api.createLinkCode();
+  Future<({String code, DateTime expiresAt})> createLinkCode({
+    bool invite = false,
+  }) => _api.createLinkCode(invite: invite);
 
   @override
   Future<void> unlinkChild(String studentId) => _api.unlinkChild(studentId);

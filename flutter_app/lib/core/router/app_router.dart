@@ -13,6 +13,7 @@ import '../../features/groups/presentation/pages/group_detail_page.dart';
 import '../../features/groups/presentation/pages/group_search_page.dart';
 import '../../features/groups/presentation/pages/join_group_page.dart';
 import '../../features/groups/presentation/pending_join.dart';
+import '../../features/parents/presentation/parent_invite.dart';
 import '../../features/quizzes/presentation/pages/quizzes_page.dart';
 import '../../features/quizzes/presentation/pages/quiz_detail_page.dart';
 import '../../features/quizzes/presentation/pages/quiz_attempt_page.dart';
@@ -51,6 +52,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         pendingJoinCode = state.pathParameters['code'];
         return Routes.splash;
       }
+      // Ссылка ученика для родителя: привяжем после входа.
+      if (loc.startsWith('/parent/')) {
+        pendingParentCode = state.pathParameters['code'];
+        return Routes.splash;
+      }
 
       if (isLoading) return null;
 
@@ -87,6 +93,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const ProfileSetupPage(),
       ),
       GoRoute(path: '/join/:code', builder: (_, __) => const SplashPage()),
+      GoRoute(path: '/parent/:code', builder: (_, __) => const SplashPage()),
       GoRoute(
         path: '/join-group/:code',
         builder: (_, state) =>

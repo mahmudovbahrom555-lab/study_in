@@ -46,6 +46,9 @@ class AppConfig {
   /// Ссылка, которую репетитор отправляет ученикам в мессенджере.
   static String joinLink(String inviteCode) => '$webUrl/#/join/$inviteCode';
 
+  /// Ссылка, которую ученик отправляет родителю: вход и сразу привязка.
+  static String parentInviteLink(String code) => '$webUrl/#/parent/$code';
+
   /// Версия политики, с которой человек соглашается на экране входа.
   /// Меняется вместе с текстом политики — сервер хранит её в журнале согласий.
   static const String privacyVersion = '2026-11-26';

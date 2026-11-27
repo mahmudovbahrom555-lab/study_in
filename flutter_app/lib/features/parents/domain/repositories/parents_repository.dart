@@ -8,7 +8,9 @@ abstract class ParentsRepository {
   Future<ParentLink> linkChildByCode(String code);
 
   /// Ученик: выдать код для привязки родителя (действует 24 часа).
-  Future<({String code, DateTime expiresAt})> createLinkCode();
+  Future<({String code, DateTime expiresAt})> createLinkCode({
+    bool invite = false,
+  });
   Future<void> unlinkChild(String studentId);
   Future<List<ParentLink>> listChildren();
   Future<List<Group>> childGroups(String studentId);
