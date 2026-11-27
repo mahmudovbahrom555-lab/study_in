@@ -145,7 +145,7 @@ func TestSendCode_Success(t *testing.T) {
 	repo, smsMock := newMockRepo(), &mockSMS{}
 	svc := buildService(repo, smsMock, allowLimiter{})
 
-	err := svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: "+998901234567"})
+	_, err := svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: "+998901234567"})
 
 	require.NoError(t, err)
 	assert.Len(t, smsMock.sent, 1)
@@ -155,7 +155,7 @@ func TestSendCode_RateLimited(t *testing.T) {
 	repo, smsMock := newMockRepo(), &mockSMS{}
 	svc := buildService(repo, smsMock, denyLimiter{})
 
-	err := svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: "+998901234567"})
+	_, err := svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: "+998901234567"})
 
 	assert.ErrorIs(t, err, domain.ErrRateLimit)
 	assert.Empty(t, smsMock.sent)
@@ -174,7 +174,7 @@ func TestVerify_RecordsPrivacyConsentForNewUserOnly(t *testing.T) {
 	svc := buildService(repo, smsMock, allowLimiter{}).WithConsentRecorder(consents)
 	phone := "+998901234567"
 	login := func() {
-		_ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
+		_, _ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
 		_, err := svc.Verify(context.Background(), &auth.VerifyRequest{
 			Phone: phone, Code: repo.codes[phone].Code,
 			PrivacyVersion: "2026-10-17", IP: "203.0.113.7", UserAgent: "MaMuLearn/0.1",
@@ -200,7 +200,7 @@ func TestVerify_NewUser(t *testing.T) {
 	svc := buildService(repo, smsMock, allowLimiter{})
 	phone := "+998901234567"
 
-	_ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
+	_, _ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
 	code := repo.codes[phone].Code
 
 	result, err := svc.Verify(context.Background(), &auth.VerifyRequest{Phone: phone, Code: code})
@@ -222,7 +222,7 @@ func TestVerify_ExistingUser(t *testing.T) {
 		Language: domain.LanguageUz, IsActive: true,
 	}
 
-	_ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
+	_, _ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
 	code := repo.codes[phone].Code
 	result, err := svc.Verify(context.Background(), &auth.VerifyRequest{Phone: phone, Code: code})
 
@@ -236,7 +236,7 @@ func TestVerify_WrongCode(t *testing.T) {
 	svc := buildService(repo, smsMock, allowLimiter{})
 	phone := "+998901234567"
 
-	_ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
+	_, _ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
 	_, err := svc.Verify(context.Background(), &auth.VerifyRequest{Phone: phone, Code: "000000"})
 
 	var domErr *domain.Error
@@ -249,7 +249,7 @@ func TestVerify_ExpiredCode(t *testing.T) {
 	svc := buildService(repo, smsMock, allowLimiter{})
 	phone := "+998901234567"
 
-	_ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
+	_, _ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
 	repo.codes[phone].ExpiresAt = time.Now().Add(-1 * time.Minute) // expire
 	code := repo.codes[phone].Code
 
@@ -265,7 +265,7 @@ func TestSetRole_Success(t *testing.T) {
 	svc := buildService(repo, smsMock, allowLimiter{})
 	phone := "+998901234567"
 
-	_ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
+	_, _ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
 	code := repo.codes[phone].Code
 	verifyResult, _ := svc.Verify(context.Background(), &auth.VerifyRequest{Phone: phone, Code: code})
 
@@ -373,12 +373,58 @@ func TestUpdateMe_IsChildOneWay(t *testing.T) {
 	assert.Equal(t, "CHILD_STUDENTS_ONLY", domErr.Code)
 }
 
+type fakeTelegram struct {
+	confirmed map[string]bool
+	sent      []string
+}
+
+func (f *fakeTelegram) SendCode(_ context.Context, phone, code string) (bool, error) {
+	if !f.confirmed[phone] {
+		return false, nil
+	}
+	f.sent = append(f.sent, code)
+	return true, nil
+}
+
+func TestSendCode_Telegram(t *testing.T) {
+	repo, smsMock := newMockRepo(), &mockSMS{}
+	tg := &fakeTelegram{confirmed: map[string]bool{"+998905555555": true}}
+	svc := buildService(repo, smsMock, allowLimiter{}).WithTelegram(tg, "https://t.me/MamuLearnBot")
+	ctx := context.Background()
+
+	resp, err := svc.SendCode(ctx, &auth.SendCodeRequest{Phone: "+998905555555", Channel: auth.ChannelTelegram})
+	require.NoError(t, err)
+	assert.True(t, resp.Delivered)
+	require.Len(t, tg.sent, 1)
+	assert.Empty(t, smsMock.sent, "по Telegram SMS не отправляется")
+
+	// Номер не подтверждён в боте: код сохранён, приложение откроет бота.
+	resp, err = svc.SendCode(ctx, &auth.SendCodeRequest{Phone: "+998906666666", Channel: auth.ChannelTelegram})
+	require.NoError(t, err)
+	assert.False(t, resp.Delivered)
+	assert.Equal(t, "https://t.me/MamuLearnBot", resp.BotURL)
+	assert.NotNil(t, repo.codes["+998906666666"])
+
+	// Код из бота входит так же, как из SMS.
+	_, err = svc.Verify(ctx, &auth.VerifyRequest{Phone: "+998905555555", Code: tg.sent[0]})
+	require.NoError(t, err)
+}
+
+func TestSendCode_TelegramDisabled(t *testing.T) {
+	repo, smsMock := newMockRepo(), &mockSMS{}
+	svc := buildService(repo, smsMock, allowLimiter{})
+	_, err := svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: "+998907777777", Channel: auth.ChannelTelegram})
+	var domErr *domain.Error
+	require.ErrorAs(t, err, &domErr)
+	assert.Equal(t, "TELEGRAM_UNAVAILABLE", domErr.Code)
+}
+
 func TestRefresh_TokenRotation(t *testing.T) {
 	repo, smsMock := newMockRepo(), &mockSMS{}
 	svc := buildService(repo, smsMock, allowLimiter{})
 	phone := "+998901234567"
 
-	_ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
+	_, _ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
 	code := repo.codes[phone].Code
 	first, _ := svc.Verify(context.Background(), &auth.VerifyRequest{Phone: phone, Code: code})
 
@@ -394,7 +440,7 @@ func TestRefresh_RevokedToken(t *testing.T) {
 	svc := buildService(repo, smsMock, allowLimiter{})
 	phone := "+998901234567"
 
-	_ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
+	_, _ = svc.SendCode(context.Background(), &auth.SendCodeRequest{Phone: phone})
 	code := repo.codes[phone].Code
 	first, _ := svc.Verify(context.Background(), &auth.VerifyRequest{Phone: phone, Code: code})
 

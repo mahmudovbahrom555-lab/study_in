@@ -35,6 +35,7 @@ import (
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/parents"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/quizzes"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/reports"
+	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/features/tgbot"
 	googleinfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/google"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/minio"
 	openaiinfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/openai"
@@ -42,6 +43,7 @@ import (
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/queue"
 	redisinfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/redis"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/sms"
+	telegraminfra "github.com/mahmudovbahrom555-lab/study_in/backend/internal/infrastructure/telegram"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/middleware"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/pkg/jwt"
 	"github.com/mahmudovbahrom555-lab/study_in/backend/internal/pkg/response"
@@ -132,6 +134,24 @@ func (s *Server) setupRouter() {
 		s.log.Warn("SMS_DEV_CODE enabled: fixed verification code for all phones (dev only)")
 	}
 	authHandler := auth.NewHandler(authService, jwtManager)
+
+	// Telegram-бот: коды входа бесплатно, вместо SMS.
+	var tgHandler *tgbot.Handler
+	if tc := s.cfg.Telegram; tc.BotToken != "" && tc.WebhookSecret != "" {
+		bot := telegraminfra.NewBot(tc.BotToken)
+		tgService := tgbot.NewService(postgres.NewTelegramRepository(s.db), bot, activeCodes{authRepo})
+		authService.WithTelegram(tgService, "https://t.me/"+tc.BotUsername)
+		tgHandler = tgbot.NewHandler(tgService, tc.WebhookSecret)
+		if tc.WebhookURL != "" {
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			if err := bot.SetWebhook(ctx, tc.WebhookURL, tc.WebhookSecret); err != nil {
+				s.log.Warn("telegram setWebhook failed", slog.String("error", err.Error()))
+			}
+			cancel()
+		}
+	} else {
+		s.log.Warn("TELEGRAM_BOT_TOKEN/TELEGRAM_WEBHOOK_SECRET not set: Telegram sign-in disabled")
+	}
 
 	// Чат класса (docs/design/CHAT.md). Рассылка через WebSocket — следующей частью.
 	s.chatSvc = chat.NewService(postgres.NewChatRepository(s.db), rateLimiter)
@@ -262,6 +282,9 @@ func (s *Server) setupRouter() {
 			Features:   s.cfg.App.Features,
 		}).RegisterRoutes(r)
 		authHandler.RegisterRoutes(r)
+		if tgHandler != nil {
+			tgHandler.RegisterRoutes(r)
+		}
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtManager))
@@ -347,6 +370,18 @@ func (s *Server) RunChatCleanup(ctx context.Context) {
 		case <-t.C:
 		}
 	}
+}
+
+// activeCodes отдаёт боту действующий код входа: если человек сначала
+// запросил код, а потом поделился номером в боте, бот пришлёт этот код.
+type activeCodes struct{ repo *postgres.AuthRepository }
+
+func (a activeCodes) ActiveCode(ctx context.Context, phone string) (string, bool, error) {
+	vc, err := a.repo.GetLatestVerificationCode(ctx, phone)
+	if err != nil || vc == nil || vc.Used || time.Now().After(vc.ExpiresAt) {
+		return "", false, err
+	}
+	return vc.Code, true, nil
 }
 
 // asyncSMSSender satisfies sms.Sender by enqueuing tasks via Asynq.

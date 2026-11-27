@@ -10,6 +10,21 @@ import (
 
 type SendCodeRequest struct {
 	Phone string `json:"phone" validate:"required,min=7,max=20"`
+	// "telegram" — код через бота MaMu Learn; пусто или "sms" — по SMS.
+	Channel string `json:"channel" validate:"omitempty,oneof=sms telegram"`
+}
+
+const (
+	ChannelSMS      = "sms"
+	ChannelTelegram = "telegram"
+)
+
+// SendCodeResponse — куда ушёл код. Delivered=false у Telegram: номер ещё не
+// подтверждён в боте — приложение откроет BotURL, бот пришлёт код после.
+type SendCodeResponse struct {
+	Channel   string `json:"channel"`
+	Delivered bool   `json:"delivered"`
+	BotURL    string `json:"bot_url,omitempty"`
 }
 
 type VerifyRequest struct {
