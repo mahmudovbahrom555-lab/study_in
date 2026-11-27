@@ -63,11 +63,12 @@ func (h *Handler) sendCode(w http.ResponseWriter, r *http.Request) {
 		response.ErrorWithDetails(w, domain.ErrValidation, validationDetails(err))
 		return
 	}
-	if err := h.service.SendCode(r.Context(), &req); err != nil {
+	resp, err := h.service.SendCode(r.Context(), &req)
+	if err != nil {
 		response.Error(w, err)
 		return
 	}
-	response.OK(w, map[string]string{"message": "Код отправлен"})
+	response.OK(w, resp)
 }
 
 func (h *Handler) verify(w http.ResponseWriter, r *http.Request) {

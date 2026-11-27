@@ -439,5 +439,9 @@
   "parentInviteText": "Hi! Please allow my classes in MaMu Learn: open the link and sign in as a parent — {link}",
   "@parentInviteText": {"placeholders": {"link": {"type": "String"}}},
   "parentInviteCopied": "Link copied — send it to your parent in a messenger. It works for 7 days.",
-  "parentInviteForParents": "This link is for a parent: sign in with a parent account to link to the child."
+  "parentInviteForParents": "This link is for a parent: sign in with a parent account to link to the child.",
+  "telegramSentTo": "We sent the code to Telegram for {phone} — in the MaMu Learn bot chat",
+  "@telegramSentTo": {"placeholders": {"phone": {"type": "String"}}},
+  "telegramOpenBotHint": "First time only: open the MaMu Learn bot in Telegram and tap «Send number». The code will come there right away.",
+  "telegramOpenBot": "Open Telegram"
 }

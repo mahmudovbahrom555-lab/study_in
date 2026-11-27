@@ -38,6 +38,20 @@ type Service struct {
 	consents ConsentRecorder
 	google   GoogleVerifier // nil — вход через Google выключен
 	avatars  AvatarStorage  // nil — загрузка фото выключена
+	telegram TelegramSender // nil — вход через Telegram-бота выключен
+	botURL   string         // https://t.me/<бот> — куда отправить, если номер не подтверждён
+}
+
+// TelegramSender присылает код входа через бота (модуль tgbot). false —
+// номер ещё не подтверждён в боте; код придёт, когда человек им поделится.
+type TelegramSender interface {
+	SendCode(ctx context.Context, phone, code string) (bool, error)
+}
+
+// WithTelegram включает коды входа через Telegram-бота (бесплатно, вместо SMS).
+func (s *Service) WithTelegram(t TelegramSender, botURL string) *Service {
+	s.telegram, s.botURL = t, botURL
+	return s
 }
 
 // WithAvatarStorage включает фото профиля.
@@ -82,30 +96,44 @@ func NewService(repo Repository, smsSender sms.Sender, jwtManager *jwt.Manager, 
 }
 
 // SendCode отправляет SMS с кодом подтверждения.
-func (s *Service) SendCode(ctx context.Context, req *SendCodeRequest) error {
+func (s *Service) SendCode(ctx context.Context, req *SendCodeRequest) (*SendCodeResponse, error) {
+	viaTelegram := req.Channel == ChannelTelegram
+	if viaTelegram && s.telegram == nil {
+		return nil, domain.NewError("TELEGRAM_UNAVAILABLE", "вход через Telegram не настроен", domain.ErrValidation)
+	}
 	key := fmt.Sprintf("sms:%s", req.Phone)
 	if err := s.limiter.Allow(ctx, key, smsRateLimit, smsRateWindow); err != nil {
-		return err
+		return nil, err
 	}
 
 	code := s.devCode
 	if code == "" {
 		var err error
 		if code, err = generateCode(codeLength); err != nil {
-			return fmt.Errorf("generate code: %w", err)
+			return nil, fmt.Errorf("generate code: %w", err)
 		}
 	}
 
 	expiresAt := time.Now().Add(codeTTL)
 	if err := s.repo.CreateVerificationCode(ctx, req.Phone, code, expiresAt); err != nil {
-		return fmt.Errorf("save code: %w", err)
+		return nil, fmt.Errorf("save code: %w", err)
+	}
+
+	if viaTelegram {
+		delivered, err := s.telegram.SendCode(ctx, req.Phone, code)
+		if err != nil {
+			return nil, fmt.Errorf("send telegram code: %w", err)
+		}
+		// Не доставлен — человек откроет бота, поделится номером, и бот
+		// пришлёт этот же код (он уже сохранён).
+		return &SendCodeResponse{Channel: ChannelTelegram, Delivered: delivered, BotURL: s.botURL}, nil
 	}
 
 	message := verificationMessage(code)
 	if err := s.sms.Send(ctx, req.Phone, message); err != nil {
-		return fmt.Errorf("send sms: %w", err)
+		return nil, fmt.Errorf("send sms: %w", err)
 	}
-	return nil
+	return &SendCodeResponse{Channel: ChannelSMS, Delivered: true}, nil
 }
 
 // Verify проверяет код и выдаёт токены. Создаёт пользователя при первом входе.

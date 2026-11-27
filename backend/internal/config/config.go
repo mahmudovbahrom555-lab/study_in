@@ -27,6 +27,16 @@ type Config struct {
 	AI       AIConfig
 	App      AppConfig
 	Google   GoogleConfig
+	Telegram TelegramConfig
+}
+
+// TelegramConfig — бот MaMu Learn: коды входа в Telegram вместо SMS.
+// Пустой BotToken — вход через Telegram выключен.
+type TelegramConfig struct {
+	BotToken      string // TELEGRAM_BOT_TOKEN — от @BotFather, только в .env.prod
+	BotUsername   string // TELEGRAM_BOT_USERNAME — без @, для ссылки t.me/<бот>
+	WebhookURL    string // TELEGRAM_WEBHOOK_URL — https://<api>/api/v1/telegram/webhook
+	WebhookSecret string // TELEGRAM_WEBHOOK_SECRET — случайная строка, генерируется на сервере
 }
 
 // GoogleConfig — вход через Google. Пустой ClientID — вход выключен.
@@ -234,6 +244,12 @@ func Load() (*Config, error) {
 		},
 		Google: GoogleConfig{
 			ClientID: v.GetString("GOOGLE_CLIENT_ID"),
+		},
+		Telegram: TelegramConfig{
+			BotToken:      v.GetString("TELEGRAM_BOT_TOKEN"),
+			BotUsername:   v.GetString("TELEGRAM_BOT_USERNAME"),
+			WebhookURL:    v.GetString("TELEGRAM_WEBHOOK_URL"),
+			WebhookSecret: v.GetString("TELEGRAM_WEBHOOK_SECRET"),
 		},
 	}
 

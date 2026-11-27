@@ -9,6 +9,7 @@ import '../../../../core/storage/secure_storage.dart';
 import '../../data/auth_api.dart';
 import '../../data/auth_repository_impl.dart';
 import '../../data/session_tabs.dart';
+import '../../domain/entities/send_code_result.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 
@@ -87,13 +88,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> sendCode(String phone) async {
+  /// Куда ушёл код; null — ошибка (текст в state.error).
+  Future<SendCodeResult?> sendCode(String phone) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await _repo.sendCode(phone);
+      final result = await _repo.sendCode(phone);
       state = state.copyWith(isLoading: false);
+      return result;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _message(e));
+      return null;
     }
   }
 

@@ -80,8 +80,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.verify,
         builder: (_, state) {
-          final phone = state.extra as String? ?? '';
-          return VerifyPage(phone: phone);
+          // Без аргументов (перезагрузка страницы) — на ввод телефона.
+          final args = state.extra;
+          if (args is! VerifyArgs) return const PhonePage();
+          return VerifyPage(phone: args.phone, sent: args.sent);
         },
       ),
       GoRoute(
