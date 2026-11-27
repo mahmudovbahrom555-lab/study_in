@@ -24,6 +24,9 @@ type memRepo struct {
 
 	// Последний поиск: шаблон и username, которые сервис передал в SQL.
 	searchPattern, searchUsername string
+
+	children map[uuid.UUID]bool               // ученики младше 13
+	parents  map[uuid.UUID][]domain.ParentRef // ученик → привязанные родители
 }
 
 func newMemRepo() *memRepo {
@@ -32,7 +35,43 @@ func newMemRepo() *memRepo {
 		members:  make(map[string]*domain.GroupMember),
 		bans:     make(map[string]bool),
 		requests: make(map[uuid.UUID]*domain.GroupJoinRequest),
+		children: make(map[uuid.UUID]bool),
+		parents:  make(map[uuid.UUID][]domain.ParentRef),
 	}
+}
+
+func (r *memRepo) GetApplicant(_ context.Context, studentID uuid.UUID) (*domain.Applicant, error) {
+	return &domain.Applicant{Name: "Kid", IsChild: r.children[studentID]}, nil
+}
+
+func (r *memRepo) ListParents(_ context.Context, studentID uuid.UUID) ([]domain.ParentRef, error) {
+	return r.parents[studentID], nil
+}
+
+func (r *memRepo) ListParentConsents(_ context.Context, parentID uuid.UUID) ([]*domain.ParentConsent, error) {
+	var out []*domain.ParentConsent
+	for _, jr := range r.requests {
+		for _, p := range r.parents[jr.StudentID] {
+			if p.ID == parentID && jr.Status == domain.JoinRequestParentPending {
+				out = append(out, &domain.ParentConsent{ID: jr.ID, StudentID: jr.StudentID, GroupID: jr.GroupID})
+			}
+		}
+	}
+	return out, nil
+}
+
+func (r *memRepo) DecideParentConsent(_ context.Context, requestID, parentID uuid.UUID, approve bool) (bool, error) {
+	jr := r.requests[requestID]
+	if jr == nil || jr.Status != domain.JoinRequestParentPending {
+		return false, nil
+	}
+	if approve {
+		jr.Status = domain.JoinRequestPending
+		jr.ApprovedByParent = &parentID
+	} else {
+		jr.Status = domain.JoinRequestDeclined
+	}
+	return true, nil
 }
 
 // SearchPublicGroups отдаёт открытые неархивные группы; сам шаблон ILIKE
@@ -57,15 +96,16 @@ func (r *memRepo) GetGroupPreviewByCode(_ context.Context, code string) (*domain
 	return nil, nil
 }
 
-func (r *memRepo) UpsertJoinRequest(_ context.Context, groupID, studentID uuid.UUID) (*domain.GroupJoinRequest, error) {
+func (r *memRepo) UpsertJoinRequest(_ context.Context, groupID, studentID uuid.UUID, status domain.JoinRequestStatus) (*domain.GroupJoinRequest, error) {
 	for _, jr := range r.requests {
 		if jr.GroupID == groupID && jr.StudentID == studentID {
-			jr.Status = domain.JoinRequestPending
+			jr.Status = status
+			jr.ApprovedByParent = nil
 			cp := *jr
 			return &cp, nil
 		}
 	}
-	jr := &domain.GroupJoinRequest{ID: uuid.New(), GroupID: groupID, StudentID: studentID, Status: domain.JoinRequestPending}
+	jr := &domain.GroupJoinRequest{ID: uuid.New(), GroupID: groupID, StudentID: studentID, Status: status}
 	r.requests[jr.ID] = jr
 	cp := *jr
 	return &cp, nil
@@ -93,7 +133,7 @@ func (r *memRepo) ListPendingJoinRequests(_ context.Context, groupID uuid.UUID) 
 func (r *memRepo) ListMyPendingJoinRequests(_ context.Context, studentID uuid.UUID) ([]*domain.MyJoinRequest, error) {
 	var out []*domain.MyJoinRequest
 	for _, jr := range r.requests {
-		if jr.StudentID == studentID && jr.Status == domain.JoinRequestPending {
+		if jr.StudentID == studentID && (jr.Status == domain.JoinRequestPending || jr.Status == domain.JoinRequestParentPending) {
 			out = append(out, &domain.MyJoinRequest{GroupJoinRequest: *jr, GroupName: r.groups[jr.GroupID].Name})
 		}
 	}
@@ -552,4 +592,112 @@ func TestSearchGroups_QueryShapes(t *testing.T) {
 	_, err = svc.SearchGroups(ctx, "ок")
 	require.NoError(t, err)
 	assert.Equal(t, "%ок%", repo.searchPattern)
+}
+
+// sentNote — уведомление, которое сервис отправил бы родителю.
+type sentNote struct {
+	to          uuid.UUID
+	title, body string
+}
+
+type memNotifier struct{ sent []sentNote }
+
+func (n *memNotifier) Send(_ context.Context, userID uuid.UUID, title, body string, _ any) error {
+	n.sent = append(n.sent, sentNote{userID, title, body})
+	return nil
+}
+
+func TestChildRequest_WaitsForParent(t *testing.T) {
+	repo := newMemRepo()
+	notes := &memNotifier{}
+	svc := groups.NewService(repo).WithNotifier(notes)
+	ctx := context.Background()
+	parentID := uuid.New()
+	repo.children[studentID] = true
+	repo.parents[studentID] = []domain.ParentRef{{ID: parentID, Language: domain.LanguageRu}}
+	g, _ := svc.CreateGroup(ctx, teacherID, groups.CreateGroupRequest{Name: "Math"})
+
+	jr, err := svc.JoinGroup(ctx, studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
+	require.NoError(t, err)
+	assert.Equal(t, domain.JoinRequestParentPending, jr.Status)
+	assert.True(t, jr.HasParent)
+	require.Len(t, notes.sent, 1)
+	assert.Equal(t, parentID, notes.sent[0].to)
+	assert.Contains(t, notes.sent[0].body, "Math")
+
+	// Репетитор заявку ещё не видит и принять её не может.
+	list, err := svc.ListJoinRequests(ctx, g.ID, teacherID)
+	require.NoError(t, err)
+	assert.Empty(t, list)
+	assert.ErrorIs(t, svc.DecideJoinRequest(ctx, g.ID, jr.ID, teacherID, true), domain.ErrConflict)
+
+	// Ученик видит свою заявку как ждущую родителя.
+	mine, err := svc.MyJoinRequests(ctx, studentID)
+	require.NoError(t, err)
+	require.Len(t, mine, 1)
+	assert.Equal(t, domain.JoinRequestParentPending, mine[0].Status)
+
+	consents, err := svc.ParentConsents(ctx, parentID)
+	require.NoError(t, err)
+	require.Len(t, consents, 1)
+
+	require.NoError(t, svc.DecideParentConsent(ctx, jr.ID, parentID, true))
+	list, err = svc.ListJoinRequests(ctx, g.ID, teacherID)
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	require.NoError(t, svc.DecideJoinRequest(ctx, g.ID, jr.ID, teacherID, true))
+
+	// Второе решение по той же заявке — уже рассмотрена.
+	err = svc.DecideParentConsent(ctx, jr.ID, parentID, false)
+	var de *domain.Error
+	require.ErrorAs(t, err, &de)
+	assert.Equal(t, "REQUEST_DECIDED", de.Code)
+}
+
+func TestChildRequest_WithoutParent(t *testing.T) {
+	repo := newMemRepo()
+	notes := &memNotifier{}
+	svc := groups.NewService(repo).WithNotifier(notes)
+	ctx := context.Background()
+	repo.children[studentID] = true
+	g, _ := svc.CreateGroup(ctx, teacherID, groups.CreateGroupRequest{Name: "Art"})
+
+	jr, err := svc.JoinGroup(ctx, studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
+	require.NoError(t, err)
+	assert.Equal(t, domain.JoinRequestParentPending, jr.Status)
+	assert.False(t, jr.HasParent, "приложение предложит позвать родителя")
+	assert.Empty(t, notes.sent)
+}
+
+func TestParentConsent_OnlyLinkedParent(t *testing.T) {
+	repo := newMemRepo()
+	svc := groups.NewService(repo)
+	ctx := context.Background()
+	repo.children[studentID] = true
+	repo.parents[studentID] = []domain.ParentRef{{ID: uuid.New()}}
+	g, _ := svc.CreateGroup(ctx, teacherID, groups.CreateGroupRequest{Name: "Bio"})
+	jr, _ := svc.JoinGroup(ctx, studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
+
+	stranger := uuid.New()
+	assert.ErrorIs(t, svc.DecideParentConsent(ctx, jr.ID, stranger, true), domain.ErrNotFound)
+	consents, err := svc.ParentConsents(ctx, stranger)
+	require.NoError(t, err)
+	assert.Empty(t, consents)
+}
+
+func TestParentConsent_DeclineStopsRequest(t *testing.T) {
+	repo := newMemRepo()
+	svc := groups.NewService(repo)
+	ctx := context.Background()
+	parentID := uuid.New()
+	repo.children[studentID] = true
+	repo.parents[studentID] = []domain.ParentRef{{ID: parentID}}
+	g, _ := svc.CreateGroup(ctx, teacherID, groups.CreateGroupRequest{Name: "Geo"})
+	jr, _ := svc.JoinGroup(ctx, studentID, groups.JoinGroupRequest{InviteCode: g.InviteCode})
+
+	require.NoError(t, svc.DecideParentConsent(ctx, jr.ID, parentID, false))
+	list, _ := svc.ListJoinRequests(ctx, g.ID, teacherID)
+	assert.Empty(t, list)
+	mine, _ := svc.MyJoinRequests(ctx, studentID)
+	assert.Empty(t, mine)
 }

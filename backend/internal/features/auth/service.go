@@ -348,6 +348,13 @@ func (s *Service) UpdateMe(ctx context.Context, userID uuid.UUID, req *UpdateMeR
 			return nil, err
 		}
 	}
+	// Только в одну сторону: иначе ребёнок сам убрал бы согласие родителя.
+	if req.IsChild != nil && *req.IsChild {
+		if user.Role == nil || *user.Role != domain.RoleStudent {
+			return nil, domain.NewError("CHILD_STUDENTS_ONLY", "only a student account can be marked as a child", domain.ErrForbidden)
+		}
+		user.IsChild = true
+	}
 	user.UpdatedAt = time.Now()
 
 	if err := s.repo.UpdateUser(ctx, user); err != nil {

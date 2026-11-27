@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -21,9 +22,21 @@ const safeAlphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 const inviteCodeLen = 8
 
 type Service struct {
-	repo    Repository
-	unread  UnreadCounter
-	avatars AvatarSigner
+	repo     Repository
+	unread   UnreadCounter
+	avatars  AvatarSigner
+	notifier Notifier
+}
+
+// Notifier — уведомления в приложении (модуль notifications).
+type Notifier interface {
+	Send(ctx context.Context, userID uuid.UUID, title, body string, data any) error
+}
+
+// WithNotifier включает уведомление родителя о заявке ребёнка.
+func (s *Service) WithNotifier(n Notifier) *Service {
+	s.notifier = n
+	return s
 }
 
 // UnreadCounter — непрочитанные сообщения чата по классам (модуль chat).
@@ -51,6 +64,8 @@ func (s *Service) WithUnread(u UnreadCounter) *Service {
 	s.unread = u
 	return s
 }
+
+var errRequestDecided = domain.NewError("REQUEST_DECIDED", "Заявка уже рассмотрена", domain.ErrConflict)
 
 var errBannedFromGroup = domain.NewError("BANNED_FROM_GROUP", "you were removed from this class", domain.ErrForbidden)
 
@@ -249,11 +264,94 @@ func (s *Service) JoinGroup(ctx context.Context, studentID uuid.UUID, req JoinGr
 		return nil, errBannedFromGroup
 	}
 
-	jr, err := s.repo.UpsertJoinRequest(ctx, g.ID, studentID)
+	applicant, err := s.repo.GetApplicant(ctx, studentID)
+	if err != nil {
+		return nil, fmt.Errorf("groups.JoinGroup applicant: %w", err)
+	}
+	// Ребёнка младше 13 в группу записывает родитель: заявка сначала ждёт его.
+	status := domain.JoinRequestPending
+	var parents []domain.ParentRef
+	if applicant.IsChild {
+		status = domain.JoinRequestParentPending
+		if parents, err = s.repo.ListParents(ctx, studentID); err != nil {
+			return nil, fmt.Errorf("groups.JoinGroup parents: %w", err)
+		}
+	}
+
+	jr, err := s.repo.UpsertJoinRequest(ctx, g.ID, studentID, status)
 	if err != nil {
 		return nil, fmt.Errorf("groups.JoinGroup request: %w", err)
 	}
-	return &JoinRequestResponse{ID: jr.ID, GroupID: g.ID, GroupName: g.Name, Status: jr.Status}, nil
+	if len(parents) > 0 {
+		s.notifyParents(ctx, parents, applicant.Name, g)
+	}
+	return &JoinRequestResponse{
+		ID: jr.ID, GroupID: g.ID, GroupName: g.Name, Status: jr.Status,
+		HasParent: len(parents) > 0,
+	}, nil
+}
+
+// notifyParents: ошибка уведомления не отменяет заявку — родитель увидит её
+// и в разделе «Дети».
+func (s *Service) notifyParents(ctx context.Context, parents []domain.ParentRef, child string, g *domain.Group) {
+	if s.notifier == nil {
+		return
+	}
+	teacher := ""
+	if p, err := s.repo.GetGroupPreviewByCode(ctx, g.InviteCode); err == nil && p != nil {
+		teacher = p.TeacherName
+	}
+	for _, p := range parents {
+		title, body := consentMessage(p.Language, child, g.Name, teacher)
+		_ = s.notifier.Send(ctx, p.ID, title, body, map[string]string{"type": "parent_consent"})
+	}
+}
+
+// ParentConsents — заявки детей, ждущие согласия этого родителя.
+func (s *Service) ParentConsents(ctx context.Context, parentID uuid.UUID) ([]ParentConsentItem, error) {
+	list, err := s.repo.ListParentConsents(ctx, parentID)
+	if err != nil {
+		return nil, fmt.Errorf("groups.ParentConsents: %w", err)
+	}
+	out := make([]ParentConsentItem, len(list))
+	for i, c := range list {
+		out[i] = ParentConsentItem{
+			ID: c.ID, StudentID: c.StudentID, StudentName: c.StudentName,
+			GroupID: c.GroupID, GroupName: c.GroupName, Subject: c.Subject,
+			TeacherName: c.TeacherName, CreatedAt: c.CreatedAt,
+		}
+	}
+	return out, nil
+}
+
+// DecideParentConsent — родитель разрешает (заявка уходит репетитору) или
+// отказывает. Решать может только привязанный к ребёнку родитель.
+func (s *Service) DecideParentConsent(ctx context.Context, requestID, parentID uuid.UUID, approve bool) error {
+	jr, err := s.repo.GetJoinRequest(ctx, requestID)
+	if err != nil {
+		return fmt.Errorf("groups.DecideParentConsent: %w", err)
+	}
+	if jr == nil {
+		return domain.ErrNotFound
+	}
+	parents, err := s.repo.ListParents(ctx, jr.StudentID)
+	if err != nil {
+		return fmt.Errorf("groups.DecideParentConsent parents: %w", err)
+	}
+	if !slices.ContainsFunc(parents, func(p domain.ParentRef) bool { return p.ID == parentID }) {
+		return domain.ErrNotFound // чужая заявка: не подтверждаем, что она есть
+	}
+	if jr.Status != domain.JoinRequestParentPending {
+		return errRequestDecided
+	}
+	ok, err := s.repo.DecideParentConsent(ctx, requestID, parentID, approve)
+	if err != nil {
+		return fmt.Errorf("groups.DecideParentConsent update: %w", err)
+	}
+	if !ok {
+		return errRequestDecided // второй родитель успел ответить раньше
+	}
+	return nil
 }
 
 // PreviewGroup — карточка группы по коду: показывается ученику до заявки.
@@ -343,6 +441,7 @@ func (s *Service) ListJoinRequests(ctx context.Context, groupID, teacherID uuid.
 			AvatarURL:    s.signAvatar(ctx, r.AvatarURL),
 			AvatarPreset: r.AvatarPreset,
 			CreatedAt:    r.CreatedAt,
+			ParentName:   r.ApprovedByParentName,
 		}
 	}
 	return out, nil
@@ -374,7 +473,7 @@ func (s *Service) DecideJoinRequest(ctx context.Context, groupID, requestID, tea
 		return domain.ErrNotFound
 	}
 	if jr.Status != domain.JoinRequestPending {
-		return domain.NewError("REQUEST_DECIDED", "Заявка уже рассмотрена", domain.ErrConflict)
+		return errRequestDecided
 	}
 	if !accept {
 		if err := s.repo.DeclineJoinRequest(ctx, requestID); err != nil {

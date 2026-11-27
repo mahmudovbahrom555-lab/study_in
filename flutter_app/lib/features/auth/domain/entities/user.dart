@@ -8,6 +8,7 @@ class User {
     this.avatarUrl,
     this.avatarPreset,
     this.username,
+    this.isChild = false,
     required this.language,
     required this.isActive,
   });
@@ -26,6 +27,9 @@ class User {
 
   /// @username репетитора (без @): по нему ученики находят его открытые группы.
   final String? username;
+
+  /// Младше 13 (по возрастному экрану): заявки в группы — с согласия родителя.
+  final bool isChild;
   final String language;
   final bool isActive;
 
@@ -49,6 +53,7 @@ class User {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       avatarPreset: avatarPreset,
       username: username,
+      isChild: isChild,
       language: language ?? this.language,
       isActive: isActive,
     );

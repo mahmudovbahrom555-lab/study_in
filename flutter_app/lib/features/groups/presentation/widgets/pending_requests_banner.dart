@@ -33,6 +33,9 @@ class PendingRequestsBanner extends ConsumerWidget {
                 dense: true,
                 leading: const Icon(LucideIcons.clock),
                 title: Text(r.groupName),
+                subtitle: r.waitsForParent
+                    ? Text(context.l10n.waitsParentShort)
+                    : null,
               ),
           ],
         ),

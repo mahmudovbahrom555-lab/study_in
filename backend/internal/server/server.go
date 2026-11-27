@@ -198,6 +198,7 @@ func (s *Server) setupRouter() {
 
 	notifRepo := postgres.NewNotificationRepository(s.db)
 	notifService := notifications.NewService(notifRepo, &pushEnqueuer{q: queueClient})
+	groupService.WithNotifier(notifService) // заявка ребёнка → родителю
 	notifHandler := notifications.NewHandler(notifService)
 
 	// ── AI layer ────────────────────────────────────────────────────────────────

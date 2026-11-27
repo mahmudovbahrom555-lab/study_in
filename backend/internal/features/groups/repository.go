@@ -30,9 +30,14 @@ type Repository interface {
 	IsBanned(ctx context.Context, groupID, userID uuid.UUID) (bool, error)
 
 	SearchPublicGroups(ctx context.Context, pattern, username string, limit int) ([]*domain.GroupPreview, error)
+	GetApplicant(ctx context.Context, studentID uuid.UUID) (*domain.Applicant, error)
+	ListParents(ctx context.Context, studentID uuid.UUID) ([]domain.ParentRef, error)
+	ListParentConsents(ctx context.Context, parentID uuid.UUID) ([]*domain.ParentConsent, error)
+	DecideParentConsent(ctx context.Context, requestID, parentID uuid.UUID, approve bool) (bool, error)
 	GetGroupPreviewByCode(ctx context.Context, code string) (*domain.GroupPreview, error)
-	// UpsertJoinRequest создаёт заявку или снова делает прежнюю ожидающей.
-	UpsertJoinRequest(ctx context.Context, groupID, studentID uuid.UUID) (*domain.GroupJoinRequest, error)
+	// UpsertJoinRequest создаёт заявку или снова делает прежнюю ожидающей
+	// (status — pending или parent_pending у ребёнка младше 13).
+	UpsertJoinRequest(ctx context.Context, groupID, studentID uuid.UUID, status domain.JoinRequestStatus) (*domain.GroupJoinRequest, error)
 	GetJoinRequest(ctx context.Context, id uuid.UUID) (*domain.GroupJoinRequest, error)
 	ListPendingJoinRequests(ctx context.Context, groupID uuid.UUID) ([]*domain.JoinRequestDetail, error)
 	ListMyPendingJoinRequests(ctx context.Context, studentID uuid.UUID) ([]*domain.MyJoinRequest, error)

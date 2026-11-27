@@ -348,6 +348,31 @@ func TestUpdateMe_Username(t *testing.T) {
 	assert.Nil(t, resp.Username)
 }
 
+func TestUpdateMe_IsChildOneWay(t *testing.T) {
+	repo, smsMock := newMockRepo(), &mockSMS{}
+	svc := buildService(repo, smsMock, allowLimiter{})
+	student, teacher := domain.RoleStudent, domain.RoleTeacher
+	sPhone, tPhone := "+998903333333", "+998904444444"
+	repo.users[sPhone] = &domain.User{ID: uuid.New(), Phone: &sPhone, Role: &student, IsActive: true}
+	repo.users[tPhone] = &domain.User{ID: uuid.New(), Phone: &tPhone, Role: &teacher, IsActive: true}
+	ctx := context.Background()
+	yes, no := true, false
+
+	resp, err := svc.UpdateMe(ctx, repo.users[sPhone].ID, &auth.UpdateMeRequest{IsChild: &yes})
+	require.NoError(t, err)
+	assert.True(t, resp.IsChild)
+
+	// Снять признак нельзя: иначе ребёнок обошёл бы согласие родителя.
+	resp, err = svc.UpdateMe(ctx, repo.users[sPhone].ID, &auth.UpdateMeRequest{IsChild: &no})
+	require.NoError(t, err)
+	assert.True(t, resp.IsChild)
+
+	_, err = svc.UpdateMe(ctx, repo.users[tPhone].ID, &auth.UpdateMeRequest{IsChild: &yes})
+	var domErr *domain.Error
+	require.ErrorAs(t, err, &domErr)
+	assert.Equal(t, "CHILD_STUDENTS_ONLY", domErr.Code)
+}
+
 func TestRefresh_TokenRotation(t *testing.T) {
 	repo, smsMock := newMockRepo(), &mockSMS{}
 	svc := buildService(repo, smsMock, allowLimiter{})

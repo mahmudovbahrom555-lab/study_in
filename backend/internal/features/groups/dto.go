@@ -100,6 +100,9 @@ type JoinRequestResponse struct {
 	GroupID   uuid.UUID                `json:"group_id"`
 	GroupName string                   `json:"group_name"`
 	Status    domain.JoinRequestStatus `json:"status"`
+	// У заявки ребёнка (parent_pending): привязан ли родитель, которого
+	// уведомили. false — приложение предлагает позвать родителя.
+	HasParent bool `json:"has_parent"`
 }
 
 // JoinRequestItem — заявка в списке репетитора.
@@ -110,6 +113,20 @@ type JoinRequestItem struct {
 	AvatarURL    *string   `json:"avatar_url"`
 	AvatarPreset *string   `json:"avatar_preset"`
 	CreatedAt    time.Time `json:"created_at"`
+	// Родитель, разрешивший заявку ребёнка младше 13.
+	ParentName *string `json:"approved_by_parent_name"`
+}
+
+// ParentConsentItem — заявка ребёнка, ждущая согласия родителя.
+type ParentConsentItem struct {
+	ID          uuid.UUID `json:"id"`
+	StudentID   uuid.UUID `json:"student_id"`
+	StudentName string    `json:"student_name"`
+	GroupID     uuid.UUID `json:"group_id"`
+	GroupName   string    `json:"group_name"`
+	Subject     *string   `json:"subject"`
+	TeacherName string    `json:"teacher_name"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // GroupPreviewResponse — карточка группы по ссылке, до вступления.

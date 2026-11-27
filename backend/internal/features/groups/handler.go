@@ -32,6 +32,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Post("/join", h.joinGroup)
 		r.Get("/preview/{code}", h.previewGroup)
 		r.Get("/search", h.searchGroups)
+		r.Get("/consents", h.parentConsents)
+		r.Post("/consents/{requestID}/approve", h.approveConsent)
+		r.Post("/consents/{requestID}/decline", h.declineConsent)
 		r.Get("/requests/mine", h.myJoinRequests)
 
 		r.Route("/{groupID}", func(r chi.Router) {
@@ -139,6 +142,45 @@ func (h *Handler) searchGroups(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// GET /groups/consents — заявки детей, ждущие согласия родителя.
+func (h *Handler) parentConsents(w http.ResponseWriter, r *http.Request) {
+	if apimw.RoleFromCtx(r.Context()) != domain.RoleParent {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "only parents")
+		return
+	}
+	resp, err := h.svc.ParentConsents(r.Context(), apimw.UserIDFromCtx(r.Context()))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (h *Handler) approveConsent(w http.ResponseWriter, r *http.Request) {
+	h.decideConsent(w, r, true)
+}
+
+func (h *Handler) declineConsent(w http.ResponseWriter, r *http.Request) {
+	h.decideConsent(w, r, false)
+}
+
+// POST /groups/consents/{requestID}/approve|decline — решение родителя.
+func (h *Handler) decideConsent(w http.ResponseWriter, r *http.Request, approve bool) {
+	if apimw.RoleFromCtx(r.Context()) != domain.RoleParent {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "only parents")
+		return
+	}
+	requestID, ok := parseUUID(w, chi.URLParam(r, "requestID"))
+	if !ok {
+		return
+	}
+	if err := h.svc.DecideParentConsent(r.Context(), requestID, apimw.UserIDFromCtx(r.Context()), approve); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // GET /groups/requests/mine — свои ожидающие заявки ученика.

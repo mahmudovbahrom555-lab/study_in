@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../core/widgets/brand_mark.dart';
 import '../../../../core/widgets/user_avatar.dart';
+import '../../../auth/data/birth_year.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../groups/presentation/pages/groups_page.dart';
 import '../../../groups/presentation/pending_join.dart';
@@ -63,6 +64,10 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(notificationsProvider.notifier).load());
+    final birthYear = ref.read(birthYearProvider);
+    if (birthYear != null && isChildBirthYear(birthYear)) {
+      Future.microtask(() => ref.read(authProvider.notifier).markChild());
+    }
     final code = pendingJoinCode;
     if (code != null) {
       pendingJoinCode = null;

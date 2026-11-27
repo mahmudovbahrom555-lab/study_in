@@ -23,7 +23,7 @@ class JoinGroupPage extends ConsumerStatefulWidget {
 
 class _JoinGroupPageState extends ConsumerState<JoinGroupPage> {
   bool _sending = false;
-  bool _sent = false;
+  JoinRequest? _sent;
 
   @override
   Widget build(BuildContext context) {
@@ -43,8 +43,11 @@ class _JoinGroupPageState extends ConsumerState<JoinGroupPage> {
             const SizedBox(height: 24),
             if (!isStudent)
               Text(context.l10n.joinOnlyStudents, textAlign: TextAlign.center)
-            else if (_sent)
-              Text(context.l10n.joinRequestSent, textAlign: TextAlign.center)
+            else if (_sent case final sent?)
+              Text(
+                joinRequestSentText(context, sent),
+                textAlign: TextAlign.center,
+              )
             else
               FilledButton(
                 onPressed: _sending ? null : () => _send(code),
@@ -65,9 +68,9 @@ class _JoinGroupPageState extends ConsumerState<JoinGroupPage> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _sending = true);
     try {
-      await ref.read(groupsRepositoryProvider).joinGroup(code);
+      final sent = await ref.read(groupsRepositoryProvider).joinGroup(code);
       ref.invalidate(myJoinRequestsProvider);
-      if (mounted) setState(() => _sent = true);
+      if (mounted) setState(() => _sent = sent);
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(userErrorMessage(e))));
     } finally {
@@ -139,4 +142,12 @@ class _Message extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Что сказать ученику после заявки: ребёнку младше 13 — что ждём родителя,
+/// а если родитель не привязан — как его позвать.
+String joinRequestSentText(BuildContext context, JoinRequest r) {
+  final l10n = context.l10n;
+  if (!r.waitsForParent) return l10n.joinRequestSent;
+  return r.hasParent ? l10n.joinWaitsParent : l10n.joinNeedsParent;
 }
