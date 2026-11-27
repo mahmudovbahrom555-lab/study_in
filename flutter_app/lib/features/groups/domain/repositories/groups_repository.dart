@@ -20,6 +20,7 @@ abstract class GroupsRepository {
   Future<void> deleteGroup(String id);
   Future<Group> archiveGroup(String id);
   Future<JoinRequest> joinGroup(String inviteCode);
+  Future<JoinRequest> enrollChild(String inviteCode, String studentId);
   Future<GroupPreview> previewGroup(String inviteCode);
   Future<List<GroupPreview>> searchGroups(String query);
   Future<List<JoinRequest>> myJoinRequests();

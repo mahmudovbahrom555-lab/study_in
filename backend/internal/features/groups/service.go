@@ -238,30 +238,9 @@ func (s *Service) DeleteGroup(ctx context.Context, id, teacherID uuid.UUID) erro
 // попадает, только когда репетитор примет заявку (решение владельцев,
 // 2026-11-26). Повторная заявка возвращает ту же ожидающую.
 func (s *Service) JoinGroup(ctx context.Context, studentID uuid.UUID, req JoinGroupRequest) (*JoinRequestResponse, error) {
-	g, err := s.repo.GetGroupByInviteCode(ctx, normalizeCode(req.InviteCode))
+	g, err := s.joinableGroup(ctx, req.InviteCode, studentID)
 	if err != nil {
-		return nil, fmt.Errorf("groups.JoinGroup lookup: %w", err)
-	}
-	if g == nil {
-		return nil, domain.ErrNotFound
-	}
-	if g.IsArchived {
-		return nil, domain.ErrForbidden
-	}
-
-	existing, err := s.repo.GetMember(ctx, g.ID, studentID)
-	if err != nil {
-		return nil, fmt.Errorf("groups.JoinGroup check member: %w", err)
-	}
-	if existing != nil {
-		return nil, domain.ErrAlreadyMember
-	}
-	banned, err := s.repo.IsBanned(ctx, g.ID, studentID)
-	if err != nil {
-		return nil, fmt.Errorf("groups.JoinGroup check ban: %w", err)
-	}
-	if banned {
-		return nil, errBannedFromGroup
+		return nil, err
 	}
 
 	applicant, err := s.repo.GetApplicant(ctx, studentID)
@@ -278,7 +257,7 @@ func (s *Service) JoinGroup(ctx context.Context, studentID uuid.UUID, req JoinGr
 		}
 	}
 
-	jr, err := s.repo.UpsertJoinRequest(ctx, g.ID, studentID, status)
+	jr, err := s.repo.UpsertJoinRequest(ctx, g.ID, studentID, status, nil)
 	if err != nil {
 		return nil, fmt.Errorf("groups.JoinGroup request: %w", err)
 	}
@@ -289,6 +268,59 @@ func (s *Service) JoinGroup(ctx context.Context, studentID uuid.UUID, req JoinGr
 		ID: jr.ID, GroupID: g.ID, GroupName: g.Name, Status: jr.Status,
 		HasParent: len(parents) > 0,
 	}, nil
+}
+
+// joinableGroup — группа по коду, если ученик может подать в неё заявку:
+// группа есть и не в архиве, ученик в ней не состоит и не исключён.
+func (s *Service) joinableGroup(ctx context.Context, code string, studentID uuid.UUID) (*domain.Group, error) {
+	g, err := s.repo.GetGroupByInviteCode(ctx, normalizeCode(code))
+	if err != nil {
+		return nil, fmt.Errorf("groups.joinableGroup lookup: %w", err)
+	}
+	if g == nil {
+		return nil, domain.ErrNotFound
+	}
+	if g.IsArchived {
+		return nil, domain.ErrForbidden
+	}
+
+	existing, err := s.repo.GetMember(ctx, g.ID, studentID)
+	if err != nil {
+		return nil, fmt.Errorf("groups.joinableGroup check member: %w", err)
+	}
+	if existing != nil {
+		return nil, domain.ErrAlreadyMember
+	}
+	banned, err := s.repo.IsBanned(ctx, g.ID, studentID)
+	if err != nil {
+		return nil, fmt.Errorf("groups.joinableGroup check ban: %w", err)
+	}
+	if banned {
+		return nil, errBannedFromGroup
+	}
+	return g, nil
+}
+
+// EnrollChild — родитель записывает своего ребёнка по ссылке или коду группы.
+// Согласие уже есть (заявку подал родитель), поэтому заявка сразу у репетитора
+// с пометкой, кто из родителей её подал.
+func (s *Service) EnrollChild(ctx context.Context, parentID uuid.UUID, req EnrollChildRequest) (*JoinRequestResponse, error) {
+	parents, err := s.repo.ListParents(ctx, req.StudentID)
+	if err != nil {
+		return nil, fmt.Errorf("groups.EnrollChild parents: %w", err)
+	}
+	if !slices.ContainsFunc(parents, func(p domain.ParentRef) bool { return p.ID == parentID }) {
+		return nil, domain.ErrNotFound // не свой ребёнок
+	}
+	g, err := s.joinableGroup(ctx, req.InviteCode, req.StudentID)
+	if err != nil {
+		return nil, err
+	}
+	jr, err := s.repo.UpsertJoinRequest(ctx, g.ID, req.StudentID, domain.JoinRequestPending, &parentID)
+	if err != nil {
+		return nil, fmt.Errorf("groups.EnrollChild request: %w", err)
+	}
+	return &JoinRequestResponse{ID: jr.ID, GroupID: g.ID, GroupName: g.Name, Status: jr.Status, HasParent: true}, nil
 }
 
 // notifyParents: ошибка уведомления не отменяет заявку — родитель увидит её

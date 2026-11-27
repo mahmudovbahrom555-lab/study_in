@@ -398,7 +398,7 @@
   "sendJoinRequest": "Send request",
   "joinRequestSent": "Request sent — wait for the tutor to accept it",
   "pendingJoinRequests": "Waiting for the tutor to accept",
-  "joinOnlyStudents": "Only a student can join a group. Sign in with a student account.",
+  "joinOnlyStudents": "A student can join a group, and a parent can enroll their child.",
   "groupTutor": "Tutor: {name}",
   "@groupTutor": {"placeholders": {"name": {"type": "String"}}},
   "groupStudentsCount": "Students: {count}",
@@ -428,6 +428,11 @@
   "joinWaitsParent": "Request sent. Your parent will get a notification — the tutor sees the request after they allow it.",
   "joinNeedsParent": "Request saved, but a parent must allow it. Ask a parent to sign in to MaMu and link to you: Account → Code for parent.",
   "waitsParentShort": "Waiting for a parent's consent",
-  "approvedByParent": "Allowed by parent: {name}",
-  "@approvedByParent": {"placeholders": {"name": {"type": "String"}}}
+  "approvedByParent": "Parent consent: {name}",
+  "@approvedByParent": {"placeholders": {"name": {"type": "String"}}},
+  "enrollChild": "Enroll {name}",
+  "@enrollChild": {"placeholders": {"name": {"type": "String"}}},
+  "enrollSent": "{name}: request sent to the tutor",
+  "@enrollSent": {"placeholders": {"name": {"type": "String"}}},
+  "enrollNoChildren": "Link your child first: Children → Add, with the code from the child's account."
 }

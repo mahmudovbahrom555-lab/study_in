@@ -96,16 +96,16 @@ func (r *memRepo) GetGroupPreviewByCode(_ context.Context, code string) (*domain
 	return nil, nil
 }
 
-func (r *memRepo) UpsertJoinRequest(_ context.Context, groupID, studentID uuid.UUID, status domain.JoinRequestStatus) (*domain.GroupJoinRequest, error) {
+func (r *memRepo) UpsertJoinRequest(_ context.Context, groupID, studentID uuid.UUID, status domain.JoinRequestStatus, approvedBy *uuid.UUID) (*domain.GroupJoinRequest, error) {
 	for _, jr := range r.requests {
 		if jr.GroupID == groupID && jr.StudentID == studentID {
 			jr.Status = status
-			jr.ApprovedByParent = nil
+			jr.ApprovedByParent = approvedBy
 			cp := *jr
 			return &cp, nil
 		}
 	}
-	jr := &domain.GroupJoinRequest{ID: uuid.New(), GroupID: groupID, StudentID: studentID, Status: status}
+	jr := &domain.GroupJoinRequest{ID: uuid.New(), GroupID: groupID, StudentID: studentID, Status: status, ApprovedByParent: approvedBy}
 	r.requests[jr.ID] = jr
 	cp := *jr
 	return &cp, nil
@@ -700,4 +700,40 @@ func TestParentConsent_DeclineStopsRequest(t *testing.T) {
 	assert.Empty(t, list)
 	mine, _ := svc.MyJoinRequests(ctx, studentID)
 	assert.Empty(t, mine)
+}
+
+func TestEnrollChild_ByLinkedParent(t *testing.T) {
+	repo := newMemRepo()
+	svc := groups.NewService(repo)
+	ctx := context.Background()
+	parentID := uuid.New()
+	repo.children[studentID] = true // младше 13 — согласие уже дал сам родитель
+	repo.parents[studentID] = []domain.ParentRef{{ID: parentID}}
+	g, _ := svc.CreateGroup(ctx, teacherID, groups.CreateGroupRequest{Name: "Math"})
+
+	jr, err := svc.EnrollChild(ctx, parentID, groups.EnrollChildRequest{InviteCode: g.InviteCode, StudentID: studentID})
+	require.NoError(t, err)
+	assert.Equal(t, domain.JoinRequestPending, jr.Status)
+	assert.Equal(t, parentID, *repo.requests[jr.ID].ApprovedByParent)
+
+	list, err := svc.ListJoinRequests(ctx, g.ID, teacherID)
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	require.NoError(t, svc.DecideJoinRequest(ctx, g.ID, jr.ID, teacherID, true))
+
+	// Уже в группе — повторно записать нельзя.
+	_, err = svc.EnrollChild(ctx, parentID, groups.EnrollChildRequest{InviteCode: g.InviteCode, StudentID: studentID})
+	assert.ErrorIs(t, err, domain.ErrAlreadyMember)
+}
+
+func TestEnrollChild_NotOwnChild(t *testing.T) {
+	repo := newMemRepo()
+	svc := groups.NewService(repo)
+	ctx := context.Background()
+	repo.parents[studentID] = []domain.ParentRef{{ID: uuid.New()}}
+	g, _ := svc.CreateGroup(ctx, teacherID, groups.CreateGroupRequest{Name: "Math"})
+
+	_, err := svc.EnrollChild(ctx, uuid.New(), groups.EnrollChildRequest{InviteCode: g.InviteCode, StudentID: studentID})
+	assert.ErrorIs(t, err, domain.ErrNotFound)
+	assert.Empty(t, repo.requests)
 }

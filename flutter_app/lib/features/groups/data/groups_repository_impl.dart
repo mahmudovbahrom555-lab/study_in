@@ -68,6 +68,10 @@ class GroupsRepositoryImpl implements GroupsRepository {
       _api.joinGroup(inviteCode);
 
   @override
+  Future<JoinRequest> enrollChild(String inviteCode, String studentId) =>
+      _api.enrollChild(inviteCode, studentId);
+
+  @override
   Future<GroupPreview> previewGroup(String inviteCode) =>
       _api.previewGroup(inviteCode);
 

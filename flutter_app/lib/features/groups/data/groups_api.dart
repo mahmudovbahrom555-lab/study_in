@@ -75,6 +75,15 @@ class GroupsApi {
     return joinRequestFromJson(resp.data!['data'] as Map<String, dynamic>);
   }
 
+  /// Родитель записывает своего ребёнка: заявка сразу у репетитора.
+  Future<JoinRequest> enrollChild(String inviteCode, String studentId) async {
+    final resp = await _dio.post<Map<String, dynamic>>(
+      '/groups/enroll',
+      data: {'invite_code': inviteCode, 'student_id': studentId},
+    );
+    return joinRequestFromJson(resp.data!['data'] as Map<String, dynamic>);
+  }
+
   Future<GroupPreview> previewGroup(String inviteCode) async {
     final resp = await _dio.get<Map<String, dynamic>>(
       '/groups/preview/$inviteCode',

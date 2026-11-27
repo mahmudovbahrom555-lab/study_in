@@ -36,8 +36,9 @@ type Repository interface {
 	DecideParentConsent(ctx context.Context, requestID, parentID uuid.UUID, approve bool) (bool, error)
 	GetGroupPreviewByCode(ctx context.Context, code string) (*domain.GroupPreview, error)
 	// UpsertJoinRequest создаёт заявку или снова делает прежнюю ожидающей
-	// (status — pending или parent_pending у ребёнка младше 13).
-	UpsertJoinRequest(ctx context.Context, groupID, studentID uuid.UUID, status domain.JoinRequestStatus) (*domain.GroupJoinRequest, error)
+	// (status — pending или parent_pending у ребёнка младше 13; approvedBy —
+	// родитель, если заявку подал или уже разрешил он).
+	UpsertJoinRequest(ctx context.Context, groupID, studentID uuid.UUID, status domain.JoinRequestStatus, approvedBy *uuid.UUID) (*domain.GroupJoinRequest, error)
 	GetJoinRequest(ctx context.Context, id uuid.UUID) (*domain.GroupJoinRequest, error)
 	ListPendingJoinRequests(ctx context.Context, groupID uuid.UUID) ([]*domain.JoinRequestDetail, error)
 	ListMyPendingJoinRequests(ctx context.Context, studentID uuid.UUID) ([]*domain.MyJoinRequest, error)
