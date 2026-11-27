@@ -155,7 +155,10 @@ class _PhonePageState extends ConsumerState<PhonePage> {
       _showError(error ?? context.l10n.errGeneric);
       return;
     }
-    context.push(Routes.verify, extra: VerifyArgs(phone: phone, sent: sent));
+    context.push(
+      Routes.verify,
+      extra: VerifyArgs(phone: phone, sent: sent),
+    );
   }
 
   @override
