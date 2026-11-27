@@ -138,7 +138,9 @@ class _ParentEnrollState extends ConsumerState<_ParentEnroll> {
                     textAlign: TextAlign.center,
                   )
                 : FilledButton(
-                    onPressed: _sending == null ? () => _enroll(c.studentId) : null,
+                    onPressed: _sending == null
+                        ? () => _enroll(c.studentId)
+                        : null,
                     child: Text(context.l10n.enrollChild(c.studentName)),
                   ),
           ),
