@@ -231,13 +231,13 @@ func (r *GroupRepository) SearchPublicGroups(ctx context.Context, pattern, usern
 	return out, nil
 }
 
-func (r *GroupRepository) UpsertJoinRequest(ctx context.Context, groupID, studentID uuid.UUID, status domain.JoinRequestStatus) (*domain.GroupJoinRequest, error) {
+func (r *GroupRepository) UpsertJoinRequest(ctx context.Context, groupID, studentID uuid.UUID, status domain.JoinRequestStatus, approvedBy *uuid.UUID) (*domain.GroupJoinRequest, error) {
 	var jr domain.GroupJoinRequest
 	err := r.db.GetContext(ctx, &jr, `
-		INSERT INTO group_join_requests (group_id, student_id, status) VALUES ($1, $2, $3)
+		INSERT INTO group_join_requests (group_id, student_id, status, approved_by_parent) VALUES ($1, $2, $3, $4)
 		ON CONFLICT (group_id, student_id) DO UPDATE
-		    SET status = $3, created_at = NOW(), decided_at = NULL, approved_by_parent = NULL
-		RETURNING *`, groupID, studentID, status)
+		    SET status = $3, created_at = NOW(), decided_at = NULL, approved_by_parent = $4
+		RETURNING *`, groupID, studentID, status, approvedBy)
 	if err != nil {
 		return nil, fmt.Errorf("GroupRepository.UpsertJoinRequest: %w", err)
 	}

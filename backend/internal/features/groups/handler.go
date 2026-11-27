@@ -30,6 +30,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Post("/", h.createGroup)
 		r.Get("/", h.listGroups)
 		r.Post("/join", h.joinGroup)
+		r.Post("/enroll", h.enrollChild)
 		r.Get("/preview/{code}", h.previewGroup)
 		r.Get("/search", h.searchGroups)
 		r.Get("/consents", h.parentConsents)
@@ -117,6 +118,29 @@ func (h *Handler) joinGroup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := h.svc.JoinGroup(r.Context(), callerID, req)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// POST /groups/enroll — родитель записывает своего ребёнка по коду группы.
+func (h *Handler) enrollChild(w http.ResponseWriter, r *http.Request) {
+	if apimw.RoleFromCtx(r.Context()) != domain.RoleParent {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "only parents can enroll a child")
+		return
+	}
+	var req EnrollChildRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid JSON")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		writeValidationError(w, err)
+		return
+	}
+	resp, err := h.svc.EnrollChild(r.Context(), apimw.UserIDFromCtx(r.Context()), req)
 	if err != nil {
 		writeServiceError(w, err)
 		return

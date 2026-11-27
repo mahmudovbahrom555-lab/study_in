@@ -7,6 +7,7 @@ import '../../../../core/network/error_message.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../core/widgets/user_avatar.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../parents/presentation/providers/parents_provider.dart';
 import '../../domain/entities/join_request.dart';
 import '../providers/groups_provider.dart';
 
@@ -29,7 +30,7 @@ class _JoinGroupPageState extends ConsumerState<JoinGroupPage> {
   Widget build(BuildContext context) {
     final code = widget.code.trim().toUpperCase();
     final preview = ref.watch(groupPreviewProvider(code));
-    final isStudent = ref.watch(authProvider).user?.role == 'student';
+    final role = ref.watch(authProvider).user?.role;
 
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.joinGroupTitle)),
@@ -41,7 +42,9 @@ class _JoinGroupPageState extends ConsumerState<JoinGroupPage> {
           children: [
             _PreviewCard(group: g),
             const SizedBox(height: 24),
-            if (!isStudent)
+            if (role == 'parent')
+              _ParentEnroll(code: code)
+            else if (role != 'student')
               Text(context.l10n.joinOnlyStudents, textAlign: TextAlign.center)
             else if (_sent case final sent?)
               Text(
@@ -76,6 +79,73 @@ class _JoinGroupPageState extends ConsumerState<JoinGroupPage> {
     } finally {
       if (mounted) setState(() => _sending = false);
     }
+  }
+}
+
+/// Родитель записывает своих привязанных детей: заявка сразу у репетитора,
+/// согласие родителя уже есть.
+class _ParentEnroll extends ConsumerStatefulWidget {
+  const _ParentEnroll({required this.code});
+
+  final String code;
+
+  @override
+  ConsumerState<_ParentEnroll> createState() => _ParentEnrollState();
+}
+
+class _ParentEnrollState extends ConsumerState<_ParentEnroll> {
+  final _sent = <String>{};
+  String? _sending;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(childrenProvider.notifier).load());
+  }
+
+  Future<void> _enroll(String studentId) async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _sending = studentId);
+    try {
+      final repo = ref.read(groupsRepositoryProvider);
+      await repo.enrollChild(widget.code, studentId);
+      if (mounted) setState(() => _sent.add(studentId));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(userErrorMessage(e))));
+    } finally {
+      if (mounted) setState(() => _sending = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(childrenProvider);
+    if (state.isLoading && state.children.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (state.children.isEmpty) {
+      return Text(context.l10n.enrollNoChildren, textAlign: TextAlign.center);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final c in state.children)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _sent.contains(c.studentId)
+                ? Text(
+                    context.l10n.enrollSent(c.studentName),
+                    textAlign: TextAlign.center,
+                  )
+                : FilledButton(
+                    onPressed: _sending == null
+                        ? () => _enroll(c.studentId)
+                        : null,
+                    child: Text(context.l10n.enrollChild(c.studentName)),
+                  ),
+          ),
+      ],
+    );
   }
 }
 

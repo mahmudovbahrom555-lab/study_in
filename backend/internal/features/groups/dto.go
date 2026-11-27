@@ -28,6 +28,12 @@ type JoinGroupRequest struct {
 	InviteCode string `json:"invite_code" validate:"required,min=4,max=10"`
 }
 
+// EnrollChildRequest — родитель записывает своего ребёнка в группу.
+type EnrollChildRequest struct {
+	InviteCode string    `json:"invite_code" validate:"required,min=4,max=10"`
+	StudentID  uuid.UUID `json:"student_id"  validate:"required"`
+}
+
 type UpdatePaymentRequest struct {
 	Status domain.PaymentStatus `json:"status" validate:"required,oneof=paid pending trial"`
 }
