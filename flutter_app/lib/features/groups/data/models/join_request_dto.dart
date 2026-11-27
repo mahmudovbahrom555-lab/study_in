@@ -17,14 +17,13 @@ JoinRequestItem joinRequestItemFromJson(Map<String, dynamic> json) =>
       parentName: json['approved_by_parent_name'] as String?,
     );
 
-ParentConsent parentConsentFromJson(Map<String, dynamic> json) =>
-    ParentConsent(
-      id: json['id'] as String,
-      studentName: json['student_name'] as String? ?? '',
-      groupName: json['group_name'] as String? ?? '',
-      teacherName: json['teacher_name'] as String? ?? '',
-      subject: json['subject'] as String?,
-    );
+ParentConsent parentConsentFromJson(Map<String, dynamic> json) => ParentConsent(
+  id: json['id'] as String,
+  studentName: json['student_name'] as String? ?? '',
+  groupName: json['group_name'] as String? ?? '',
+  teacherName: json['teacher_name'] as String? ?? '',
+  subject: json['subject'] as String?,
+);
 
 GroupPreview groupPreviewFromJson(Map<String, dynamic> json) => GroupPreview(
   id: json['id'] as String,

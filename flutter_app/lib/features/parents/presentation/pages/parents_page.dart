@@ -50,10 +50,7 @@ class _ParentsPageState extends ConsumerState<ParentsPage> {
             return const Center(child: CircularProgressIndicator());
           }
           if (state.error != null && state.children.isEmpty) {
-            return ErrorView(
-              message: state.error!,
-              onRetry: _reload,
-            );
+            return ErrorView(message: state.error!, onRetry: _reload);
           }
           if (state.children.isEmpty) {
             return Center(child: Text(context.l10n.noChildren));

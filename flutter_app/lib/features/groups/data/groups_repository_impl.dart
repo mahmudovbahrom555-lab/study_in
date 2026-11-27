@@ -79,10 +79,8 @@ class GroupsRepositoryImpl implements GroupsRepository {
   Future<List<ParentConsent>> parentConsents() => _api.parentConsents();
 
   @override
-  Future<void> decideParentConsent(
-    String requestId, {
-    required bool approve,
-  }) => _api.decideParentConsent(requestId, approve: approve);
+  Future<void> decideParentConsent(String requestId, {required bool approve}) =>
+      _api.decideParentConsent(requestId, approve: approve);
 
   @override
   Future<List<JoinRequest>> myJoinRequests() => _api.myJoinRequests();
