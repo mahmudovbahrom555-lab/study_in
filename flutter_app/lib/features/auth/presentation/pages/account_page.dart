@@ -11,6 +11,7 @@ import '../../../../core/localization/l10n.dart';
 import '../../../../core/localization/language_switcher.dart';
 import '../../../../core/network/error_message.dart';
 import '../../../groups/presentation/providers/groups_provider.dart';
+import '../../../parents/presentation/parent_invite.dart';
 import '../../../parents/presentation/providers/parents_provider.dart';
 import '../../../../core/widgets/user_avatar.dart';
 import '../providers/auth_provider.dart';
@@ -412,6 +413,11 @@ class _ParentCodeSectionState extends ConsumerState<_ParentCodeSection> {
           OutlinedButton(
             onPressed: _loading ? null : _generate,
             child: Text(code == null ? l10n.getCode : l10n.newCode),
+          ),
+          TextButton.icon(
+            icon: const Icon(LucideIcons.send, size: 18),
+            label: Text(l10n.sendParentInvite),
+            onPressed: () => copyParentInvite(context, ref),
           ),
         ],
       ),

@@ -7,6 +7,7 @@ import '../../../../core/network/error_message.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../core/widgets/user_avatar.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../parents/presentation/parent_invite.dart';
 import '../../../parents/presentation/providers/parents_provider.dart';
 import '../../domain/entities/join_request.dart';
 import '../providers/groups_provider.dart';
@@ -46,12 +47,20 @@ class _JoinGroupPageState extends ConsumerState<JoinGroupPage> {
               _ParentEnroll(code: code)
             else if (role != 'student')
               Text(context.l10n.joinOnlyStudents, textAlign: TextAlign.center)
-            else if (_sent case final sent?)
+            else if (_sent case final sent?) ...[
               Text(
                 joinRequestSentText(context, sent),
                 textAlign: TextAlign.center,
-              )
-            else
+              ),
+              // Ребёнку без привязанного родителя — сразу позвать его.
+              if (sent.waitsForParent && !sent.hasParent) ...[
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () => copyParentInvite(context, ref),
+                  child: Text(context.l10n.sendParentInvite),
+                ),
+              ],
+            ] else
               FilledButton(
                 onPressed: _sending ? null : () => _send(code),
                 child: Text(context.l10n.sendJoinRequest),

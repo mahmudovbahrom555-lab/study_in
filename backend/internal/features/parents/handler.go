@@ -54,7 +54,15 @@ func (h *Handler) createLinkCode(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusForbidden, "FORBIDDEN", "only students can issue a parent link code")
 		return
 	}
-	c, err := h.svc.CreateLinkCode(r.Context(), apimw.UserIDFromCtx(r.Context()))
+	// Тело необязательно: {"invite": true} — код для ссылки-приглашения.
+	var req CreateLinkCodeRequest
+	if r.ContentLength > 0 {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid JSON")
+			return
+		}
+	}
+	c, err := h.svc.CreateLinkCode(r.Context(), apimw.UserIDFromCtx(r.Context()), req.Invite)
 	if err != nil {
 		writeServiceError(w, err)
 		return

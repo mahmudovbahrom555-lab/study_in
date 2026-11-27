@@ -434,5 +434,10 @@
   "@enrollChild": {"placeholders": {"name": {"type": "String"}}},
   "enrollSent": "{name}: request sent to the tutor",
   "@enrollSent": {"placeholders": {"name": {"type": "String"}}},
-  "enrollNoChildren": "Link your child first: Children → Add, with the code from the child's account."
+  "enrollNoChildren": "Link your child first: Children → Add, with the code from the child's account.",
+  "sendParentInvite": "Send a link to a parent",
+  "parentInviteText": "Hi! Please allow my classes in MaMu Learn: open the link and sign in as a parent — {link}",
+  "@parentInviteText": {"placeholders": {"link": {"type": "String"}}},
+  "parentInviteCopied": "Link copied — send it to your parent in a messenger. It works for 7 days.",
+  "parentInviteForParents": "This link is for a parent: sign in with a parent account to link to the child."
 }

@@ -177,7 +177,7 @@ func TestChildGroups_LinkedParent(t *testing.T) {
 
 func TestCreateLinkCode_Format(t *testing.T) {
 	svc := buildSvc()
-	c, err := svc.CreateLinkCode(context.Background(), studentID)
+	c, err := svc.CreateLinkCode(context.Background(), studentID, false)
 	require.NoError(t, err)
 	assert.Len(t, c.Code, 6)
 	assert.Regexp(t, `^[2-9A-HJ-NP-Z]{6}$`, c.Code, "no ambiguous 0/O/1/I")
@@ -185,9 +185,22 @@ func TestCreateLinkCode_Format(t *testing.T) {
 	assert.WithinDuration(t, time.Now().Add(24*time.Hour), c.ExpiresAt, time.Minute)
 }
 
+func TestCreateLinkCode_InviteLivesAWeek(t *testing.T) {
+	svc := buildSvc()
+	c, err := svc.CreateLinkCode(context.Background(), studentID, true)
+	require.NoError(t, err)
+	assert.Regexp(t, `^[2-9A-HJ-NP-Z]{8}$`, c.Code)
+	assert.WithinDuration(t, time.Now().Add(7*24*time.Hour), c.ExpiresAt, time.Minute)
+
+	// По коду из ссылки родитель привязывается так же, как по обычному.
+	link, err := svc.LinkByCode(context.Background(), parentID, c.Code)
+	require.NoError(t, err)
+	assert.Equal(t, studentID, link.StudentID)
+}
+
 func TestLinkByCode_Success_NormalizesInput(t *testing.T) {
 	svc := buildSvc()
-	c, err := svc.CreateLinkCode(context.Background(), studentID)
+	c, err := svc.CreateLinkCode(context.Background(), studentID, false)
 	require.NoError(t, err)
 
 	// Родитель может ввести код строчными буквами и с пробелами.
@@ -216,7 +229,7 @@ func TestLinkByCode_ExpiredCode(t *testing.T) {
 
 func TestLinkByCode_SecondParentCanUseSameCode(t *testing.T) {
 	svc := buildSvc()
-	c, err := svc.CreateLinkCode(context.Background(), studentID)
+	c, err := svc.CreateLinkCode(context.Background(), studentID, false)
 	require.NoError(t, err)
 	_, err = svc.LinkByCode(context.Background(), parentID, c.Code)
 	require.NoError(t, err)

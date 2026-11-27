@@ -18,10 +18,14 @@ class ParentsApi {
     return ParentLinkDto.fromJson(resp.data!['data'] as Map<String, dynamic>);
   }
 
-  /// Ученик выдаёт код для привязки родителя.
-  Future<({String code, DateTime expiresAt})> createLinkCode() async {
+  /// Ученик выдаёт код для привязки родителя; [invite] — код для
+  /// ссылки-приглашения (7 дней вместо 24 часов).
+  Future<({String code, DateTime expiresAt})> createLinkCode({
+    bool invite = false,
+  }) async {
     final resp = await _dio.post<Map<String, dynamic>>(
       '/student/parent-link-code',
+      data: invite ? {'invite': true} : null,
     );
     final data = resp.data!['data'] as Map<String, dynamic>;
     return (
