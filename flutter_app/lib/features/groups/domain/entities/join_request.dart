@@ -8,14 +8,21 @@ class JoinRequest {
     required this.groupId,
     required this.groupName,
     required this.status,
+    this.hasParent = false,
   });
 
   final String id;
   final String groupId;
   final String groupName;
 
-  /// 'pending', 'accepted' или 'declined'.
+  /// 'parent_pending' (ребёнок младше 13: ждёт родителя), 'pending',
+  /// 'accepted' или 'declined'.
   final String status;
+
+  /// У заявки ребёнка: есть ли привязанный родитель, которого уведомили.
+  final bool hasParent;
+
+  bool get waitsForParent => status == 'parent_pending';
 }
 
 /// Заявка в списке репетитора.
@@ -26,12 +33,34 @@ class JoinRequestItem {
     required this.studentName,
     this.avatarUrl,
     this.avatarPreset,
+    this.parentName,
   });
 
   final String id;
   final String studentName;
   final String? avatarUrl;
   final String? avatarPreset;
+
+  /// Родитель, разрешивший заявку ребёнка младше 13.
+  final String? parentName;
+}
+
+/// Заявка ребёнка, которая ждёт согласия родителя.
+@immutable
+class ParentConsent {
+  const ParentConsent({
+    required this.id,
+    required this.studentName,
+    required this.groupName,
+    required this.teacherName,
+    this.subject,
+  });
+
+  final String id;
+  final String studentName;
+  final String groupName;
+  final String teacherName;
+  final String? subject;
 }
 
 /// Карточка группы по ссылке — что видит ученик до заявки. В поиске

@@ -10,6 +10,7 @@ class UserDto {
     this.avatarUrl,
     this.avatarPreset,
     this.username,
+    this.isChild = false,
     required this.language,
     required this.isActive,
   });
@@ -24,6 +25,7 @@ class UserDto {
       avatarUrl: json['avatar_url'] as String?,
       avatarPreset: json['avatar_preset'] as String?,
       username: json['username'] as String?,
+      isChild: (json['is_child'] as bool?) ?? false,
       language: (json['language'] as String?) ?? 'uz',
       isActive: (json['is_active'] as bool?) ?? true,
     );
@@ -37,6 +39,7 @@ class UserDto {
   final String? avatarUrl;
   final String? avatarPreset;
   final String? username;
+  final bool isChild;
   final String language;
   final bool isActive;
 
@@ -49,6 +52,7 @@ class UserDto {
     avatarUrl: avatarUrl,
     avatarPreset: avatarPreset,
     username: username,
+    isChild: isChild,
     language: language,
     isActive: isActive,
   );

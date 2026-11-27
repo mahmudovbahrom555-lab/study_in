@@ -94,6 +94,23 @@ class GroupsApi {
         .toList();
   }
 
+  /// Заявки детей, ждущие согласия родителя (вызывает родитель).
+  Future<List<ParentConsent>> parentConsents() async {
+    final resp = await _dio.get<Map<String, dynamic>>('/groups/consents');
+    final list = resp.data!['data'] as List<dynamic>? ?? const [];
+    return list
+        .map((e) => parentConsentFromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> decideParentConsent(
+    String requestId, {
+    required bool approve,
+  }) async {
+    final action = approve ? 'approve' : 'decline';
+    await _dio.post<void>('/groups/consents/$requestId/$action');
+  }
+
   Future<List<JoinRequest>> myJoinRequests() async {
     final resp = await _dio.get<Map<String, dynamic>>('/groups/requests/mine');
     final list = resp.data!['data'] as List<dynamic>? ?? const [];

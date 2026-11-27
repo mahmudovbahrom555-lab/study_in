@@ -223,6 +223,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Отмечает на сервере ученика младше 13 (по возрастному экрану на этом
+  /// устройстве): его заявки в группы будет разрешать родитель. Снять отметку
+  /// сервер не даёт. Ошибка не мешает — повторим при следующем входе.
+  Future<void> markChild() async {
+    final user = state.user;
+    if (user == null || !user.isStudent || user.isChild) return;
+    try {
+      final updated = await _repo.updateMe(isChild: true);
+      if (state.user?.id == updated.id) state = state.copyWith(user: updated);
+    } catch (e) {
+      debugPrint('mark child: $e');
+    }
+  }
+
   /// Тихо сохраняет язык интерфейса в профиле: по нему сервер выбирает язык
   /// push. Ошибка не мешает работе — повторим при следующем входе или смене языка.
   Future<void> syncLanguage(String language) async {

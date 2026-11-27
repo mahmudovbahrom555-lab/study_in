@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../pages/join_group_page.dart';
 import '../providers/groups_provider.dart';
 import '../../../../core/localization/l10n.dart';
 import '../../../../core/network/error_message.dart';
@@ -74,14 +75,15 @@ class _JoinGroupSheetState extends ConsumerState<JoinGroupSheet> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final messenger = ScaffoldMessenger.of(context);
-    final sent = context.l10n.joinRequestSent;
     final code = _codeCtrl.text.trim().toUpperCase();
     setState(() => _sending = true);
     try {
-      await ref.read(groupsRepositoryProvider).joinGroup(code);
+      final sent = await ref.read(groupsRepositoryProvider).joinGroup(code);
       ref.invalidate(myJoinRequestsProvider);
-      messenger.showSnackBar(SnackBar(content: Text(sent)));
-      if (mounted) Navigator.of(context).pop();
+      if (!mounted) return;
+      final text = joinRequestSentText(context, sent);
+      messenger.showSnackBar(SnackBar(content: Text(text)));
+      Navigator.of(context).pop();
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(userErrorMessage(e))));
       if (mounted) setState(() => _sending = false);

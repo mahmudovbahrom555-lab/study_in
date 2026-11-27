@@ -21,6 +21,7 @@ class _Repo extends Fake implements AuthRepository {
     String? name,
     String? language,
     String? username,
+    bool? isChild,
   }) async {
     sent.add(language!);
     return user = user.copyWith(language: language);

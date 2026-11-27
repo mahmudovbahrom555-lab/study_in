@@ -8,7 +8,9 @@ import '../../../attendance/presentation/pages/attendance_page.dart';
 import '../../../grades/presentation/pages/grades_page.dart';
 import '../../../reports/presentation/pages/parent_roi_page.dart';
 import '../../domain/entities/parent_link.dart';
+import '../../../groups/presentation/providers/groups_provider.dart';
 import '../providers/parents_provider.dart';
+import '../widgets/parent_consents_section.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../../../core/network/error_message.dart';
 import '../../../../core/localization/l10n.dart';
@@ -24,7 +26,12 @@ class _ParentsPageState extends ConsumerState<ParentsPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(childrenProvider.notifier).load());
+    Future.microtask(_reload);
+  }
+
+  Future<void> _reload() async {
+    ref.invalidate(parentConsentsProvider);
+    await ref.read(childrenProvider.notifier).load();
   }
 
   @override
@@ -45,18 +52,21 @@ class _ParentsPageState extends ConsumerState<ParentsPage> {
           if (state.error != null && state.children.isEmpty) {
             return ErrorView(
               message: state.error!,
-              onRetry: () => ref.read(childrenProvider.notifier).load(),
+              onRetry: _reload,
             );
           }
           if (state.children.isEmpty) {
             return Center(child: Text(context.l10n.noChildren));
           }
           return RefreshIndicator(
-            onRefresh: () => ref.read(childrenProvider.notifier).load(),
+            onRefresh: _reload,
             child: ListView.builder(
               padding: const EdgeInsets.all(12),
-              itemCount: state.children.length,
-              itemBuilder: (_, i) => _ChildCard(link: state.children[i]),
+              // Первым — заявки детей, ждущие согласия.
+              itemCount: state.children.length + 1,
+              itemBuilder: (_, i) => i == 0
+                  ? const ParentConsentsSection()
+                  : _ChildCard(link: state.children[i - 1]),
             ),
           );
         },

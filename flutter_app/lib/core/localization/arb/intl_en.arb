@@ -419,5 +419,15 @@
   "errBannedFromGroup": "The tutor has removed you from this group",
   "errRequestDecided": "This request has already been answered",
   "groupQr": "QR code",
-  "groupQrHint": "Show it to a student: they point the camera and send a join request."
+  "groupQrHint": "Show it to a student: they point the camera and send a join request.",
+  "consentsTitle": "Waiting for your consent",
+  "consentAsk": "{child} wants to join «{group}» with tutor {tutor}.",
+  "@consentAsk": {"placeholders": {"child": {"type": "String"}, "group": {"type": "String"}, "tutor": {"type": "String"}}},
+  "consentAllow": "Allow",
+  "consentDecline": "Decline",
+  "joinWaitsParent": "Request sent. Your parent will get a notification — the tutor sees the request after they allow it.",
+  "joinNeedsParent": "Request saved, but a parent must allow it. Ask a parent to sign in to MaMu and link to you: Account → Code for parent.",
+  "waitsParentShort": "Waiting for a parent's consent",
+  "approvedByParent": "Allowed by parent: {name}",
+  "@approvedByParent": {"placeholders": {"name": {"type": "String"}}}
 }

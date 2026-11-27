@@ -23,6 +23,8 @@ abstract class GroupsRepository {
   Future<GroupPreview> previewGroup(String inviteCode);
   Future<List<GroupPreview>> searchGroups(String query);
   Future<List<JoinRequest>> myJoinRequests();
+  Future<List<ParentConsent>> parentConsents();
+  Future<void> decideParentConsent(String requestId, {required bool approve});
   Future<List<JoinRequestItem>> listJoinRequests(String groupId);
   Future<void> decideJoinRequest(
     String groupId,

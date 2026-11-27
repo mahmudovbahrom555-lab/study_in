@@ -86,11 +86,13 @@ class AuthApi {
     String? name,
     String? language,
     String? username,
+    bool? isChild,
   }) async {
     final body = <String, dynamic>{
       if (name != null) 'name': name,
       if (language != null) 'language': language,
       if (username != null) 'username': username,
+      if (isChild != null) 'is_child': isChild,
     };
     final resp = await _dio.patch<Map<String, dynamic>>('/me', data: body);
     return UserDto.fromJson(resp.data!['data'] as Map<String, dynamic>);

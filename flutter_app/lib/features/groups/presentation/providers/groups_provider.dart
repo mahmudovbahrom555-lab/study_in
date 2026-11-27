@@ -154,6 +154,14 @@ final myJoinRequestsProvider = FutureProvider.autoDispose<List<JoinRequest>>((
   return repo.myJoinRequests();
 });
 
+/// Заявки детей, ждущие согласия родителя.
+final parentConsentsProvider = FutureProvider.autoDispose<List<ParentConsent>>((
+  ref,
+) {
+  final repo = ref.watch(groupsRepositoryProvider);
+  return repo.parentConsents();
+});
+
 /// Ожидающие заявки в группу (видит только её репетитор).
 final joinRequestsProvider = FutureProvider.autoDispose
     .family<List<JoinRequestItem>, String>((ref, groupId) {

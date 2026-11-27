@@ -82,11 +82,13 @@ class AuthRepositoryImpl implements AuthRepository {
     String? name,
     String? language,
     String? username,
+    bool? isChild,
   }) async {
     final dto = await _api.updateMe(
       name: name,
       language: language,
       username: username,
+      isChild: isChild,
     );
     return dto.toEntity();
   }

@@ -5,6 +5,7 @@ JoinRequest joinRequestFromJson(Map<String, dynamic> json) => JoinRequest(
   groupId: json['group_id'] as String,
   groupName: json['group_name'] as String? ?? '',
   status: json['status'] as String? ?? 'pending',
+  hasParent: json['has_parent'] as bool? ?? false,
 );
 
 JoinRequestItem joinRequestItemFromJson(Map<String, dynamic> json) =>
@@ -13,6 +14,16 @@ JoinRequestItem joinRequestItemFromJson(Map<String, dynamic> json) =>
       studentName: json['student_name'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String?,
       avatarPreset: json['avatar_preset'] as String?,
+      parentName: json['approved_by_parent_name'] as String?,
+    );
+
+ParentConsent parentConsentFromJson(Map<String, dynamic> json) =>
+    ParentConsent(
+      id: json['id'] as String,
+      studentName: json['student_name'] as String? ?? '',
+      groupName: json['group_name'] as String? ?? '',
+      teacherName: json['teacher_name'] as String? ?? '',
+      subject: json['subject'] as String?,
     );
 
 GroupPreview groupPreviewFromJson(Map<String, dynamic> json) => GroupPreview(

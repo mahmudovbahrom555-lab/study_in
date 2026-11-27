@@ -73,6 +73,9 @@ class _RequestTile extends StatelessWidget {
         avatarPreset: request.avatarPreset,
       ),
       title: Text(request.studentName),
+      subtitle: request.parentName == null
+          ? null
+          : Text(context.l10n.approvedByParent(request.parentName!)),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
