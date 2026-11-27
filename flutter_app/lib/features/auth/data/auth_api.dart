@@ -4,14 +4,28 @@ import 'package:dio/dio.dart';
 
 import '../../../core/config/app_config.dart';
 import 'models/user_dto.dart';
+import '../domain/entities/send_code_result.dart';
 
 class AuthApi {
   AuthApi(this._dio);
 
   final Dio _dio;
 
-  Future<void> sendCode(String phone) async {
-    await _dio.post<void>('/auth/send-code', data: {'phone': phone});
+  /// [channel]: 'telegram' — код через бота MaMu Learn, 'sms' — по SMS.
+  Future<SendCodeResult> sendCode(
+    String phone, {
+    required String channel,
+  }) async {
+    final resp = await _dio.post<Map<String, dynamic>>(
+      '/auth/send-code',
+      data: {'phone': phone, 'channel': channel},
+    );
+    final data = resp.data?['data'] as Map<String, dynamic>? ?? const {};
+    return SendCodeResult(
+      channel: data['channel'] as String? ?? channel,
+      delivered: data['delivered'] as bool? ?? true,
+      botUrl: data['bot_url'] as String?,
+    );
   }
 
   Future<AuthResponseDto> verify(

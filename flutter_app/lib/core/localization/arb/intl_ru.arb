@@ -388,5 +388,8 @@
   "sendParentInvite": "Отправить ссылку родителю",
   "parentInviteText": "Привет! Разреши мне заниматься в MaMu Learn: открой ссылку и войди как родитель — {link}",
   "parentInviteCopied": "Ссылка скопирована — отправьте её родителю в мессенджере. Она действует 7 дней.",
-  "parentInviteForParents": "Эта ссылка для родителя: войдите в аккаунт родителя, чтобы привязаться к ребёнку."
+  "parentInviteForParents": "Эта ссылка для родителя: войдите в аккаунт родителя, чтобы привязаться к ребёнку.",
+  "telegramSentTo": "Код для {phone} отправлен в Telegram — в чат с ботом MaMu Learn",
+  "telegramOpenBotHint": "Только в первый раз: откройте бота MaMu Learn в Telegram и нажмите «Отправить номер». Код сразу придёт туда.",
+  "telegramOpenBot": "Открыть Telegram"
 }

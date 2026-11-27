@@ -111,6 +111,11 @@ services:
       APP_MIN_VERSION: ${APP_MIN_VERSION:-0.0.0}
       APP_FEATURES: ${APP_FEATURES:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      # Telegram-бот: коды входа вместо SMS. Пустой токен — вход через бота выключен.
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      TELEGRAM_WEBHOOK_URL: ${TELEGRAM_WEBHOOK_URL:-}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_FORMAT: json
       AUTO_MIGRATE: "true"

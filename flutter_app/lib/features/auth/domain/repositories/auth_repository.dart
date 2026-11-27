@@ -1,9 +1,12 @@
 import 'dart:typed_data';
 
 import '../entities/user.dart';
+import '../entities/send_code_result.dart';
 
 abstract class AuthRepository {
-  Future<void> sendCode(String phone);
+  /// Код входа: сначала через Telegram-бота (бесплатно), а если на сервере
+  /// бот не настроен — по SMS.
+  Future<SendCodeResult> sendCode(String phone);
 
   Future<({String accessToken, String refreshToken, User user, bool isNewUser})>
   verify(String phone, String code, {String deviceInfo});

@@ -18,6 +18,7 @@ import '../providers/auth_provider.dart';
 import '../widgets/age_gate.dart';
 import '../widgets/google_button.dart';
 import '../widgets/phone_input.dart';
+import 'verify_page.dart';
 import '../../../../core/localization/l10n.dart';
 
 /// Согласие с политикой: вход = регистрация, поэтому согласие стоит здесь.
@@ -146,15 +147,15 @@ class _PhonePageState extends ConsumerState<PhonePage> {
     final phone = _phone.trim();
     if (phone.length < 9) return;
 
-    await ref.read(authProvider.notifier).sendCode(phone);
+    final sent = await ref.read(authProvider.notifier).sendCode(phone);
     if (!mounted) return;
 
     final error = ref.read(authProvider).error;
-    if (error != null) {
-      _showError(error);
+    if (error != null || sent == null) {
+      _showError(error ?? context.l10n.errGeneric);
       return;
     }
-    context.push(Routes.verify, extra: phone);
+    context.push(Routes.verify, extra: VerifyArgs(phone: phone, sent: sent));
   }
 
   @override

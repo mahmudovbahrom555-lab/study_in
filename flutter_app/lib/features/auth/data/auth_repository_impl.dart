@@ -1,6 +1,9 @@
 import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
+
 import '../../../core/storage/secure_storage.dart';
+import '../domain/entities/send_code_result.dart';
 import '../domain/entities/user.dart';
 import '../domain/repositories/auth_repository.dart';
 import 'auth_api.dart';
@@ -13,7 +16,22 @@ class AuthRepositoryImpl implements AuthRepository {
   final SecureStorage _storage;
 
   @override
-  Future<void> sendCode(String phone) => _api.sendCode(phone);
+  Future<SendCodeResult> sendCode(String phone) async {
+    try {
+      return await _api.sendCode(phone, channel: 'telegram');
+    } on DioException catch (e) {
+      if (_serverCode(e) != 'TELEGRAM_UNAVAILABLE') rethrow;
+      return _api.sendCode(phone, channel: 'sms');
+    }
+  }
+
+  static String? _serverCode(DioException e) {
+    final data = e.response?.data;
+    if (data is Map && data['error'] is Map) {
+      return (data['error'] as Map)['code'] as String?;
+    }
+    return null;
+  }
 
   @override
   Future<({String accessToken, String refreshToken, User user, bool isNewUser})>
