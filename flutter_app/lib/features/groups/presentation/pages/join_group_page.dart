@@ -60,8 +60,7 @@ class _JoinGroupPageState extends ConsumerState<JoinGroupPage> {
                   child: Text(context.l10n.sendParentInvite),
                 ),
               ],
-            ]
-            else
+            ] else
               FilledButton(
                 onPressed: _sending ? null : () => _send(code),
                 child: Text(context.l10n.sendJoinRequest),
